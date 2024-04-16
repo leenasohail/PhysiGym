@@ -1,0 +1,15 @@
+# python and build
+__pycache__/
+*.egg-info
+build
+dist
+
+# physicell and physicell studio
+empty.txt
+PhysiCell_settings-backup.xml
+studio_debug.log
+
+# physicellembedding
+physigym/custom_modules/LICENSE
+physigym/custom_modules/PHYSICELL
+physigym/custom_modules/VERSION.txt
