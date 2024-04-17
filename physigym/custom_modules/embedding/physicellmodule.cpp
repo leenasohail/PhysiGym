@@ -27,9 +27,9 @@
 #include <omp.h>
 
 // loade physicell libraries
-#include "../core/PhysiCell.h"
-#include "../modules/PhysiCell_standard_modules.h"
-#include "../custom_modules/custom.h"
+#include "../../core/PhysiCell.h"
+#include "../../modules/PhysiCell_standard_modules.h"
+#include "../../custom_modules/custom.h"
 
 // load namespace
 using namespace BioFVM;

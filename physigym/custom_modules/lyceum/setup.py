@@ -7,7 +7,7 @@
 # author: Alexandre Bertin
 #
 # description:
-#   Building a setuptools based python3 lycee python library.
+#   Building a setuptools based python3 lyceum python library.
 # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html
 #####
 
@@ -18,7 +18,7 @@ from setuptools import setup
 exec(open('./VERSION.txt').read())
 
 setup(
-    name="lycee",
+    name="lyceum",
     version=__version__,
     install_requires=[
         "gymnasium"

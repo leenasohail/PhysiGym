@@ -17,8 +17,8 @@ PROGRAM_NAME := project
 # compile the project
 
 all: main.cpp
-	pip install --upgrade --force-reinstall custom_modules/embedding .
-	pip install --editable custom_modules/gymnasium .
+	pip install --upgrade --force-reinstall custom_modules/embedding
+	pip install --editable custom_modules/lyceum
 	make python-instruction
 
 python-instruction:
@@ -233,7 +233,7 @@ reset:
 
 clean:
 	pip uninstall -y embedding
-	pip uninstall -y lycee
+	pip uninstall -y lyceum
 	pip uninstall -y UNKNOWN
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*
@@ -324,7 +324,7 @@ upgrade: $(SOURCE)
 # user projects
 
 # use: make command PROJ=your_project_name
-PROJ := py3pc_embed
+PROJ := physigym
 
 save:
 	echo "Saving project as $(PROJ) ... "
@@ -339,14 +339,14 @@ save:
 	cp ./config/* ./user_projects/$(PROJ)/config
 	rm -fr ./custom_modules/build
 	rm -fr ./custom_modules/embedding.egg-info
-	cp ./custom_modules/* ./user_projects/$(PROJ)/custom_modules
+	cp -r ./custom_modules/* ./user_projects/$(PROJ)/custom_modules
 
 load:
 	echo "Loading project from $(PROJ) ... "
 	cp ./user_projects/$(PROJ)/main.cpp .
 	cp ./user_projects/$(PROJ)/Makefile .
 	cp ./user_projects/$(PROJ)/config/* ./config/
-	cp ./user_projects/$(PROJ)/custom_modules/* ./custom_modules/
+	cp -r ./user_projects/$(PROJ)/custom_modules/* ./custom_modules/
 
 pack:
 	@echo " "
