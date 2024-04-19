@@ -46,6 +46,7 @@ class CorePhysiCellEnv(gymnasium.Env):
     # metadata
     metadata = {
         "render_modes": [None, "human", "rgb_array"],
+        "render_fps": None,
     }
 
 

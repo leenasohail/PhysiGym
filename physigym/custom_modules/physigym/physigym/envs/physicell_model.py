@@ -39,6 +39,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
     description:
     """
+    def __init__():
+        super(CorePhysiCellEnv, self).__init__()
+
     def _get_action_space(self):
         """
         description:
