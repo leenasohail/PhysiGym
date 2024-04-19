@@ -498,11 +498,38 @@ mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug conce
 write for physicell model, write a gym enviroment called PhysiCell-v0, making therefore use of the physigym/envs/ CorePhysiCell class
 
 
-Load the physicell model into a gymnasium environment.
+Load the physicell model into a gymnasium environment and run it.
+
 ```python
-import gymnasium as gym
+# load libraries
+import gymnasium
 import physigym
-env = gymnasium.make('lyceum/PhysiCell-v0')
+
+# episode initialization
+env = gymnasium.make('physigym/CorePhysiCell-v0', render_mode="human")
+d_observation, d_info = env.reset()
+
+# episode time step loop
+b_episode_over = False
+while not b_episode_over:
+    action = env.action_space.sample()  # agent policy that uses the observation and info
+    o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action)
+    b_episode_over = b_terminated or b_truncated
+
+# episode finishing
+env.close()
 ```
 
+```
+import gymnasium
+gymnasium.utils.env_checker.check_env
+
+gymnasium.utils.save_video.save_video
+
+gymnasium.utils.performance.benchmark_step
+gymnasium.utils.performance.benchmark_init
+gymnasium.utils.performance.benchmark_render
+
+
+```
 
