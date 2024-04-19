@@ -20,6 +20,7 @@
 
 # library
 from embedding import physicell
+from gymnasium import spaces
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import colors
@@ -39,7 +40,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
     description:
     """
-    def __init__():
+    def __ini__():
         super(CorePhysiCellEnv, self).__init__()
 
     def _get_action_space(self):
@@ -49,7 +50,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # processing
         action_space = spaces.Dict({
-            #'discrete': spaces.Discrete()  # boolean, string
+            'discrete': spaces.Discrete(2)  # boolean, string
             #'discrete': spaces.MultyBinary()  # boolean
             #'discrete': spaces.MultyDiscrete()  # string
             #'discrete': spaces.Text() # e.g. DNA letter
@@ -60,14 +61,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return action_space
 
 
-    def _get_observer_space(self):
+    def _get_observation_space(self):
         """
         description:
             + https://gymnasium.farama.org/main/api/spaces/
         """
         # processing
-        observer_space = spaces.Dict({
-            #'discrete': spaces.Discrete()  # boolean, string
+        observation_space = spaces.Dict({
+            'discrete': spaces.Discrete(2)  # boolean, string
             #'discrete': spaces.MultyBinary()  # boolean
             #'discrete': spaces.MultyDiscrete()  # string
             #'discrete': spaces.Text() # e.g. DNA letter
@@ -75,7 +76,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         })
 
         # output
-        return observer_space
+        return observation_space
 
 
     def _get_fig(self):
@@ -122,12 +123,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #df_cell.plot(
         #    kind='scatter', x='x', y='y', c='my_variable',
         #    xlim=[
-        #        self.config.update({'x_min': int(self.x_root.xpath('//domain/x_min')[0].text}),
-        #        self.config.update({'x_max': int(self.x_root.xpath('//domain/x_max')[0].text}),
-        #     ],
+        #        int(self.x_root.xpath('//domain/x_min')[0].text,
+        #        int(self.x_root.xpath('//domain/x_max')[0].text,
+        #    ],
         #    ylim=[
-        #        self.config.update({'y_min': int(self.x_root.xpath('//domain/y_min')[0].text}),
-        #        self.config.update({'y_max': int(self.x_root.xpath('//domain/y_max')[0].text}),
+        #        int(self.x_root.xpath('//domain/y_min')[0].text,
+        #        int(self.x_root.xpath('//domain/y_max')[0].text,
         #    ],
         #    vmin=0.0, vmax=1.0, cmap='viridis',
         #    grid=True,
@@ -140,7 +141,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         ################
 
         #plt.tight_layout()
-        #s_path = self.config.update({'output': self.x_root.xpath('//save/folder')[0].text})
+        #s_path = self.x_root.xpath('//save/folder')[0].text
         #fig.savefig(f'{s_path}/timeseries_step{str(self.iteration).zfill(3)}.jpeg', facecolor='white')
 
         # output
@@ -149,12 +150,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
     def _get_observation(self):
         """
+        output:
+            compatible with defined onbservation space!
         physicell.get_parameter()
         physicell.get_variable()
         physicell.get_vector()
         """
         # processing
-        o_observation = None
+        o_observation = {'discrete': [True, False]}
 
         # output
         return o_observation
@@ -191,7 +194,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # processing
         b_truncated = False
-        r_time_max = self.config.update({'max_time': self.x_root.xpath('//overall/max_time')[0].text})
+        r_time_max = float(self.x_root.xpath('//overall/max_time')[0].text)
         #r_time_current = physicell.get_parameter('time')
         #b_truncated = r_time_max >= r_time_current
 

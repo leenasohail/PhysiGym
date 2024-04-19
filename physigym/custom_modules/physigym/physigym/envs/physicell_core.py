@@ -21,12 +21,10 @@
 # library
 from embedding import physicell
 import gymnasium
-from gymnasium import spaces
 from IPython import display
 from lxml import etree
 import matplotlib.pyplot as plt
 import numpy as np
-from physigym import utils
 import sys
 
 
@@ -56,8 +54,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         sys.exit('_get_action_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_observer_space(self):
-        sys.exit('_get_observer_space function to be implemented in physigym.ModelPhysiCellEnv!')
+    def _get_observation_space(self):
+        sys.exit('_get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_fig(self):
@@ -121,7 +119,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # handle spaces
         self.action_space = self._get_action_space()
-        self.observer_space = self._get_observer_space()
+        self.observation_space = self._get_observation_space()
 
 
     def _render_frame(self):
@@ -167,7 +165,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return a_img
 
 
-    def reset(self, seed=-1, options=None):
+    def reset(self, seed=-1, options={}):
         """
         input:
             seed: integer or None
@@ -188,22 +186,20 @@ class CorePhysiCellEnv(gymnasium.Env):
             You may assume that the step method will not be called before reset has been called.
         """
         # seed self.np_random number generator
-        print('BUE', seed)
-        if (seed is None) or (seed >= 0) {
+        if (seed is None) or (seed >= 0):
             i_seed = seed
-        } else {
+        else:
             i_seed = int(self.x_root.xpath('//random_seed')[0].text)
-        }
-        super().reset(seed=seed)
+        super().reset(seed=i_seed)
 
         # initialize physcell model
         physicell.start()
 
         # observe domain
-        d_observation = self._get_obs()
+        o_observation = self._get_observation()
         d_info = self._get_info()
 
-        # rendering domain
+        # render domain
         self._render_frame()
 
         # output
@@ -239,7 +235,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self._render_frame()
 
         # do action
-        for s_action, o_value in d_action.items():
+        for s_action, o_value in action.items():
 
             # parameter action
             if type(o_value) in {bool, int, float, str}:
