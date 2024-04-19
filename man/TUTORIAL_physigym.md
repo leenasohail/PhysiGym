@@ -194,6 +194,8 @@ make data-cleanup
 
 ### 1. Gymnamsiym enviroment workaround
 
+
+
 ```bash
 sed -i 's/cp .\/user_projects\/$(PROJ)\/custom_modules\//cp -r .\/user_projects\/$(PROJ)\/custom_modules\//' ./Makefile
 make load PROJ=physigym
@@ -223,6 +225,7 @@ studio -p
 + User Params: delete parameters my_float, my_int, my_bool, my_str.
 + User Params: add a parameter drug_conc; Type double; Value 0.0; Units fraction.
 + User Params: add a parameter cell_count; Type int; Value 0; Unit dimensionless.
++ User Params: add a parameter time; Type double; Value 0.0; Units min.
 + Rules: drug increases apoptosis; Half-max 0.5; Saturation value: 1.0; Hill power 4; Add rule; Enable.
 + File / Save.
 + Studio / Quit.

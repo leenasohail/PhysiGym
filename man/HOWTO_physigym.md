@@ -14,11 +14,14 @@ python3 install_physigym.py
 3. If you are using environments, this is the time to activate the python3 environment in which you would like to run physigym.
 
 4. cd into the PhysiCell folder, reset PhysiCell, load, and compile the physigym project.
-This will install a python3 package named `embedding`.
+This will install two python3 modules the first one named `embedding`, the second one named `physigym`.
+
+Notice: the `sed` command is in PhysiCell <= 1.13\* is needed because the load command in these Makefiles does not allow custom modules packed in a folder structure, like these python modules are.
 ```bash
 cd ../PhysiCell
 make clean data-cleanup reset
 make list-user-projects
+sed -i 's/cp .\/user_projects\/$(PROJ)\/custom_modules\//cp -r .\/user_projects\/$(PROJ)\/custom_modules\//' ./Makefile
 make load PROJ=physigym
 make
 ```
@@ -53,7 +56,7 @@ exit()
 
 7. fetch and git
 ```bash
-python3 recall_py3pc_embedding.py
+python3 recall_physigym.py
 git status
 git diff
 ```

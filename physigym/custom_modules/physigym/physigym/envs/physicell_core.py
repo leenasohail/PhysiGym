@@ -1,5 +1,5 @@
 #####
-# title: lyceum/envs/physicell.py
+# title: pysigym/envs/physicell_core.py
 #
 # language: python3
 # library: gymnasium v1.0.0a1

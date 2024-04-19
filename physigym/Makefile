@@ -18,7 +18,7 @@ PROGRAM_NAME := project
 
 all: main.cpp
 	pip install --upgrade --force-reinstall custom_modules/embedding
-	pip install --editable custom_modules/lyceum
+	pip install --editable custom_modules/physigym
 	make python-instruction
 
 python-instruction:
@@ -233,7 +233,7 @@ reset:
 
 clean:
 	pip uninstall -y embedding
-	pip uninstall -y lyceum
+	pip uninstall -y physigym
 	pip uninstall -y UNKNOWN
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*

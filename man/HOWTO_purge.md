@@ -4,6 +4,6 @@
 ```bash
 cd PhysiCell
 make clean
-make data-cleanup  # optional
 make reset  # optional
+make data-cleanup  # optional
 ````

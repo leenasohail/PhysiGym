@@ -28,7 +28,7 @@ import sys
 
 # const
 s_prj = 'physigym'
-s_module = 'lyceum'
+s_module = 'physigym'
 
 
 # function
