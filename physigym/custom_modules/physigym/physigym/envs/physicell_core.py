@@ -27,6 +27,7 @@ from lxml import etree
 import matplotlib.pyplot as plt
 import numpy as np
 from physigym import utils
+import sys
 
 
 # function
@@ -51,44 +52,41 @@ class CorePhysiCellEnv(gymnasium.Env):
     ### begin dummy functions ###
 
     def _get_action_space(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_action_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_observer_space(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_observer_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_fig(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_fig function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_observation(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_observation function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_info(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_info function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_terminated(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_truncated(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_reward(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
+        sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
-
-    def _set_action(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
 
     ### end dummy functions ###
 
 
-    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8,6), verbose=True):
+    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode=None, verbose=True):
         """
         input:
 
@@ -189,8 +187,11 @@ class CorePhysiCellEnv(gymnasium.Env):
             You may assume that the step method will not be called before reset has been called.
         """
         # seed self.np_random number generator
-        if (seed < 0) {
-            seed = int(self.x_root.xpath('//random_seed')[0].text)
+        print('BUE', seed)
+        if (seed is None) or (seed >= 0) {
+            i_seed = seed
+        } else {
+            i_seed = int(self.x_root.xpath('//random_seed')[0].text)
         }
         super().reset(seed=seed)
 
@@ -212,7 +213,7 @@ class CorePhysiCellEnv(gymnasium.Env):
     def step(self, action):
         """
         input:
-            action:
+            action: dict
 
         output:
             o_observation: object
@@ -224,20 +225,38 @@ class CorePhysiCellEnv(gymnasium.Env):
         description:
             Perform a simulation step with the given action.
         """
-        # do observation
+        # get observation
         o_observation = self._get_observation()
         b_terminated = self._get_terminated()
-        b_truncated = self._get_truncated() <settingxml>
+        b_truncated = self._get_truncated()
         d_info = self._get_info()
 
         # get revard
         r_reward = self._get_reward()
 
-        # do action
-        self._set_action()
-
         # do rendering
         self._render_frame()
+
+        # do action
+        for s_action, o_value in d_action.items():
+
+            # parameter action
+            if type(o_value) in {bool, int, float, str}:
+                physicell.set_parameter(s_action, o_value)
+
+            elif type(o_value) in {list, tuple, set, np.array}:
+
+                # vector action
+                if type(o_value[0]) in {list, tuple, np.array}:
+                    physicell.set_vector(s_action, o_value)
+
+                # variable action
+                else:
+                    physicell.set_variable(s_action, o_value)
+
+            # error
+            else:
+                sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : {s_action} {type(o_value)} unknowen variable type detected!.")
 
         # output
         self.iteration += 1
@@ -246,165 +265,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     def close(self):
         """
+        description:
         """
         physicell.stop()
-
-
-
-# library
-import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib import colors
-import pandas as pd
-
-
-class ModelPhysiCellEnv(physigym.CorePhysiCellEnv):
-    """
-    input:
-        gymnasium.Env
-
-    offspring:
-        physigym.ModelPhysiCellEnv
-
-    description:
-    """
-    def _get_action_space(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
-
-
-    def _get_observer_space(self):
-        raise 'To be implemented in physigym.ModelPhysiCellEnv!'
-
-
-    def _get_fig(self):
-        """
-        description:
-            templare code to generate a matplotlib figure from the data.
-            physicell.get_microenv()
-            pjysicell.get_cell()
-        """
-        # model dependent logic to generate plot goes here!
-        fig, ax = plt.subplots(figsize=self.figsize)
-        #ax.axis('equal')
-
-        ##################
-        # substrate data #
-        ##################
-
-        #df_conc = pd.DataFrame(physicell.get_microenv('my_substrate'), columns=['x','y','z','my_substrate'])
-        #df_mesh = df_conc.pivot(index='y', columns='x', values='my_substrate')
-        #ax.contourf(
-        #    df_mesh.columns, df_mesh.index, df_mesh.values,
-        #    vmin=0.0, vmax=0.2, cmap='Reds',
-        #    #alpha=0.5,
-        #)
-
-        ######################
-        # substrate colorbar #
-        ######################
-
-        #fig.colorbar(
-        #    mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=1.0), cmap='Reds'),
-        #    label='my_substrate',
-        #    ax=ax,
-        #)
-
-        #############
-        # cell data #
-        #############
-
-        #df_cell = pd.DataFrame(physicell.get_cell(), columns=['ID', 'x','y', 'z'])
-        #df_variable = pd.DataFrame(physicell.get_variable("my_variable"), columns=['my_variable'])
-        #df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how='left')
-        #df_cell = df_cell.loc[df_cell.z == 0.0, c:]
-        #df_cell.plot(
-        #    kind='scatter', x='x', y='y', c='my_variable',
-        #    xlim=[
-        #        self.config.update({'x_min': int(self.x_root.xpath('//domain/x_min')[0].text}),
-        #        self.config.update({'x_max': int(self.x_root.xpath('//domain/x_max')[0].text}),
-        #     ],
-        #    ylim=[
-        #        self.config.update({'y_min': int(self.x_root.xpath('//domain/y_min')[0].text}),
-        #        self.config.update({'y_max': int(self.x_root.xpath('//domain/y_max')[0].text}),
-        #    ],
-        #    vmin=0.0, vmax=1.0, cmap='viridis',
-        #    grid=True,
-        #    title=None,
-        #    ax=ax,
-        #)
-
-        ################
-        # save to file #
-        ################
-
-        #plt.tight_layout()
-        #s_path = self.config.update({'output': self.x_root.xpath('//save/folder')[0].text})
-        #fig.savefig(f'{s_path}/timeseries_step{str(self.iteration).zfill(3)}.jpeg', facecolor='white')
-
-        # output
-        return fig
-
-
-    def _get_observation(self):
-        """
-        physicell.get_parameter()
-        physicell.get_variable()
-        physicell.get_vector()
-        """
-        o_observation = None
-
-
-        return o_observation
-
-
-    def _get_info(self):
-        """
-        """
-        d_info = {}
-        raise d_info
-
-
-    def _get_terminated(self):
-        """
-        """
-        b_terminated = False
-
-        # e.g. if exactely 128 cells
-
-        raise b_terminated
-
-
-    def _get_truncated(self):
-        """
-        note: your PhysiCell model have to have a numeric parameter time, that can be read out!
-        physicell.get_parameter('')
-        """
-        # processing
-        r_time_max = self.config.update({'max_time': self.x_root.xpath('//overall/max_time')[0].text})
-        #r_time_current = physicell.get_parameter('time')
-        b_truncated = r_time_max >= r_time_current
-
-        # output
-        return b_truncated
-
-
-    def _get_reward(self):
-        """
-        """
-        r_reward = 0.0
-
-        # e.g. how far I am away from 128
-
-        return r_reward
-
-
-    def _set_action(self):
-        """
-        physicell.set_parameter()
-        physicell.set_variable()
-        physicell.set_vector()
-        """
-
-        #physicell.set_parameter('drug', 0.1)
-        #physicell.set_parameter('drug', 0.0)
-
