@@ -148,6 +148,8 @@ class CorePhysiCellEnv(gymnasium.Env):
             possibly displays the image,
             and returns the image as numpy array.
         """
+        if self.verbose:
+            print(f'physigym: render frame.')
         a_img = None
         if not (self.render_mode is None):
 
@@ -174,7 +176,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         description:
 
         """
+        if self.verbose :
+            print(f'physigym: render time snap shot ...')
+
+        # processing
         a_img = self._render_frame()
+
+        # output
+        if self.verbose :
+            print(f'ok!')
         return a_img
 
 
@@ -202,6 +212,8 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f'physigym: reset epoche ...')
 
         # seed self.np_random number generator
+        if self.verbose:
+            print(f'physigym: seed random number generator.')
         if (seed is None) or (seed >= 0):
             i_seed = seed
         else:
@@ -209,10 +221,14 @@ class CorePhysiCellEnv(gymnasium.Env):
         super().reset(seed=i_seed)
 
         # initialize physcell model
+        if self.verbose:
+            print(f'physigym: declare PhysiCell model instance.')
         os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
         physicell.start()
 
         # observe domain
+        if self.verbose:
+            print(f'physigym: domain observation.')
         o_observation = self._get_observation()
         d_info = self._get_info()
 
@@ -245,6 +261,8 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f'physigym: do a dt_gym time step ...')
 
         # get observation
+        if self.verbose:
+            print(f'physigym: domain observation.')
         o_observation = self._get_observation()
         b_terminated = self._get_terminated()
         b_truncated = self._get_truncated()
@@ -257,6 +275,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         self._render_frame()
 
         # do action
+        if self.verbose:
+            print(f'physigym: action.')
         for s_action, o_value in action.items():
 
             # parameter action
@@ -278,6 +298,8 @@ class CorePhysiCellEnv(gymnasium.Env):
                 sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : {s_action} {type(o_value)} unknowen variable type detected!.")
 
         # do dt_gym time step
+        if self.verbose:
+            print(f'physigym: dt_gym PhysiCell model time step.')
         physicell.step()
 
         # output
@@ -292,9 +314,11 @@ class CorePhysiCellEnv(gymnasium.Env):
         description:
         """
         if self.verbose :
-            print(f'physigym: closure epoche ...')
+            print(f'physigym: epoche closure ...')
 
         # processing
+        if self.verbose:
+            print(f'physigym: shut down PhysiCell model run.')
         physicell.stop()
 
         # output
