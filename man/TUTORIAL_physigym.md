@@ -1,13 +1,6 @@
-# py3pc_embedding : Embedding PhysiCell into a Python module
+# physigym : Bridging PhysiCell and Gymnasium 
 
-Please install the latest version of the py3pc_embed user project, as described in the [HowTo](https://github.com/elmbeech/physicellembedding?tab=readme-ov-file#how-to-install-the-py3pc_embed-physicell-user-project) section.
-
-
-## Caution: there is no memory reset between PhysiCell runs!
-
-If you do more than one Physicell run in series, the PhysiCell variables will not reset.
-In the following section, we take a look at the problem and discuss some workarounds.
-In the near future, we will tackle this issue by the root and implement a proper reset function straight in PhysiCell, so that these workarounds no longer are needed.
+Please install the latest version of the physigym user project, as described in the [HowTo](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md) section.
 
 
 ### 1. In the Python3 REPL let's do a series of PhysiCell runs and study what happens ...
@@ -15,11 +8,25 @@ In the near future, we will tackle this issue by the root and implement a proper
 1.1 Do a minimal but complete PhysiCell run.
 
 ```python
-from embedding import physicell  # import the PhysiCell module
+import gymnasium
+import physigym  # import the Gymnasium PhysiCell bridge module
+``
 
-physicell.start()
-physicell.step()
-physicell.stop()
+List the registered gymnasium classes.
+in this listing you should find below the core classes, that ship with the basic installation, the just installed physigym/ModelPhysiCellEnv-v* gymnasium enviroment class.
+
+```python
+gymnasium.envs.pprint_registry()
+```
+
+Let's make an instance the ModelPhysiCellEnv class and do a manual physicell run.
+The output should look famililiar to PhysiCell users.
+```
+env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
+
+env.reset()  # initialize PhysiCell run
+env.step(action={})  # do one gymnasium time step (similar to mcds timestep)
+env.close()  # finalize PhysiCell run
 ```
 
 

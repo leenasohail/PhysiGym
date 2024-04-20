@@ -25,6 +25,7 @@ from IPython import display
 from lxml import etree
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import sys
 
 
@@ -101,25 +102,37 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         # handle verbose
         self.verbose = verbose
-
-        # handle render mode and figsize
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
-        self.render_mode = render_mode
-        self.figsize = figsize
+        if self.verbose:
+            print(f'physigym: initialize enviroment ...')
 
         # load physicell settings.xml file
         s_pathfile_settingxml = settingxml
         x_tree = etree.parse(s_pathfile_settingxml)
         if self.verbose:
-            print(f'reading: {s_pathfile_settingxml}')
+            print(f'physigym: reading {s_pathfile_settingxml}')
         self.x_root = x_tree.getroot()
 
         # initialize class whide variables
+        if self.verbose:
+            print(f'physigym: declare class instance wide variables.')
         self.iteration = None
 
+        # handle render mode and figsize
+        if self.verbose:
+            print(f'physigym: declare render settings.')
+        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        self.render_mode = render_mode
+        self.figsize = figsize
+
         # handle spaces
+        if self.verbose:
+            print(f'physigym: declare action and observer space.')
         self.action_space = self._get_action_space()
         self.observation_space = self._get_observation_space()
+
+        # output
+        if self.verbose:
+            print(f'physigym: ok!')
 
 
     def _render_frame(self):
@@ -185,6 +198,9 @@ class CorePhysiCellEnv(gymnasium.Env):
             The reset method will be called to initiate a new episode.
             You may assume that the step method will not be called before reset has been called.
         """
+        if self.verbose :
+            print(f'physigym: reset epoche ...')
+
         # seed self.np_random number generator
         if (seed is None) or (seed >= 0):
             i_seed = seed
@@ -193,6 +209,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         super().reset(seed=i_seed)
 
         # initialize physcell model
+        os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
         physicell.start()
 
         # observe domain
@@ -204,6 +221,8 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         self.iteration = 0
+        if self.verbose:
+            print(f'physigym: ok!')
         return o_observation, d_info
 
 
@@ -222,6 +241,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         description:
             Perform a simulation step with the given action.
         """
+        if self.verbose :
+            print(f'physigym: do a dt_gym time step ...')
+
         # get observation
         o_observation = self._get_observation()
         b_terminated = self._get_terminated()
@@ -255,8 +277,13 @@ class CorePhysiCellEnv(gymnasium.Env):
             else:
                 sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : {s_action} {type(o_value)} unknowen variable type detected!.")
 
+        # do dt_gym time step
+        physicell.step()
+
         # output
         self.iteration += 1
+        if self.verbose:
+            print(f'physigym: ok!')
         return o_observation, r_reward, b_terminated, b_truncated, d_info
 
 
@@ -264,4 +291,25 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         description:
         """
+        if self.verbose :
+            print(f'physigym: closure epoche ...')
+
+        # processing
         physicell.stop()
+
+        # output
+        if self.verbose:
+            print(f'physigym: ok!')
+
+
+    def verbose_true(self):
+        """
+        """
+        self.verbose = True
+
+
+    def verbose_false(self):
+        """
+        """
+        self.verbose = False
+

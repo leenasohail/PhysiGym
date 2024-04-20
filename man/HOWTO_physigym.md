@@ -1,4 +1,4 @@
-## How to install the py3pc_embed PhysiCell user project
+## How to install the physigym PhysiCell user project
 
 1. Download this repository in the same folder where your PhysiCell is installed, right next to the PhysiCell folder, not into it!
 ```bash

@@ -9,7 +9,7 @@ empty.txt
 PhysiCell_settings-backup.xml
 studio_debug.log
 
-# physicellembedding
+# physicellembedding and physigym
 physigym/custom_modules/LICENSE
 physigym/custom_modules/PHYSICELL
 physigym/custom_modules/physigym/VERSION.txt
