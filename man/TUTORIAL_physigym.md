@@ -10,6 +10,7 @@ Please install the latest version of the physigym user project, as described in 
 ```python
 import gymnasium
 import physigym  # import the Gymnasium PhysiCell bridge module
+import subprocess  # needed to run more than one epoch
 ``
 
 List the registered gymnasium classes.
@@ -21,12 +22,43 @@ gymnasium.envs.pprint_registry()
 
 Let's make an instance the ModelPhysiCellEnv class and do a manual physicell run.
 The output should look famililiar to PhysiCell users.
-```
+```python
 env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
 
 env.reset()  # initialize PhysiCell run
 env.step(action={})  # do one gymnasium time step (similar to mcds timestep)
 env.close()  # finalize PhysiCell run
+```
+
+```python
+import subprocess  # needed to run more than one epoch
+
+s_code = b"""
+import gymnasium
+import physigym
+
+env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
+
+env.reset()
+env.step(action={})
+env.close()
+"""
+
+env = gym.wrappers.RecordEpisodeStatistics(env, deque_size=n_episodes)
+
+for episode in tqdm(range(n_episodes)):
+    obs, info = env.reset()
+    done = False
+
+
+for i in range(8):
+    p = subprocess.Popen(['python3'], stdin=subprocess.PIPE)
+    p.stdin.write(s_code)
+    p.stdin.close()
+    p.communicate()
+
+    shutil.move('output', f'output{str(i).zfill(3)}')
+    os.makedirs('output', exist_ok=True)
 ```
 
 

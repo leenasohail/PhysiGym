@@ -14,6 +14,29 @@
 VERSION := $(shell grep . VERSION.txt | cut -f1 -d:)
 PROGRAM_NAME := project
 
+CC := g++
+ifdef PHYSICELL_CPP
+	CC := $(PHYSICELL_CPP)
+endif
+
+ARCH := native
+
+CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+
+ifeq ($(OS),Windows_NT)
+	UNAME_S := Windows_NT
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Darwin)
+		UNAME_P := $(shell uname -p)
+		var := $(shell which $(CC) | xargs file)
+		ifeq ($(lastword $(var)),arm64)
+			CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11
+		endif
+	endif
+endif
+
+
 # compile the project
 
 all: main.cpp
@@ -53,28 +76,6 @@ python-instruction:
 
 ### BEGIN make classic related compiler infromation
 ### ACHTUNG: for py3pc embedding this content was ported to custom_modules/setup.py!
-
-CC := g++
-ifdef PHYSICELL_CPP
-	CC := $(PHYSICELL_CPP)
-endif
-
-ARCH := native
-
-CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
-
-ifeq ($(OS),Windows_NT)
-	UNAME_S := Windows_NT
-else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Darwin)
-		UNAME_P := $(shell uname -p)
-		var := $(shell which $(CC) | xargs file)
-		ifeq ($(lastword $(var)),arm64)
-			CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11
-		endif
-	endif
-endif
 
 COMPILE_COMMAND := $(CC) $(CFLAGS)
 
@@ -235,6 +236,12 @@ clean:
 	pip uninstall -y embedding
 	pip uninstall -y physigym
 	pip uninstall -y UNKNOWN
+	rm -fr ./custom_modules/embedding/BioFVM
+	rm -fr ./custom_modules/embedding/build
+	rm -fr ./custom_modules/embedding/core
+	rm -fr ./custom_modules/embedding/custom_modules
+	rm -fr ./custom_modules/embedding/embedding.egg-info
+	rm -fr ./custom_modules/embedding/modules
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*
 
