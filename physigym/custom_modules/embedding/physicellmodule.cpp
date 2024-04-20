@@ -137,6 +137,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
 
 // extended python3 C++ function step
+bool action = false;
 static PyObject* physicell_step(PyObject *self, PyObject *args) {
     // main loop
 
@@ -144,8 +145,9 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
     //try {
 
         // set time variables
-        double custom_dt = 60; // min
-        double custom_countdown = custom_dt;
+        // achtung : begin physigym specific implementation!
+        double custom_countdown = parameters.doubles("dt_gym");  // [min]
+        // achtung : end physigym specific implementation!
         double phenotype_countdown = phenotype_dt;
         double mechanics_countdown = mechanics_dt;
 
@@ -186,13 +188,82 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 }
             }
 
+            // do action
+            if (action) {
+
+                // achtung : begin physigym specific implementation!
+                std::cout << "processing action block ... " << std::endl;
+                action = false;
+                // achtung : end physigym specific implementation!
+
+                // Put physigym related parameter, variable, and vector action mapping here!
+
+                // parameter
+                //my_function( parameters.bools("my_bool")) );
+                //my_function( parameters.ints("my_int")) );
+                //my_function( parameters.doubles("my_float") );
+                //my_function( parameters.strings("my_str") );
+
+                // custom variable
+                //std::string my_variable = "my_variable";
+                //for (Cell* pCell : (*all_cells)) {
+                //    my_function( pCell->custom_data[my_variable] );
+                //}
+
+                // custom vector
+                //std::string my_vector = "my_vector";
+                //for (Cell* pCell : (*all_cells)) {
+                //    int vectindex = pCell->custom_data.find_vector_variable_index(my_vector);
+                //    if (vectindex > -1) {
+                //        my_function( pCell->custom_data.vector_variables[vectindex].value );
+                //    } else {
+                //        char error[64];
+                //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
+                //        PyErr_SetString(PyExc_ValueError, error);
+                //        return NULL;
+                //    }
+                //}
+
+            }
+
             // on custom time step
             if (custom_countdown <= 0) {
-                custom_countdown += custom_dt;
 
-                // Put custom time scale actions here!
-                //std::cout << "processing custom time step action ... " << std::endl;
-                //step = false;
+                // achtung : begin physigym specific implementation!
+                custom_countdown += parameters.doubles("dt_gym");  // [min]
+                std::cout << "processing gym time step observation block ... " << std::endl;
+                parameters.doubles("time") = PhysiCell_globals.current_time;
+                action = true;
+                step = false;
+                // achtung : end physigym specific implementation!
+
+                // Put physigym related parameter, variable, and vector observation mapping here!
+
+                // parameter
+                //parameters.bools("my_bool") = value;
+                //parameters.ints("my_int") = value;
+                //parameters.doubles("my_float") = value;
+                //parameters.strings("my_str") = value;
+
+                // custom variable
+                //std::string my_variable = "my_variable";
+                //for (Cell* pCell : (*all_cells)) {
+                //    pCell->custom_data[my_variable] = value;
+                //}
+
+                // custom vector
+                //std::string my_vector = "my_vector";
+                //for (Cell* pCell : (*all_cells)) {
+                //    int vectindex = pCell->custom_data.find_vector_variable_index(my_vector);
+                //    if (vectindex > -1) {
+                //        pCell->custom_data.vector_variables[vectindex].value = value;
+                //    } else {
+                //        char error[64];
+                //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
+                //        PyErr_SetString(PyExc_ValueError, error);
+                //        return NULL;
+                //    }
+                //}
             }
 
             // on phenotype time step
@@ -200,7 +271,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 phenotype_countdown += phenotype_dt;
 
                 // Put phenotype time scale actions here!
-                //std::cout << "processing phenotype time step action ... " << std::endl;
+                //std::cout << "processing phenotype time step observation block ... " << std::endl;
                 //step = false;
             }
 
@@ -209,14 +280,14 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 mechanics_countdown += mechanics_dt;
 
                 // Put mechanics time scale actions here!
-                //std::cout << "processing mechanic time step action ... " << std::endl;
+                //std::cout << "processing mechanic time step observation block ... " << std::endl;
                 //step = false;
             }
 
             // on diffusion time step
 
             // Put diffusion time scale actions here!
-            //std::cout << "processing diffusion time step action ... " << std::endl << std::endl;
+            //std::cout << "processing diffusion time step observation block ... " << std::endl << std::endl;
             //step = false;
 
             // run microenvironment

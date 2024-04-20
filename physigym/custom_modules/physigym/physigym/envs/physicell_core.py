@@ -75,10 +75,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_truncated(self):
-        sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
-
-
     def _get_reward(self):
         sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
@@ -240,6 +236,21 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f'physigym: ok!')
         return o_observation, d_info
+
+
+    def _get_truncated(self):
+        """
+        note: your PhysiCell model have to have a numeric parameter time, that can be read out!
+        physicell.get_parameter('')
+        """
+        # processing
+        b_truncated = False
+        r_time_max = float(self.x_root.xpath('//overall/max_time')[0].text)
+        r_time_current = physicell.get_parameter('time')  # achtung: time has to be declared as parameter of type float in the settings.xml file!
+        b_truncated = r_time_max >= r_time_current
+
+        # output
+        return b_truncated
 
 
     def step(self, action):

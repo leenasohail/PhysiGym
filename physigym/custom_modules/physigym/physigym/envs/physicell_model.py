@@ -187,21 +187,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return b_terminated
 
 
-    def _get_truncated(self):
-        """
-        note: your PhysiCell model have to have a numeric parameter time, that can be read out!
-        physicell.get_parameter('')
-        """
-        # processing
-        b_truncated = False
-        r_time_max = float(self.x_root.xpath('//overall/max_time')[0].text)
-        #r_time_current = physicell.get_parameter('time')
-        #b_truncated = r_time_max >= r_time_current
-
-        # output
-        return b_truncated
-
-
     def _get_reward(self):
         """
         # e.g. how far I am away from 128
