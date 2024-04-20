@@ -5,7 +5,6 @@ build
 dist
 
 # physicell and physicell studio
-*.o
 empty.txt
 PhysiCell_settings-backup.xml
 studio_debug.log

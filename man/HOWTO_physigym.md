@@ -5,7 +5,7 @@
 git clone https://github.com/Dante-Berth/PhysiGym
 ```
 
-2. cd into the physicellembedding folder and run the install_physigym.py script.
+2. cd into the physigym folder and run the install_physigym.py script.
 ```bash
 cd PhysiGym
 python3 install_physigym.py
@@ -16,7 +16,7 @@ python3 install_physigym.py
 4. cd into the PhysiCell folder, reset PhysiCell, load, and compile the physigym project.
 This will install two python3 modules the first one named `embedding`, the second one named `physigym`.
 
-Notice: the `sed` command is in PhysiCell <= 1.13\* is needed because the load command in these Makefiles does not allow custom modules packed in a folder structure, like these python modules are.
+Notice: the `sed` command below is needed in PhysiCell <= 1.13\* because the load command in these Makefiles does not allow custom modules packed in a folder structure, like the python modules are.
 ```bash
 cd ../PhysiCell
 make clean data-cleanup reset
