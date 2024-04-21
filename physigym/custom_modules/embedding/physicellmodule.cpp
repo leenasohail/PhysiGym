@@ -223,10 +223,10 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //        return NULL;
                 //    }
                 //}
-
             }
 
-            // on custom time step
+            // do observation
+            // on dt_gym time step
             if (custom_countdown <= 0) {
 
                 // achtung : begin physigym specific implementation!

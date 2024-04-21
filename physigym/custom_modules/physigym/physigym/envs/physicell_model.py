@@ -101,6 +101,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         ##################
 
         #df_conc = pd.DataFrame(physicell.get_microenv('my_substrate'), columns=['x','y','z','my_substrate'])
+        #df_conc = df_conc.loc[df_conc.z == 0.0, :]
         #df_mesh = df_conc.pivot(index='y', columns='x', values='my_substrate')
         #ax.contourf(
         #    df_mesh.columns, df_mesh.index, df_mesh.values,
@@ -125,7 +126,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #df_cell = pd.DataFrame(physicell.get_cell(), columns=['ID', 'x','y', 'z'])
         #df_variable = pd.DataFrame(physicell.get_variable("my_variable"), columns=['my_variable'])
         #df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how='left')
-        #df_cell = df_cell.loc[df_cell.z == 0.0, c:]
+        #df_cell = df_cell.loc[df_cell.z == 0.0, :]
         #df_cell.plot(
         #    kind='scatter', x='x', y='y', c='my_variable',
         #    xlim=[
