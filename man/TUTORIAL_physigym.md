@@ -1,4 +1,4 @@
-# physigym : Bridging PhysiCell and Gymnasium 
+# physigym : Bridging PhysiCell and Gymnasium
 
 Please install the latest version of the physigym user project, as described in the [HowTo](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md) section.
 
@@ -10,7 +10,6 @@ Please install the latest version of the physigym user project, as described in 
 ```python
 import gymnasium
 import physigym  # import the Gymnasium PhysiCell bridge module
-import subprocess  # needed to run more than one epoch
 ``
 
 List the registered gymnasium classes.
@@ -273,7 +272,7 @@ studio -p
 1.2 Compile and run the model the classic way.
 
 For model development, it is sometimes useful to be able to compile and run the model the old-fashioned way.
-In fact, this is the only reason why we kept the orignal main.cpp (which for emedding had to be ported to custom/physicellmodule.cpp) in the py3pc_embed code base. 
+In fact, this is the only reason why we kept the orignal main.cpp (which for emedding had to be ported to custom/physicellmodule.cpp) in the physigym code base.
 
 In py3pc_embed we can compile and run the model the old-fashioned way like this:
 

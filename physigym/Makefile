@@ -48,26 +48,14 @@ python-instruction:
 	@echo ""
 	@echo "open a python3 shell and try:"
 	@echo ""
-	@echo "from embedding import physicell"
+	@echo "import gymnasium"
+	@echo "import physigym"
 	@echo ""
-	@echo "physicell.start()"
-	@echo "physicell.step()"
-	@echo "physicell.get_parameter('my_bool')"
-	@echo "physicell.set_parameter('my_bool', True)"
-	@echo "physicell.get_parameter('my_int')"
-	@echo "physicell.set_parameter('my_int', 9)"
-	@echo "physicell.get_parameter('my_float')"
-	@echo "physicell.set_parameter('my_float', 9)"
-	@echo "physicell.get_parameter('my_str')"
-	@echo "physicell.set_parameter('my_str', 'never daunted')"
-	@echo "physicell.get_variable('my_variable')"
-	@echo "physicell.set_variable('my_variable', 9)"
-	@echo "physicell.get_vector('my_vector')"
-	@echo "physicell.set_vector('my_vector', [0,1,2,3])"
-	@echo "physicell.get_cell()"
-	@echo "physicell.get_microenv('my_substrate')"
-	@echo "physicell.step()"
-	@echo "physicell.stop()"
+	@echo "env = gymnasium.make('physigym/ModelPhysiCellEnv')"
+	@echo ""
+	@echo "env.reset()"
+	@echo "env.step(action={})"
+	@echo "env.close()"
 	@echo ""
 	@echo "exit()"
 	@echo ""
@@ -344,8 +332,12 @@ save:
 	sed -i "0,/PROJ := /{s/PROJ := .*/PROJ := $(PROJ)/}" ./user_projects/$(PROJ)/Makefile
 	cp VERSION.txt ./user_projects/$(PROJ)
 	cp ./config/* ./user_projects/$(PROJ)/config
-	rm -fr ./custom_modules/build
-	rm -fr ./custom_modules/embedding.egg-info
+	rm -fr ./custom_modules/embedding/BioFVM
+	rm -fr ./custom_modules/embedding/build
+	rm -fr ./custom_modules/embedding/core
+	rm -fr ./custom_modules/embedding/custom_modules
+	rm -fr ./custom_modules/embedding/embedding.egg-info
+	rm -fr ./custom_modules/embedding/modules
 	cp -r ./custom_modules/* ./user_projects/$(PROJ)/custom_modules
 
 load:

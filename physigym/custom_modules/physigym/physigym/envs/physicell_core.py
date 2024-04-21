@@ -14,14 +14,12 @@
 # + https://gymnasium.farama.org/main/
 # + https://gymnasium.farama.org/main/introduction/create_custom_env/
 # + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/environment_creation/
-# + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/implementing_custom_wrappers/
 #####
 
 
 # library
 from embedding import physicell
 import gymnasium
-from IPython import display
 from lxml import etree
 import matplotlib.pyplot as plt
 import numpy as np
@@ -42,13 +40,6 @@ class CorePhysiCellEnv(gymnasium.Env):
     description:
     """
 
-    # metadata
-    metadata = {
-        "render_modes": [None, "human", "rgb_array"],
-        "render_fps": None,
-    }
-
-
     ### begin dummy functions ###
 
     def _get_action_space(self):
@@ -59,8 +50,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         sys.exit('_get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_fig(self):
-        sys.exit('_get_fig function to be implemented in physigym.ModelPhysiCellEnv!')
+    def _get_img(self):
+        sys.exit('_get_img function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     def _get_observation(self):
@@ -82,7 +73,14 @@ class CorePhysiCellEnv(gymnasium.Env):
     ### end dummy functions ###
 
 
-    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode=None, verbose=True):
+    # metadata
+    metadata = {
+        "render_modes": ["human", "rgb_array"],
+        "render_fps": None,
+    }
+
+
+    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode=None, render_fps=None, verbose=True):
         """
         input:
 
@@ -116,8 +114,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle render mode and figsize
         if self.verbose:
             print(f'physigym: declare render settings.')
-        assert render_mode is None or render_mode in self.metadata["render_modes"]
+        assert render_mode is None or render_mode in self.metadata['render_modes'], f"'{render_mode}' is an unknowen render_mode. known are {sorted(self.metadata['render_modes'])}, and None."
         self.render_mode = render_mode
+        self.metadata.update({'render_fps': render_fps})
         self.figsize = figsize
 
         # handle spaces
@@ -129,59 +128,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output
         if self.verbose:
             print(f'physigym: ok!')
-
-
-    def _render_frame(self):
-        """
-        input:
-
-        output:
-            a_img: numpy array
-                8bit rgba image tensor.
-
-        description:
-            function transforms a matplotlib figure into a 8 bit rgba image,
-            possibly displays the image,
-            and returns the image as numpy array.
-        """
-        if self.verbose:
-            print(f'physigym: render frame.')
-        a_img = None
-        if not (self.render_mode is None):
-
-            # trafo matplotlib figure to rgba numpy array
-            fig = self._get_fig()
-            a_img = np.array(fig.canvas.buffer_rgba(), dtype='uint8')
-
-            # display image
-            if self.render_mode == "human":
-                display.display(plt.imshow(a_img))
-                display.clear_output(wait=True)
-
-        # output
-        return a_img
-
-
-    def render(self):
-        """
-        input:
-
-        output:
-            a_img: numpy array or None
-
-        description:
-
-        """
-        if self.verbose :
-            print(f'physigym: render time snap shot ...')
-
-        # processing
-        a_img = self._render_frame()
-
-        # output
-        if self.verbose :
-            print(f'ok!')
-        return a_img
 
 
     def reset(self, seed=-1, options={}):
@@ -208,12 +154,14 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f'physigym: reset epoche ...')
 
         # seed self.np_random number generator
-        if self.verbose:
-            print(f'physigym: seed random number generator.')
         if (seed is None) or (seed >= 0):
             i_seed = seed
+            if self.verbose:
+                print(f'physigym: seed random number generator with {i_seed}.')
         else:
             i_seed = int(self.x_root.xpath('//random_seed')[0].text)
+            if self.verbose:
+                print(f'physigym: seed random number generator with {i_seed}, the value the from setting.xml file.')
         super().reset(seed=i_seed)
 
         # initialize physcell model
@@ -229,13 +177,49 @@ class CorePhysiCellEnv(gymnasium.Env):
         d_info = self._get_info()
 
         # render domain
-        self._render_frame()
+        if self.verbose:
+            print(f'physigym: render {self.render_mode} frame.')
+        if not (self.render_mode is None):
+            a_img = self._get_img()
+            if (self.render_mode == 'human'):
+                plt.cla()
+                plt.imshow(a_img)
+                plt.pause(self.metadata['render_fps'])
 
         # output
         self.iteration = 0
         if self.verbose:
             print(f'physigym: ok!')
         return o_observation, d_info
+
+
+    def render(self):
+        """
+        input:
+
+        output:
+            a_img: numpy array or None
+
+        description:
+
+        """
+        if self.verbose :
+            print(f'physigym: render {self.render_mode} frame ...')
+
+        # processing
+        a_img = None
+        if not (self.render_mode is None):
+            a_img = self._get_img()
+            if (self.render_mode == 'human'):
+                plt.cla()
+                plt.imshow(a_img)
+                plt.pause(self.metadata['render_fps'])
+                a_img = None
+
+        # output
+        if self.verbose :
+            print(f'ok!')
+        return a_img
 
 
     def _get_truncated(self):
@@ -247,7 +231,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         b_truncated = False
         r_time_max = float(self.x_root.xpath('//overall/max_time')[0].text)
         r_time_current = physicell.get_parameter('time')  # achtung: time has to be declared as parameter of type float in the settings.xml file!
-        b_truncated = r_time_max >= r_time_current
+        b_truncated = r_time_current >= r_time_max
 
         # output
         return b_truncated
@@ -269,7 +253,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             Perform a simulation step with the given action.
         """
         if self.verbose :
-            print(f'physigym: do a dt_gym time step ...')
+            print(f'physigym: taking a dt_gym time step ...')
 
         # get observation
         if self.verbose:
@@ -283,7 +267,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         r_reward = self._get_reward()
 
         # do rendering
-        self._render_frame()
+        if self.verbose:
+            print(f'physigym: render {self.render_mode} frame.')
+        if (self.render_mode == 'human'):
+            a_img = self._get_img()
+            plt.cla()
+            plt.imshow(a_img)
+            plt.pause(self.metadata['render_fps'])
 
         # do action
         if self.verbose:
@@ -310,7 +300,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # do dt_gym time step
         if self.verbose:
-            print(f'physigym: dt_gym PhysiCell model time step.')
+            print(f'physigym: PhysiCell model step.')
         physicell.step()
 
         # output
@@ -339,12 +329,18 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     def verbose_true(self):
         """
+        run:
+            env.unwrapped.verbose_true()
         """
+        print(f'physigym: set env.verbose = True.')
         self.verbose = True
 
 
     def verbose_false(self):
         """
+        run:
+            env.unwrapped.verbose_false()
         """
+        print(f'physigym: set env.verbose = False.')
         self.verbose = False
 

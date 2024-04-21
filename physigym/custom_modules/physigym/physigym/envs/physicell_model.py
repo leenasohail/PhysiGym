@@ -48,7 +48,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             + https://gymnasium.farama.org/main/api/spaces/
         """
-        # processing
+        # model dependent processing logic goes here!
         action_space = spaces.Dict({
             'discrete': spaces.Discrete(2)  # boolean, string
             #'discrete': spaces.MultyBinary()  # boolean
@@ -66,7 +66,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             + https://gymnasium.farama.org/main/api/spaces/
         """
-        # processing
+        # model dependent processing logic goes here!
         observation_space = spaces.Dict({
             'discrete': spaces.Discrete(2)  # boolean, string
             #'discrete': spaces.MultyBinary()  # boolean
@@ -79,16 +79,22 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return observation_space
 
 
-    def _get_fig(self):
+    def _get_img(self):
         """
         description:
             templare code to generate a matplotlib figure from the data.
             physicell.get_microenv()
             pjysicell.get_cell()
         """
-        # model dependent logic to generate plot goes here!
+        # physigym necessary begin: generate invisible figure
         fig, ax = plt.subplots(figsize=self.figsize)
-        #ax.axis('equal')
+        plt.close()
+        # physigym necessary end
+
+
+        # model dependent ploting logic goes here!
+        ax.axis('off')
+        ax.axis('equal')
 
         ##################
         # substrate data #
@@ -144,8 +150,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #s_path = self.x_root.xpath('//save/folder')[0].text
         #fig.savefig(f'{s_path}/timeseries_step{str(self.iteration).zfill(3)}.jpeg', facecolor='white')
 
-        # output
-        return fig
+
+        # physigym necessary begin: output
+        fig.canvas.draw()
+        a_img = np.array(fig.canvas.buffer_rgba(), dtype=np.uint8)
+        # physigym necessary end
+        return a_img
 
 
     def _get_observation(self):
@@ -156,8 +166,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         physicell.get_variable()
         physicell.get_vector()
         """
-        # processing
-        o_observation = {'discrete': [True, False]}
+        # model dependent processing logic goes here!
+        o_observation = {'discrete': True}
 
         # output
         return o_observation
@@ -169,7 +179,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         physicell.get_variable()
         physicell.get_vector()
         """
-        # processing
+        # model dependent processing logic goes here!
         d_info = {}
 
         # output
@@ -180,7 +190,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # e.g. if exactely 128 cells
         """
-        # processing
+        # model dependent processing logic goes here!
         b_terminated = False
 
         # output
@@ -191,7 +201,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # e.g. how far I am away from 128
         """
-        # processing
+        # model dependent processing logic goes here!
         r_reward = 0.0
 
         # output
