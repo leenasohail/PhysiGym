@@ -180,12 +180,12 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f'physigym: render {self.render_mode} frame.')
         if not (self.render_mode is None):
-            a_img = self._get_img()
+            plt.ion()
+            self.fig, axs = plt.subplots(figsize=self.figsize)
             if (self.render_mode == 'human'):
-                plt.ion()
-                plt.cla()
-                plt.imshow(a_img)
-                plt.pause(1 / self.metadata['render_fps'])
+                self._get_img()
+                if not (self.metadata['render_fps'] is None):
+                    plt.pause(1 / self.metadata['render_fps'])
 
         # output
         self.iteration = 0
@@ -210,12 +210,12 @@ class CorePhysiCellEnv(gymnasium.Env):
         # processing
         a_img = None
         if not (self.render_mode is None):
-            a_img = self._get_img()
-            if (self.render_mode == 'human'):
-                plt.cla()
-                plt.imshow(a_img)
-                plt.pause(1 / self.metadata['render_fps'])
-                a_img = None
+            self._get_img()
+            if (self.render_mode == 'human') and not (self.metadata['render_fps'] is None):
+                    plt.pause(1 / self.metadata['render_fps'])
+            else:
+                self.fig.canvas.draw()
+                a_img = np.array(fig.canvas.buffer_rgba(), dtype=np.uint8)
 
         # output
         if self.verbose :
@@ -271,10 +271,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f'physigym: render {self.render_mode} frame.')
         if (self.render_mode == 'human'):
-            a_img = self._get_img()
-            plt.cla()
-            plt.imshow(a_img)
-            plt.pause(1 / self.metadata['render_fps'])
+            self._get_img()
+            if not (self.metadata['render_fps'] is None):
+                plt.pause(1 / self.metadata['render_fps'])
 
         # do action
         if self.verbose:

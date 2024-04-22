@@ -185,9 +185,15 @@ First, let's comment out the default 'discrete': spaces.Discrete(2) !
 Then let's declare a Box space labeled drug_conc
 This is a single continuous vector with all possible real values from 0 to 1.
 
+Now, very impotrtant, in physigym, the action has always to be a provided in dictionary form.
+the key from each entry is the parameter, variable, or vector name we defiend in the underlying
+PhysiCell model and the python embedding.
+
 Replace the default with:
 ```python
-action_space = spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)
+action_space = spaces.Dict({
+    'drug_conc': spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)
+})
 ```
 
 
@@ -224,7 +230,7 @@ ax.contourf(
 # substrate colorbar #
 ######################
 
-fig.colorbar(
+self.fig.colorbar(
     mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=0.2), cmap='Reds'),
     label='drug_conc',
     ax=ax,
@@ -325,19 +331,26 @@ Open a Pyton shell an execute the following code sequence (or write a Python scr
 ```Python
 # library
 import gymnasium
+import numpy as np
 import physigym  # import the Gymnasium PhysiCell bridge module
 
 # load PhysiCell Gymnasium enviroment
-env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
+env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', render_mode='human', render_fps=10)
 
 # reset the enviroment
-d_observation, d_info = env.reset()
+i_observation, d_info = env.reset()
 
 # episode time step loop
 b_episode_over = False
 while not b_episode_over:
-    action = env.action_space.sample()  # agent policy that uses the observation and info
-    o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action)
+    # policy accorindg to i_observation
+    if (i_observation > 128):
+        d_action = {'drug_conc': 1 - r_reward}
+    else:
+        d_action = {'drug_conc': 0}
+
+    # action
+    o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
     b_episode_over = b_terminated or b_truncated
 
 # episode finishing
@@ -349,21 +362,9 @@ exit()
 
 # BUE: i am here!
 
-```python
-# load libraries
-import gymnasium
-import physigym
-
-# episode initialization
-env = gymnasium.make('physigym/CorePhysiCell-v0', render_mode="human")
 ```
-
-```
-import gymnasium
 gymnasium.utils.env_checker.check_env
-
 gymnasium.utils.save_video.save_video
-
 gymnasium.utils.performance.benchmark_step
 gymnasium.utils.performance.benchmark_init
 gymnasium.utils.performance.benchmark_render

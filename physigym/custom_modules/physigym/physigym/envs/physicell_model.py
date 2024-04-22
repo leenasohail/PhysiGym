@@ -86,15 +86,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             physicell.get_microenv('my_substrate')
             pjysicell.get_cell()
         """
-        # physigym necessary begin: generate invisible figure
-        fig, ax = plt.subplots(figsize=self.figsize)
-        plt.close()
-        # physigym necessary end
-
-
         # model dependent ploting logic goes here!
-        ax.axis('off')
+        self.fig.axes[0].remove()
+        ax = self.fig.add_subplot(1,1,1)
         ax.axis('equal')
+        #ax.axis('off')
 
         ##################
         # substrate data #
@@ -113,7 +109,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # substrate colorbar #
         ######################
 
-        #fig.colorbar(
+        #self.fig.colorbar(
         #    mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=1.0), cmap='Reds'),
         #    label='my_substrate',
         #    ax=ax,
@@ -149,14 +145,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         #plt.tight_layout()
         #s_path = self.x_root.xpath('//save/folder')[0].text
-        #fig.savefig(f'{s_path}/timeseries_step{str(self.iteration).zfill(3)}.jpeg', facecolor='white')
-
-
-        # physigym necessary begin: output
-        fig.canvas.draw()
-        a_img = np.array(fig.canvas.buffer_rgba(), dtype=np.uint8)
-        # physigym necessary end
-        return a_img
+        #self.fig.savefig(f'{s_path}/timeseries_step{str(self.iteration).zfill(3)}.jpeg', facecolor='white')
 
 
     def _get_observation(self):
