@@ -156,7 +156,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
         while (step) {
 
             // max time reached?
-            if (PhysiCell_globals.current_time > PhysiCell_settings.max_time) {
+            if (PhysiCell_globals.current_time > (PhysiCell_settings.max_time + parameters.doubles("dt_gym"))) {
                 step = false;
             }
 
