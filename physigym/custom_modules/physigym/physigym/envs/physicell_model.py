@@ -130,12 +130,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #df_cell.plot(
         #    kind='scatter', x='x', y='y', c='my_variable',
         #    xlim=[
-        #        int(self.x_root.xpath('//domain/x_min')[0].text,
-        #        int(self.x_root.xpath('//domain/x_max')[0].text,
+        #        int(self.x_root.xpath('//domain/x_min')[0].text),
+        #        int(self.x_root.xpath('//domain/x_max')[0].text),
         #    ],
         #    ylim=[
-        #        int(self.x_root.xpath('//domain/y_min')[0].text,
-        #        int(self.x_root.xpath('//domain/y_max')[0].text,
+        #        int(self.x_root.xpath('//domain/y_min')[0].text),
+        #        int(self.x_root.xpath('//domain/y_max')[0].text),
         #    ],
         #    vmin=0.0, vmax=1.0, cmap='viridis',
         #    grid=True,

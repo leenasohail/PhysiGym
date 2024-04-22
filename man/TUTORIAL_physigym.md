@@ -53,7 +53,7 @@ For this tutorial, we assume you have additionally [PhyiCell Studio](https://git
 1.1 Fire up studio.
 
 ```bash
-studio -p
+studio -c config/PhysiCell_settings.xml
 ```
 
 1.2 In the studio, make the following changes and additions, and don't forget to save.
@@ -65,10 +65,10 @@ studio -p
 + Cell Types / Custom Data: delete variable my_variable.
 + Cell Types / Custom Data: add variable Name: apoptosis_rate; Value 0.0; Units [1/min]
 + User Params: have a look at the time and dt_gym parameters!
-+ User Params: delete parameters my_float, my_int, my_bool, my_str.
-+ User Params: add a parameter drug_conc; Type double; Value 0.0; Units fraction.
-+ User Params: add a parameter cell_count; Type int; Value 0; Unit dimensionless.
-+ Rules: drug increases apoptosis; Half-max 0.5; Saturation value: 1.0; Hill power 4; Add rule; Enable.
++ User Params: delete parameters my_str, my_bool, my_int, my_float.
++ User Params: add a parameter drug_conc; Type double; Value 0.0; Units [fraction].
++ User Params: add a parameter cell_count; Type int; Value 1; Unit dimensionless.
++ Rules: drug increases apoptosis; Half-max 0.5; Saturation value: 1.0; Hill power 4; Add rule; enable.
 + File / Save.
 + Studio / Quit.
 
@@ -85,6 +85,11 @@ make classic
 ./project
 ```
 
+Let make clean slate agin, for a next physicell run.
+```
+rm -r output
+mkdir output
+```
 
 1.4 Edit the custom_modules/custom.cpp file.
 
@@ -120,7 +125,7 @@ int set_microenv(std::string s_substrate, double r_conc) {
 At the bottom of the file, add the fresh implemented function.
 
 ```C++
-// send drug
+// add substrate
 int set_microenv(std::string s_substrate, double r_conc);
 ```
 
@@ -141,7 +146,8 @@ The only thig left to do is to connect our drug_conc parameter with the already 
 After the commented out action example code, at line 225 insert the following line.
 
 ```C++
-set_microenv(parameters.doubles("drug_conc"));
+// add drug
+set_microenv("drug", parameters.doubles("drug_conc"));
 ```
 
 Similar for observation.
@@ -153,7 +159,7 @@ After the commented out obeservation example code, at around line 270 insert the
 parameters.ints("cell_count") = (*all_cells).size();
 ```
 
-For analysis purpose we transmit as well the apoptosis rate over the our interface.
+For analysis purpose we transmit as well the apoptosis rate over the interface.
 ```C++
 // receive apoptosis rate
 for (Cell* pCell : (*all_cells)) {
@@ -181,7 +187,7 @@ This is a single continuous vector with all possible real values from 0 to 1.
 
 Replace the default with:
 ```python
-'drug_conc': spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64)
+action_space = spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)
 ```
 
 
@@ -192,7 +198,7 @@ Based on our classig run we do not exect to have more then 2^14 cells.
 
 Replace the default with:
 ```python
-'cell_count': spaces.Box(low=0, high=2**14, shape=(1,), dtype=np.int16)
+observation_space = spaces.Box(low=0, high=(2**16 - 1), shape=(), dtype=np.uint16)
 ```
 
 
@@ -235,12 +241,12 @@ df_cell = df_cell.loc[df_cell.z == 0.0, :]
 df_cell.plot(
     kind='scatter', x='x', y='y', c='apoptosis_rate',
     xlim=[
-        int(self.x_root.xpath('//domain/x_min')[0].text,
-        int(self.x_root.xpath('//domain/x_max')[0].text,
+        int(self.x_root.xpath('//domain/x_min')[0].text),
+        int(self.x_root.xpath('//domain/x_max')[0].text),
     ],
     ylim=[
-        int(self.x_root.xpath('//domain/y_min')[0].text,
-        int(self.x_root.xpath('//domain/y_max')[0].text,
+        int(self.x_root.xpath('//domain/y_min')[0].text),
+        int(self.x_root.xpath('//domain/y_max')[0].text),
     ],
     vmin=0.0, vmax=0.1, cmap='viridis',
     grid=True,
@@ -258,7 +264,7 @@ We way we provide this information has to be compatible with the observation spa
 Replace the default `o_observation = {'discrete': True}` with:
 
 ```
-o_observation = physicell.get_parameter('cell_count')
+o_observation = np.array(physicell.get_parameter('cell_count'), dtype=np.uint16)
 ```
 
 3.1.5 \_get\_info
@@ -267,6 +273,8 @@ We coould provide additional information, importand for controlling the action t
 For example, if we do reinforcement learning on a [jump and run game](https://c64online.com/c64-games/the-great-giana-sisters/), the number of heart (lives left) from our character.
 
 In our simple model we don't have such information.
+
+So, just leave the default, the empty dictionary.
 
 
 3.1.6 \get\_terminated
@@ -303,6 +311,8 @@ else:
 4. Running the model (Python3 and Bash)
 
 4.1 Compile the model.
+
+This necessary, becasue of all the chages we did to the PhysiCell custom.cpp code, the embedding module, and the physigym module.
 
 ```bash
 make
