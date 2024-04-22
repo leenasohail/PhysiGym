@@ -83,7 +83,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         description:
             templare code to generate a matplotlib figure from the data.
-            physicell.get_microenv()
+            physicell.get_microenv('my_substrate')
             pjysicell.get_cell()
         """
         # physigym necessary begin: generate invisible figure
@@ -163,9 +163,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         output:
             compatible with defined onbservation space!
-        physicell.get_parameter()
-        physicell.get_variable()
-        physicell.get_vector()
+        physicell.get_parameter('my_parameter')
+        physicell.get_variable('my_variable')
+        physicell.get_vector('my_vector')
         """
         # model dependent processing logic goes here!
         o_observation = {'discrete': True}
@@ -176,9 +176,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
     def _get_info(self):
         """
-        physicell.get_parameter()
-        physicell.get_variable()
-        physicell.get_vector()
+        physicell.get_parameter('my_parameter')
+        physicell.get_variable('my_variable')
+        physicell.get_vector('my_vector')
         """
         # model dependent processing logic goes here!
         d_info = {}

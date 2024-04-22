@@ -76,11 +76,11 @@ class CorePhysiCellEnv(gymnasium.Env):
     # metadata
     metadata = {
         "render_modes": ["human", "rgb_array"],
-        "render_fps": None,
+        "render_fps": 10,
     }
 
-
-    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode=None, render_fps=None, verbose=True):
+    # functions
+    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode=None, render_fps=10, verbose=True):
         """
         input:
 
@@ -182,9 +182,10 @@ class CorePhysiCellEnv(gymnasium.Env):
         if not (self.render_mode is None):
             a_img = self._get_img()
             if (self.render_mode == 'human'):
+                plt.ion()
                 plt.cla()
                 plt.imshow(a_img)
-                plt.pause(self.metadata['render_fps'])
+                plt.pause(1 / self.metadata['render_fps'])
 
         # output
         self.iteration = 0
@@ -213,7 +214,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             if (self.render_mode == 'human'):
                 plt.cla()
                 plt.imshow(a_img)
-                plt.pause(self.metadata['render_fps'])
+                plt.pause(1 / self.metadata['render_fps'])
                 a_img = None
 
         # output
@@ -273,7 +274,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             a_img = self._get_img()
             plt.cla()
             plt.imshow(a_img)
-            plt.pause(self.metadata['render_fps'])
+            plt.pause(1 / self.metadata['render_fps'])
 
         # do action
         if self.verbose:

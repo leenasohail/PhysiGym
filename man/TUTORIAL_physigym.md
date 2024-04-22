@@ -40,17 +40,23 @@ make data-cleanup
 
 ## A more elaborate example.
 
-For this somewhat more realistic tutorial, we assume you have additionally [PhyiCell Studio](https://github.com/PhysiCell-Tools/PhysiCell-Studio) installed.
+
+This in this somewhat more realistic example we will tries to control the model so that the cell count for the "default" cell type over time stabilizes at about 128 cells.
+For observation we will use cell count.
+For action we will use a apoptosis inducing drug that kills the cells.
 
 
-1.0 Fire up studio.
+For this tutorial, we assume you have additionally [PhyiCell Studio](https://github.com/PhysiCell-Tools/PhysiCell-Studio) installed.
+
+1. The PhysiCell level (C++ and Studio)
+
+1.1 Fire up studio.
 
 ```bash
 studio -p
 ```
 
-
-1.1 In the studio, make the following changes and additions, and don't forget to save.
+1.2 In the studio, make the following changes and additions, and don't forget to save.
 
 + Config Basics: Max Time = 10080 [min] which are 7 [days].
 + Microenvironment: rename my_substrate to drug.
@@ -67,7 +73,7 @@ studio -p
 + Studio / Quit.
 
 
-1.2 Compile and run the model the classic way.
+1.3 Compile and run the model the classic way.
 
 For model development, it is sometimes useful to be able to compile and run the model the old-fashioned way.
 In fact, this is the only reason why we kept the orignal main.cpp (which for emedding had to be ported to custom/physicellmodule.cpp) in the physigym code base.
@@ -80,7 +86,7 @@ make classic
 ```
 
 
-1.3 Edit the custom_modules/custom.cpp file.
+1.4 Edit the custom_modules/custom.cpp file.
 
 We don't need the custom data vector template.
 But we need a function that will update the microenvironment with the drug we add.
@@ -109,7 +115,7 @@ int set_microenv(std::string s_substrate, double r_conc) {
 ```
 
 
-1.4 Edit the custom_modules/custom.h header file.
+1.5 Edit the custom_modules/custom.h header file.
 
 At the bottom of the file, add the fresh implemented function.
 
@@ -119,7 +125,9 @@ int set_microenv(std::string s_substrate, double r_conc);
 ```
 
 
-1.5 Edit the custom_modules/embedding/physicellmodule.cpp file.
+2. The PhysiCell Python embedding level (C++)
+
+2.1 Edit the custom_modules/embedding/physicellmodule.cpp file.
 
 Parameters, custom variables, and custom vectors are only the interface.
 We still have to connect them to something meaningful.
@@ -154,29 +162,43 @@ for (Cell* pCell : (*all_cells)) {
 ```
 
 
-1.6 Edit custom_modules/physigym/physigym/envs/physicell_model.py file.
+3. The PhysiCell Gymnasium level (Python3)
 
 Finally, lets update the Gymnasium ModelPhysiCellEnv class, found in the custom_modules/physigym/physigym/envs/physicell_model.py.
 
+
+3.1 Edit custom_modules/physigym/physigym/envs/physicell_model.py file.
+
+3.1.1 \_get\_action\_space function
+
 Let's decalre the action space.
 In the studio we specifed the unit of the drug_conc parameter as fraction.
-This means, in Gymnasium terms whe have a Box space
+This means, in Gymnasium terms whe have a Box space.
 
 First, let's comment out the default 'discrete': spaces.Discrete(2) !
 Then let's declare a Box space labeled drug_conc
 This is a single continuous vector with all possible real values from 0 to 1.
 
+Replace the default with:
 ```python
 'drug_conc': spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64)
 ```
 
-Similar for the observation space.
+
+3.1.2 \_get\_observation\_space function
+
+We do a similar thing for the observation space.
 Based on our classig run we do not exect to have more then 2^14 cells.
+
+Replace the default with:
 ```python
 'cell_count': spaces.Box(low=0, high=2**14, shape=(1,), dtype=np.int16)
 ```
 
-Under \_get\_img we implement a plot, to display drug concentrationa in the domain, as well as all cells, colored by the apoptosis rate.
+
+3.1.3 \_get\_img function
+
+We will now implement a plot, to display drug concentrationa in the domain, as well as all cells, colored by the apoptosis rate.
 
 ```
 ##################
@@ -226,57 +248,104 @@ df_cell.plot(
     ax=ax,
 )
 ```
-BUE: Here I am
 
 
+3.1.4 \_get\_observation
 
-1.6 Compile the model.
+In our model, the only thing we have to observe is the cell count.
+We way we provide this information has to be compatible with the observation space we defined above, in our case a single integer number.
+
+Replace the default `o_observation = {'discrete': True}` with:
+
+```
+o_observation = physicell.get_parameter('cell_count')
+```
+
+3.1.5 \_get\_info
+
+We coould provide additional information, importand for controlling the action the policy.
+For example, if we do reinforcement learning on a [jump and run game](https://c64online.com/c64-games/the-great-giana-sisters/), the number of heart (lives left) from our character.
+
+In our simple model we don't have such information.
+
+
+3.1.6 \get\_terminated
+
+In our model run (epoche) will be terminated, if all cells are dead and the species died out.
+Note that it is a huge difference, if the model is terminated (all cells are dead) or is truncated (simply runs out of max time).
+
+Replace the default `b_terminated = False` with:
+
+```
+b_terminated = physicell.get_parameter('cell_count') <= 0
+```
+
+
+3.1.7 \_get\_reward
+
+The revard have to be a float number between or equal to 0.0 and 1.0.
+Delete the default `r_reward = 0.0`.
+Our revard algorythm looks like this:
+
+```
+i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)
+if (i_cellcount == 128):
+    r_reward == 1
+elif (i_cellcount < 128):
+    r_reward = i_cellcount / 128
+elif (i_cellcount > 128):
+    r_reward = (i_cellcount - 128) / 128
+else:
+    sys.exit('Error @ CorePhysiCellEnv._get_reward : strange clipped cell_count detected {i_cellcount}.')
+```
+
+
+4. Running the model (Python3 and Bash)
+
+4.1 Compile the model.
 
 ```bash
 make
 ```
 
+4.2 Python script that will run one epoch of the model.
 
-1.7 Open a Python3 shell and run the model.
+Open a Pyton shell an execute the following code sequence (or write a Python script that does the same):
 
-This python code tries to control the model so that the cell count over time stabilizes at about 128 cells.
+```Python
+# library
+import gymnasium
+import physigym  # import the Gymnasium PhysiCell bridge module
 
-write for physicell model, write a gym enviroment called PhysiCell-v0, making therefore use of the physigym/envs/ CorePhysiCell class
+# load PhysiCell Gymnasium enviroment
+env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
 
+# reset the enviroment
+d_observation, d_info = env.reset()
 
-Load the physicell model into a gymnasium environment and run it.
+# episode time step loop
+b_episode_over = False
+while not b_episode_over:
+    action = env.action_space.sample()  # agent policy that uses the observation and info
+    o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action)
+    b_episode_over = b_terminated or b_truncated
+
+# episode finishing
+env.close()
+
+# kill the python runtime.
+exit()
+```
+
+# BUE: i am here!
 
 ```python
-# library
-from embedding import physicell
+# load libraries
+import gymnasium
+import physigym
 
-# set variables
-i_cell_target = 128
-
-# start
-physicell.start()
-
-# step loop
-for i in range(int(10080 / 720)):
-    # extract data
-    i_cell_count = physicell.get_parameter('cell_count')
-
-    #  policy
-    if (i_cell_count > i_cell_target):
-        r_drug_conc = 0.1
-    else:
-        r_drug_conc = 0.0
-
-    # action
-    print(f'set drug_conc to: {r_drug_conc}')
-    physicell.set_parameter('drug_conc', r_drug_conc)
-    physicell.step()
-
-# stop
-physicell.stop()
-
-# leave the python shell
-exit()
+# episode initialization
+env = gymnasium.make('physigym/CorePhysiCell-v0', render_mode="human")
 ```
 
 ```
@@ -290,27 +359,8 @@ gymnasium.utils.performance.benchmark_init
 gymnasium.utils.performance.benchmark_render
 ```
 
-```python
-# load libraries
-import gymnasium
-import physigym
 
-# episode initialization
-env = gymnasium.make('physigym/CorePhysiCell-v0', render_mode="human")
-d_observation, d_info = env.reset()
-
-# episode time step loop
-b_episode_over = False
-while not b_episode_over:
-    action = env.action_space.sample()  # agent policy that uses the observation and info
-    o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action)
-    b_episode_over = b_terminated or b_truncated
-
-# episode finishing
-env.close()
-```
-
-
+5. The PhysiCell dataloader for data analysis (Python3 and Bash)
 
 1.9 We can do similar plotting and even more in depth data analysis with the [pcdl](https://github.com/elmbeech/physicelldataloader) library on the dumped data.
 
@@ -351,3 +401,4 @@ mcdsts.plot_timeseries(title='total cell count over time', ext='jpeg')
 mcdsts.plot_timeseries(focus_cat='cell_type', focus_num='apoptosis_rate', frame='cell_df', title='mean apoptosis rate over time', ext='jpeg')
 mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug concentration over time', ext='jpeg')
 ```
+
