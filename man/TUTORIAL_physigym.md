@@ -331,7 +331,6 @@ Open a Pyton shell an execute the following code sequence (or write a Python scr
 ```Python
 # library
 import gymnasium
-import numpy as np
 import physigym  # import the Gymnasium PhysiCell bridge module
 
 # load PhysiCell Gymnasium enviroment
@@ -358,16 +357,6 @@ env.close()
 
 # kill the python runtime.
 exit()
-```
-
-# BUE: i am here!
-
-```
-gymnasium.utils.env_checker.check_env
-gymnasium.utils.save_video.save_video
-gymnasium.utils.performance.benchmark_step
-gymnasium.utils.performance.benchmark_init
-gymnasium.utils.performance.benchmark_render
 ```
 
 
@@ -412,4 +401,3 @@ mcdsts.plot_timeseries(title='total cell count over time', ext='jpeg')
 mcdsts.plot_timeseries(focus_cat='cell_type', focus_num='apoptosis_rate', frame='cell_df', title='mean apoptosis rate over time', ext='jpeg')
 mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug concentration over time', ext='jpeg')
 ```
-
