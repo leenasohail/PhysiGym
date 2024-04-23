@@ -86,7 +86,7 @@ make classic
 ```
 
 Let make clean slate agin, for a next physicell run.
-```
+```bash
 rm -r output
 mkdir output
 ```
@@ -212,7 +212,7 @@ observation_space = spaces.Box(low=0, high=(2**16 - 1), shape=(), dtype=np.uint1
 
 We will now implement a plot, to display drug concentrationa in the domain, as well as all cells, colored by the apoptosis rate.
 
-```
+```python
 ##################
 # substrate data #
 ##################
@@ -269,7 +269,7 @@ We way we provide this information has to be compatible with the observation spa
 
 Replace the default `o_observation = {'discrete': True}` with:
 
-```
+```python
 o_observation = np.array(physicell.get_parameter('cell_count'), dtype=np.uint16)
 ```
 
@@ -290,7 +290,7 @@ Note that it is a huge difference, if the model is terminated (all cells are dea
 
 Replace the default `b_terminated = False` with:
 
-```
+```python
 b_terminated = physicell.get_parameter('cell_count') <= 0
 ```
 
@@ -301,7 +301,7 @@ The revard have to be a float number between or equal to 0.0 and 1.0.
 Delete the default `r_reward = 0.0`.
 Our revard algorythm looks like this:
 
-```
+```python
 i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)
 if (i_cellcount == 128):
     r_reward == 1
@@ -328,7 +328,7 @@ make
 
 Open a Pyton shell an execute the following code sequence (or write a Python script that does the same):
 
-```Python
+```python
 # library
 import gymnasium
 import physigym  # import the Gymnasium PhysiCell bridge module
@@ -358,6 +358,15 @@ env.close()
 # kill the python runtime.
 exit()
 ```
+
+4.3 Train a policy (agent)
+
+4.4 Recoring a policies (agents)
+
+4.5 Furter readings
+
+For more information about the Gymnasium interface, please study the official documentation!
++ https://gymnasium.farama.org/main/introduction/record_agent/
 
 
 5. The PhysiCell dataloader for data analysis (Python3 and Bash)
