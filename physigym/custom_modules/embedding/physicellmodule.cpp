@@ -318,6 +318,32 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 }
 
 
+// extended python3 C++ function stop
+static PyObject* physicell_stop(PyObject *self, PyObject *args) {
+
+    // save a final simulation snapshot
+    sprintf(filename, "%s/final", PhysiCell_settings.folder.c_str());
+    save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
+
+    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: going global
+    sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+
+    // timer
+    std::cout << "Total simulation runtime: " << std::endl;
+    BioFVM::display_stopwatch_value(std::cout, BioFVM::runtime_stopwatch_value());
+    std::cout << std::endl;
+
+    // delete cells
+    for (Cell* pCell: (*all_cells)) {
+        delete pCell;
+    }
+
+    // go home
+    return PyLong_FromLong(0);
+}
+
+
 // extend python3 C++ function set_parameter
 static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
     // extract input
@@ -625,27 +651,6 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
 
     // going home
     return pLlist;
-}
-
-
-// extended python3 C++ function stop
-static PyObject* physicell_stop(PyObject *self, PyObject *args) {
-
-    // save a final simulation snapshot
-    sprintf(filename, "%s/final", PhysiCell_settings.folder.c_str());
-    save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
-
-    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: going global
-    sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
-
-    // timer
-    std::cout << "Total simulation runtime: " << std::endl;
-    BioFVM::display_stopwatch_value(std::cout, BioFVM::runtime_stopwatch_value());
-    std::cout << std::endl;
-
-    // go home
-    return PyLong_FromLong(0);
 }
 
 

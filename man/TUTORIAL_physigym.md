@@ -40,11 +40,9 @@ make data-cleanup
 
 ## A more elaborate example.
 
-
-This in this somewhat more realistic example we will tries to control the model so that the cell count for the "default" cell type over time stabilizes at about 128 cells.
-For observation we will use cell count.
-For action we will use a apoptosis inducing drug that kills the cells.
-
+In this somewhat more realistic example, we will control the model so that the cell count for the "default" cell type over time stabilizes at about 128 cells.
+For observation, we will use cell count.
+For action, we will use an apoptosis inducing drug that kills the cells.
 
 For this tutorial, we assume you have additionally [PhyiCell Studio](https://github.com/PhysiCell-Tools/PhysiCell-Studio) installed.
 
@@ -137,7 +135,7 @@ int set_microenv(std::string s_substrate, double r_conc);
 Parameters, custom variables, and custom vectors are only the interface.
 We still have to connect them to something meaningful.
 This is done in the custom_modules/embedding/physicellmodule.cpp in the physicell_step function.
-Please have a look this function.
+Please have a look at this function.
 
 At line around 190, you will find already prepeared, commented out example code, for action and observation, for all possible parameter, variable and vector types.
 
@@ -283,7 +281,7 @@ In our simple model we don't have such information.
 So, just leave the default, the empty dictionary.
 
 
-3.1.6 \get\_terminated
+3.1.6 \_get\_terminated
 
 In our model run (epoche) will be terminated, if all cells are dead and the species died out.
 Note that it is a huge difference, if the model is terminated (all cells are dead) or is truncated (simply runs out of max time).
@@ -318,8 +316,8 @@ else:
 
 4.1 Compile the model.
 
-This necessary, becasue of all the chages we did to the PhysiCell custom.cpp code, the embedding module, and the physigym module.
-
+This necessary, because of all the changes we did to the PhysiCell custom.cpp code, the embedding module.
+And even the physigym python module is installed in editable mode (have a look at the pip install command in the Make file), the module has still to be built and installed once.
 ```bash
 make
 ```
@@ -371,7 +369,7 @@ For more information about the Gymnasium interface, please study the official do
 
 5. The PhysiCell dataloader for data analysis (Python3 and Bash)
 
-1.9 We can do similar plotting and even more in depth data analysis with the [pcdl](https://github.com/elmbeech/physicelldataloader) library on the dumped data.
+We can do similar plotting and even more in depth data analysis with the [pcdl](https://github.com/elmbeech/physicelldataloader) library on the dumped data.
 
 Install the [pcdl](https://github.com/elmbeech/physicelldataloader) library.
 
