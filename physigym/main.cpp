@@ -5,9 +5,10 @@
 // date: 2015-2024
 // license: BSD-3-Clause
 // author: Paul Macklin
-// modification: Elmar Bucher
+// modification: Elmar Bucher, Alexandre Bertin
 // original source code: https://github.com/MathCancer/PhysiCell
 // modified source code: https://github.com/elmbeech/physicellembedding
+// modified source code: https://github.com/Dante-Berth/PhysiGym
 //
 // description:
 //   for the physicell python embedding the content of this regular main.cpp

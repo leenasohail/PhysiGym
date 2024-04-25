@@ -6,7 +6,7 @@
 #
 # date: 2024-spring
 # license: BSD-3-Clause
-# author: Alexandre Bertin
+# author: Alexandre Bertin, Elmar Bucher
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
@@ -14,7 +14,6 @@
 # + https://gymnasium.farama.org/main/
 # + https://gymnasium.farama.org/main/introduction/create_custom_env/
 # + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/environment_creation/
-# + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/implementing_custom_wrappers/
 #####
 
 

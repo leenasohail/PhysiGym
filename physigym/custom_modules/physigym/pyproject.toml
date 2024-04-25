@@ -4,7 +4,7 @@
 # languag: hatch
 # date: 2024-spring
 # license: BSD-3-Clause
-# author: Alexandre Bertin
+# author: Alexandre Bertin, Elmar Bucher
 #
 # description:
 #   Building a hatchling based python3 physigym python library.

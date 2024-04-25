@@ -6,7 +6,7 @@
 #
 # date: 2024-spring
 # license: BSD-3-Clause
-# author: Alexandre Bertin
+# author: Alexandre Bertin, Elmar Bucher
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
