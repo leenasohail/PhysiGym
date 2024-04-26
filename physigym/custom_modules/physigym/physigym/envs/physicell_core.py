@@ -42,9 +42,10 @@ class CorePhysiCellEnv(gymnasium.Env):
         physigym.ModelPhysiCellEnv
 
     description:
-        this the core physigym enviroment class, bulit on top of the
+        this is the core physigym enviroment class, bulit on top of the
         gymnasium.Env class. physigym.CorePhysiCellEnv class as such will be
         the base class for every physigym.ModelPhysiCellEnv.
+
         there should be no need to edit the physigym.CorePhysiCellEnv class.
         model specifics should be chaptured in the physigym.ModelPhysiCellEnv class.
     """
