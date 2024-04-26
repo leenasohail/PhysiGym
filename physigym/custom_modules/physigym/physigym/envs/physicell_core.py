@@ -42,12 +42,12 @@ class CorePhysiCellEnv(gymnasium.Env):
         physigym.ModelPhysiCellEnv
 
     description:
-        this is the core physigym enviroment class, bulit on top of the
+        this is the core physigym environment class, built on top of the
         gymnasium.Env class. physigym.CorePhysiCellEnv class as such will be
         the base class for every physigym.ModelPhysiCellEnv.
 
         there should be no need to edit the physigym.CorePhysiCellEnv class.
-        model specifics should be chaptured in the physigym.ModelPhysiCellEnv class.
+        model specifics should be captured in the physigym.ModelPhysiCellEnv class.
     """
 
     ### begin dummy functions ###
@@ -96,10 +96,10 @@ class CorePhysiCellEnv(gymnasium.Env):
             settingxml: string; default is 'config/PhysiCell_settings.xml'
                 path and filename to the settings.xml file.
                 the file will be loaded with lxml and stored at self.x_root.
-                therfor all data form the setting.xml file is later on accessible
+                therefor all data from the setting.xml file is later on accessible
                 via the self.x_root.xpath('//xpath/string/') xpath construct.
-                study this source code class for explicte examples.
-                for more information about xpath study the following links.
+                study this source code class for explicite examples.
+                for more information about xpath study the following links:
                 + https://en.wikipedia.org/wiki/XPath
                 + https://www.w3schools.com/xml/xpath_intro.asp
                 + https://lxml.de/xpathxslt.html#xpat
@@ -112,14 +112,14 @@ class CorePhysiCellEnv(gymnasium.Env):
             render_fps: float or None; default is 10.
                 if render_mode is 'human', for every dt_gym step the image,
                 specified in the physigym.ModelPhysiCellEnv._get_img() function,
-                will be generated and displayed. this frame per secound setting
+                will be generated and displayed. this frame per second setting
                 specifies the time the computer sleeps after the image is
                 displayed.
                 for example 10[fps] = 1/10[spf] = 0.1 [spf].
 
             verbose:
                 to set standard output verbosity true or false.
-                please not, only little from the standard output is comming
+                please note, only little from the standard output is coming
                 actually from physigym. most of the output comes straight
                 from PhysiCell and this setting has no influence over that output.
 
@@ -132,7 +132,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle verbose
         self.verbose = verbose
         if self.verbose:
-            print(f'physigym: initialize enviroment ...')
+            print(f'physigym: initialize environment ...')
 
         # load physicell settings.xml file
         self.settingxml = settingxml
@@ -143,13 +143,13 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # initialize class whide variables
         if self.verbose:
-            print(f'physigym: declare class instance wide variables.')
+            print(f'physigym: declare class instance-wide variables.')
         self.iteration = None
 
         # handle render mode and figsize
         if self.verbose:
             print(f'physigym: declare render settings.')
-        assert render_mode is None or render_mode in self.metadata['render_modes'], f"'{render_mode}' is an unknowen render_mode. known are {sorted(self.metadata['render_modes'])}, and None."
+        assert render_mode is None or render_mode in self.metadata['render_modes'], f"'{render_mode}' is an unknown render_mode. known are {sorted(self.metadata['render_modes'])}, and None."
         self.render_mode = render_mode
         self.metadata.update({'render_fps': render_fps})
         self.figsize = figsize
@@ -173,25 +173,26 @@ class CorePhysiCellEnv(gymnasium.Env):
             self._get_img()
 
             seed: integer or None; default is None
-                seed = None: generaet a random seed. seed with this value python and PhyiCell (via setting.xml file).
+                seed = None: generate a random seed. seed with this value python and PhyiCell (via the setting.xml file).
                 seed < 0: take seed from setting.xml
-                seed >= 0: seed with this value python and PhysiCell (via setting.xml file).
+                seed >= 0: the seed from this value and seed python and PhysiCell (via the setting.xml file).
 
-            options: dictonary or None
+            options: dictionary or None
                 reserved for possible future use.
 
         output:
             o_observation: structure
                 the exact structure has to be
-                specifed in the _get_observation_space function.
+                specified in the _get_observation_space function.
 
             d_info: dictionary
-                what information to be captured have to be
+                what information to be captured has to be
                 specified in the _get_info function.
 
         description:
             The reset method will be called to initiate a new episode.
-            You may assume that the step method will not be called before reset has been called.
+            You may assume that the step method will not be called
+            before the reset function has been called.
         """
         if self.verbose :
             print(f'physigym: reset epoch ...')
@@ -210,7 +211,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             self.x_root.xpath('//random_seed')[0].text = str(i_seed)
             self.x_tree.write(self.settingxml, pretty_print=True)
             if self.verbose:
-                print(f'physigym: seed random number generator with {i_seed}, the write value into the setting.xml file.')
+                print(f'physigym: seed random number generator with {i_seed} and write the value into the setting.xml file.')
 
         # initialize physcell model
         if self.verbose:
@@ -251,8 +252,8 @@ class CorePhysiCellEnv(gymnasium.Env):
             a_img: numpy array or None
                 if self.render_mode is
                 None: the function will return None.
-                humen: the function will render and disply the image and return None.
-                rgb_array: the function will return an numpy array,
+                human: the function will render and display the image and return None.
+                rgb_array: the function will return a numpy array,
                     8bit, shape (4,y,x) with red, green, blue, and alpha channel.
 
         description:
@@ -288,7 +289,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             b_truncated: bool
 
         description:
-            function to evalouate if the epoch reached the max_time specified.
+            function to evaluate if the epoch reached the max_time specified.
         """
         # processing
         b_truncated = False
@@ -311,7 +312,11 @@ class CorePhysiCellEnv(gymnasium.Env):
             self._get_img()
 
             action: dict
-                hhh
+                object compatible with the defined action space struct.
+                the dictionary keys have to match the parameter,
+                custom variable, or custom vector label. the values are
+                eithr single or numpy arrays of bool, integer, float,
+                or string values.
 
         output:
             o_observation: structure
@@ -334,7 +339,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         description:
             function does a dt_gym simulation step:
-            observe, retrive reward, applying action, increment iteration counter.
+            observe, retrieve reward, apply action, increment iteration counter.
         """
         if self.verbose :
             print(f'physigym: taking a dt_gym time step ...')
@@ -425,7 +430,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             run env.unwrapped.verbose_true()
             to set verbosity true after initialization.
 
-            please not, only little from the standard output is comming
+            please not, only little from the standard output is coming
             actually from physigym. most of the output comes straight
             from PhysiCell and this setting has no influence over that output.
         """
@@ -443,7 +448,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             run env.unwrapped.verbose_true()
             to set verbosity false after initialization.
 
-            please not, only little from the standard output is comming
+            please not, only little from the standard output is coming
             actually from physigym. most of the output comes straight
             from PhysiCell and this setting has no influence over that output.
         """

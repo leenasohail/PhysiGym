@@ -1,9 +1,9 @@
 # PhysiGym Reference Man Page
 
-This is the technical descriptions of the machinery and how to operate it.
+This is the technical description of the machinery and how to operate it.
 
 
-# physigumg module
+# physigym module
 
 References are maintained in each module's [docstring](https://en.wikipedia.org/wiki/Docstring).\
 You can access them through the [source code](https://github.com/elmbeech/physicellembedding/blob/main/py3pc_embedding/custom_modules/physicellmodule.cpp#L449), or by first loading the physicell module.
@@ -18,7 +18,7 @@ Then, for each physicell module, get on the fly reference information with the [
 # all module functions
 help(physigym)
 
-# to run epoches
+# to run epochs
 help(env.__init__)
 help(env.reset)
 help(env.render)
