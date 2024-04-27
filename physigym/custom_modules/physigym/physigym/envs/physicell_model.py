@@ -216,7 +216,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         input:
 
-        output: dictionary
+        output: 
+            d_info: dictionary
 
         description:
             function to provide additional information important for

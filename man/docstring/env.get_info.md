@@ -6,8 +6,9 @@
 
 ```
 
-## output: dictionary
+## output:
 ```
+            d_info: dictionary
 
 ```
 
