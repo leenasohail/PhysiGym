@@ -138,7 +138,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.settingxml = settingxml
         self.x_tree = etree.parse(self.settingxml)
         if self.verbose:
-            print(f'physigym: reading {s_pathfile_settingxml}')
+            print(f'physigym: reading {self.settingxml}')
         self.x_root = self.x_tree.getroot()
 
         # initialize class whide variables
@@ -197,21 +197,25 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose :
             print(f'physigym: reset epoch ...')
 
-        # handle setting.xml based seeding
-        if (seed < 0):
-            i_seed = int(self.x_root.xpath('//random_seed')[0].text)
-            if self.verbose:
-                print(f'physigym: seed random number generator with {i_seed}, the value from the setting.xml file.')
-        else:
+        # handle random seeding
+        if (seed is None):
             i_seed = seed
-        # seed self.np_random number generator
-        super().reset(seed=i_seed)
+            self.x_root.xpath('//random_seed')[0].text = str(-1)
+            self.x_tree.write(self.settingxml, pretty_print=True)
+        # handle setting.xml based seeding
+        elif (seed < 0):
+            i_seed = int(self.x_root.xpath('//random_seed')[0].text)
+            if (i_seed < 0):
+                i_seed = None
         # handle gymnasium based seeding
-        if (seed is None) or (seed >= 0):
+        else: # seed >= 0
+            i_seed = seed
             self.x_root.xpath('//random_seed')[0].text = str(i_seed)
             self.x_tree.write(self.settingxml, pretty_print=True)
-            if self.verbose:
-                print(f'physigym: seed random number generator with {i_seed} and write the value into the setting.xml file.')
+        # seed self.np_random number generator
+        super().reset(seed=i_seed)
+        if self.verbose:
+            print(f'physigym: seed random number generator with {i_seed}.')
 
         # initialize physcell model
         if self.verbose:

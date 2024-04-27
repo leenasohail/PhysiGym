@@ -21,7 +21,10 @@ static const std::vector<double> VECTOR_ZERO (4, ZERO);  // generate a 4 charact
 // functions
 void create_cell_types(void) {
     // set the random seed
-    SeedRandom(parameters.ints("random_seed"));
+    if (parameters.ints("random_seed") < 0) {
+        SeedRandom();  // random
+    else:
+        SeedRandom(parameters.ints("random_seed"));  // fix
 
     /*
        Put any modifications to default cell definition here if you
