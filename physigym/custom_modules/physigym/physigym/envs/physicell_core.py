@@ -52,32 +52,32 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     ### begin dummy functions ###
 
-    def _get_action_space(self):
-        sys.exit('_get_action_space function to be implemented in physigym.ModelPhysiCellEnv!')
+    def get_action_space(self):
+        sys.exit('get_action_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_observation_space(self):
-        sys.exit('_get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!')
+    def get_observation_space(self):
+        sys.exit('get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_img(self):
-        sys.exit('_get_img function to be implemented in physigym.ModelPhysiCellEnv!')
+    def get_img(self):
+        sys.exit('get_img function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_observation(self):
-        sys.exit('_get_observation function to be implemented in physigym.ModelPhysiCellEnv!')
+    def get_observation(self):
+        sys.exit('get_observation function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_info(self):
-        sys.exit('_get_info function to be implemented in physigym.ModelPhysiCellEnv!')
+    def set_info(self):
+        sys.exit('get_info function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_terminated(self):
-        sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
+    def get_terminated(self):
+        sys.exit('get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def _get_reward(self):
-        sys.exit('_get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
+    def get_reward(self):
+        sys.exit('get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
     ### end dummy functions ###
@@ -111,7 +111,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             render_fps: float or None; default is 10.
                 if render_mode is 'human', for every dt_gym step the image,
-                specified in the physigym.ModelPhysiCellEnv._get_img() function,
+                specified in the physigym.ModelPhysiCellEnv.get_img() function,
                 will be generated and displayed. this frame per second setting
                 specifies the time the computer sleeps after the image is
                 displayed.
@@ -157,8 +157,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle spaces
         if self.verbose:
             print(f'physigym: declare action and observer space.')
-        self.action_space = self._get_action_space()
-        self.observation_space = self._get_observation_space()
+        self.action_space = self.get_action_space()
+        self.observation_space = self.get_observation_space()
 
         # output
         if self.verbose:
@@ -168,9 +168,9 @@ class CorePhysiCellEnv(gymnasium.Env):
     def reset(self, seed=None, options={}):
         """
         input:
-            self._get_observation()
-            self._get_info()
-            self._get_img()
+            self.get_observation()
+            self.get_info()
+            self.get_img()
 
             seed: integer or None; default is None
                 seed = None: generate a random seed. seed with this value python and PhyiCell (via the setting.xml file).
@@ -183,11 +183,11 @@ class CorePhysiCellEnv(gymnasium.Env):
         output:
             o_observation: structure
                 the exact structure has to be
-                specified in the _get_observation_space function.
+                specified in the get_observation_space function.
 
             d_info: dictionary
                 what information to be captured has to be
-                specified in the _get_info function.
+                specified in the get_info function.
 
         description:
             The reset method will be called to initiate a new episode.
@@ -222,8 +222,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         # observe domain
         if self.verbose:
             print(f'physigym: domain observation.')
-        o_observation = self._get_observation()
-        d_info = self._get_info()
+        o_observation = self.get_observation()
+        d_info = self.get_info()
 
         # render domain
         if self.verbose:
@@ -232,7 +232,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             plt.ion()
             self.fig, axs = plt.subplots(figsize=self.figsize)
             if (self.render_mode == 'human'):
-                self._get_img()
+                self.get_img()
                 if not (self.metadata['render_fps'] is None):
                     plt.pause(1 / self.metadata['render_fps'])
 
@@ -246,7 +246,7 @@ class CorePhysiCellEnv(gymnasium.Env):
     def render(self):
         """
         input:
-            self._get_img()
+            self.get_img()
 
         output:
             a_img: numpy array or None
@@ -257,7 +257,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                     8bit, shape (4,y,x) with red, green, blue, and alpha channel.
 
         description:
-            function to render the image, specified in the _get_img function
+            function to render the image, specified in the get_img function
             according to the set render_mode.
         """
         if self.verbose :
@@ -266,7 +266,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # processing
         a_img = None
         if not (self.render_mode is None):
-            self._get_img()
+            self.get_img()
             if (self.render_mode == 'human') and not (self.metadata['render_fps'] is None):
                     plt.pause(1 / self.metadata['render_fps'])
             else:
@@ -279,7 +279,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return a_img
 
 
-    def _get_truncated(self):
+    def get_truncated(self):
         """
         input:
             settingxml max_time
@@ -304,12 +304,12 @@ class CorePhysiCellEnv(gymnasium.Env):
     def step(self, action):
         """
         input:
-            self._get_observation()
-            self._get_terminated()
-            self._get_truncated()
-            self._get_info()
-            self._get_reward()
-            self._get_img()
+            self.get_observation()
+            self.get_terminated()
+            self.get_truncated()
+            self.get_info()
+            self.get_reward()
+            self.get_img()
 
             action: dict
                 object compatible with the defined action space struct.
@@ -320,19 +320,19 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         output:
             o_observation: structure
-                structure defined by the user in self._get_observation_space().
+                structure defined by the user in self.get_observation_space().
 
             r_reward: float or int or bool
-                algorithm defined by the user in self._get_reward().
+                algorithm defined by the user in self.get_reward().
 
             b_terminated: bool
-                algorithm defined by the user in self._get_terminated().
+                algorithm defined by the user in self.get_terminated().
 
             b_truncated: bool
-                algorithm defined in self._get_truncated().
+                algorithm defined in self.get_truncated().
 
             info: dict
-                algorithm defined by the user in self._get_info().
+                algorithm defined by the user in self.get_info().
 
             self.iteration: integer
                 step counter.
@@ -347,19 +347,19 @@ class CorePhysiCellEnv(gymnasium.Env):
         # get observation
         if self.verbose:
             print(f'physigym: domain observation.')
-        o_observation = self._get_observation()
-        b_terminated = self._get_terminated()
-        b_truncated = self._get_truncated()
-        d_info = self._get_info()
+        o_observation = self.get_observation()
+        b_terminated = self.get_terminated()
+        b_truncated = self.get_truncated()
+        d_info = self.get_info()
 
         # get revard
-        r_reward = self._get_reward()
+        r_reward = self.get_reward()
 
         # do rendering
         if self.verbose:
             print(f'physigym: render {self.render_mode} frame.')
         if (self.render_mode == 'human'):
-            self._get_img()
+            self.get_img()
             if not (self.metadata['render_fps'] is None):
                 plt.pause(1 / self.metadata['render_fps'])
 

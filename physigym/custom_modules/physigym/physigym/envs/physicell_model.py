@@ -50,7 +50,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         super(CorePhysiCellEnv, self).__init__()
 
 
-    def _get_action_space(self):
+    def get_action_space(self):
         """
         input:
 
@@ -79,7 +79,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return action_space
 
 
-    def _get_observation_space(self):
+    def get_observation_space(self):
         """
         input:
 
@@ -112,7 +112,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return observation_space
 
 
-    def _get_img(self):
+    def get_img(self):
         """
         input:
 
@@ -190,7 +190,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #self.fig.savefig(f'{s_path}/timeseries_step{str(self.iteration).zfill(3)}.jpeg', facecolor='white')
 
 
-    def _get_observation(self):
+    def get_observation(self):
         """
         input:
 
@@ -212,7 +212,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return o_observation
 
 
-    def _get_info(self):
+    def get_info(self):
         """
         input:
 
@@ -231,7 +231,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return d_info
 
 
-    def _get_terminated(self):
+    def get_terminated(self):
         """
         input:
 
@@ -252,7 +252,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return b_terminated
 
 
-    def _get_reward(self):
+    def get_reward(self):
         """
         input:
 
@@ -260,7 +260,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             r_reward: float between or equal to 0.0 and 1.0.
                 there are no other limits to the algorithm implementation enforced.
                 however, the algorithm is usually based on data as well retrived
-                by the _get_observation function (o_observation, d_info),
+                by the get_observation function (o_observation, d_info),
                 and possibly by the render function (a_img).
 
         description:

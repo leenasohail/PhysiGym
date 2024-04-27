@@ -173,7 +173,7 @@ Finally, let's update the Gymnasium ModelPhysiCellEnv class, found in the custom
 
 3.1 Edit the custom_modules/physigym/physigym/envs/physicell_model.py file.
 
-3.1.1 \_get\_action\_space function
+3.1.1 get_action_space function
 
 Let's declare the action space.
 In the studio, we specified the unit of the drug_conc parameter as a fraction.
@@ -195,7 +195,7 @@ action_space = spaces.Dict({
 ```
 
 
-3.1.2 \_get\_observation\_space function
+3.1.2 get_observation_space function
 
 We do a similar thing for the observation space.
 Based on our classic run we do not expect to have more than 2^14 cells.
@@ -206,7 +206,7 @@ observation_space = spaces.Box(low=0, high=(2**16 - 1), shape=(), dtype=np.uint1
 ```
 
 
-3.1.3 \_get\_img function
+3.1.3 get_img function
 
 We will now implement a plot, to display drug concentration in the domain, as well as all cells, colored by the apoptosis rate.
 
@@ -260,7 +260,7 @@ df_cell.plot(
 ```
 
 
-3.1.4 \_get\_observation
+3.1.4 get_observation
 
 In our model, the only thing we have to observe is the cell count.
 The way we provide this information has to be compatible with the observation space we defined above, in our case, a single integer number.
@@ -271,7 +271,7 @@ Replace the default `o_observation = {'discrete': True}` with:
 o_observation = np.array(physicell.get_parameter('cell_count'), dtype=np.uint16)
 ```
 
-3.1.5 \_get\_info
+3.1.5 get_info
 
 We could provide additional information important for controlling the action of the policy.
 For example, if we do reinforcement learning on a [jump and run game](https://c64online.com/c64-games/the-great-giana-sisters/), the number of hearts (lives left) from our character.
@@ -281,7 +281,7 @@ In our simple model, we don't have such information.
 So, just leave the default, the empty dictionary.
 
 
-3.1.6 \_get\_terminated
+3.1.6 get_terminated
 
 In our model, the run (epoch) will be terminated if all cells are dead and the species has died out.
 Note that it is a huge difference, if the model is terminated (all cells are dead) or is truncated (simply runs out of max time).
@@ -293,7 +293,7 @@ b_terminated = physicell.get_parameter('cell_count') <= 0
 ```
 
 
-3.1.7 \_get\_reward
+3.1.7 get_reward
 
 The reward has to be a float number between or equal to 0.0 and 1.0.
 Delete the default `r_reward = 0.0`.
@@ -308,7 +308,7 @@ elif (i_cellcount < 128):
 elif (i_cellcount > 128):
     r_reward = (i_cellcount - 128) / 128
 else:
-    sys.exit('Error @ CorePhysiCellEnv._get_reward : strange clipped cell_count detected {i_cellcount}.')
+    sys.exit('Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.')
 ```
 
 

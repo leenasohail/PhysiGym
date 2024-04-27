@@ -28,13 +28,13 @@ help(env.verbose_false)
 help(env.verbose_true)
 
 # to specify models 
-help(env._get_action_space)
-help(env._get_observation_space)
-help(env._get_img)
-help(env._get_observation)
-help(env._get_info)
-help(env._get_terminated)
-help(env._get_reward)
+help(env.get_action_space)
+help(env.get_observation_space)
+help(env.get_img)
+help(env.get_observation)
+help(env.get_info)
+help(env.get_terminated)
+help(env.get_reward)
 
 # pure internal functions
-help(env._get_truncated)
+help(env.get_truncated)
