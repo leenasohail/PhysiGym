@@ -5,9 +5,10 @@
 // language: C/C++
 // date: 2015-2024
 // license: BSD-3-Clause
-// author: Elmar Bucher, Paul Macklin
+// author: Alexander Bertin, Elmar Bucher, Paul Macklin
 // original source code: https://github.com/MathCancer/PhysiCell
 // modified source code: https://github.com/elmbeech/physicellembedding
+// modified source code: https://github.com/Dante-Berth/PhysiGym
 // input: https://docs.python.org/3/extending/extending.html
 ////////
 
@@ -336,7 +337,8 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
     // delete cells
     for (Cell* pCell: (*all_cells)) {
-        delete pCell;
+        //delete pCell;
+        pCell->die();
     }
 
     // go home
