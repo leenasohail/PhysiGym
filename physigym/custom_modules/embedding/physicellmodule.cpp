@@ -337,7 +337,8 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
     // delete cells
     for (Cell* pCell: (*all_cells)) {
-        delete pCell;
+        //delete pCell;
+        pCell->die();
     }
 
     // go home

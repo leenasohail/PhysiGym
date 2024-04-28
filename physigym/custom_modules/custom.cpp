@@ -23,8 +23,9 @@ void create_cell_types(void) {
     // set the random seed
     if (parameters.ints("random_seed") < 0) {
         SeedRandom();  // random
-    else:
+    } else {
         SeedRandom(parameters.ints("random_seed"));  // fix
+    }
 
     /*
        Put any modifications to default cell definition here if you
