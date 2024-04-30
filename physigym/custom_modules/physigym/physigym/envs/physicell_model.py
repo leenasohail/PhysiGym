@@ -46,8 +46,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         you will have to edit this class, to specify the model specific
         reniforcement learning enviroment.
     """
-    def __ini__():
-        super(CorePhysiCellEnv, self).__init__()
+    def __init__(self):
+        super(ModelPhysiCellEnv, self).__init__()
 
 
     def get_action_space(self):
