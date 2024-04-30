@@ -64,7 +64,7 @@ setup(
                 "../../modules/PhysiCell_pathology.cpp",
                 #"modules/PhysiCell_POV.cpp",
                 "../../modules/PhysiCell_pugixml.cpp",
-                "../../modules/PhysiCell_settings.cpp",
+                "modules/PhysiCell_settings.cpp",
                 "../../modules/PhysiCell_SVG.cpp",
                 "../../modules/PhysiCell_various_outputs.cpp",
 
