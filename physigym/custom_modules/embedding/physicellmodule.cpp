@@ -341,6 +341,9 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
         pCell->die();
     }
 
+    // reset global variables
+    PhysiCell_globals = PhysiCell_Globals();
+
     // go home
     return PyLong_FromLong(0);
 }
