@@ -153,12 +153,12 @@ if __name__ =="__main__":
     action_dim = env.action_space.shape[0]
     max_action = float(env.action_space.high[0])
 
-    agent = DDPGAgent(state_dim, action_dim, max_action, device)
+    agent = DDPGAgent(state_dim=state_dim, action_dim=action_dim, max_action=max_action, device=device)
     parameters = {
         "max_size":100000,
         "batch_size":128,
         "num_episodes":1000,
-        "num_steps":10000
+        "num_steps":100
 
     }
     Trainer(env,agent,parameters)
