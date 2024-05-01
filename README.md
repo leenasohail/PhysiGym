@@ -4,7 +4,7 @@
 # Header:
 
 + Language: C++11 and Python [>= 3.8](https://devguide.python.org/versions/)
-+ Software dependencies: PhysiCell
++ Software dependencies: PhysiCell v1.13.1
 + Phython library dependencies: gymnasium, lxml, matplotlib, numpy, pandas, (ipython, PyQt6)
 + Author: Alexandre Bertin, Elmar Bucher
 + Date: 2024-spring

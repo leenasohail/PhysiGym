@@ -38,7 +38,7 @@ setup(
                 "../../BioFVM/BioFVM_basic_agent.cpp",
                 "../../BioFVM/BioFVM_matlab.cpp",
                 "../../BioFVM/BioFVM_mesh.cpp",
-                "../../BioFVM/BioFVM_microenvironment.cpp",
+                "BioFVM/BioFVM_microenvironment.cpp",
                 "../../BioFVM/BioFVM_MultiCellDS.cpp",
                 "../../BioFVM/BioFVM_solvers.cpp",
                 "../../BioFVM/BioFVM_utilities.cpp",
