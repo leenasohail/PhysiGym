@@ -148,10 +148,10 @@ void setup_tissue( void ) {
     load_cells_from_pugixml();
 
     // add custom data vector
-    //for (int i = 0 ; i < all_cells->size(); i++) {
-    //    std::vector<double> vector_double = VECTOR_ZERO;
-    //    (*all_cells)[i]->custom_data.add_vector_variable("my_vector", vector_double);
-    //}
+    for (int i = 0 ; i < all_cells->size(); i++) {
+        std::vector<double> vector_double = VECTOR_ZERO;
+        (*all_cells)[i]->custom_data.add_vector_variable("my_vector", vector_double);
+    }
 
     return;
 }
