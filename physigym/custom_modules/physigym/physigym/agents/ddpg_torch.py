@@ -69,6 +69,7 @@ class DDPGAgent:
         self.max_action = max_action
         self.gamma = gamma
         self.tau = tau
+        self.device = device
 
     def action(self, state:np.array):
         """_summary_
@@ -79,18 +80,18 @@ class DDPGAgent:
         Returns:
             _type_: _description_
         """
-        state = torch.FloatTensor(state).to(device)
+        state = torch.FloatTensor(state).to(self.device)
         action = self.actor(state).cpu().data.numpy().flatten()
         return action
 
     def train(self, replay_buffer, batch_size):
         # Like in supervised learning
         states, actions, rewards, next_states, dones = replay_buffer.sample(batch_size)
-        states = torch.FloatTensor(states).to(device)
-        actions = torch.FloatTensor(actions).to(device)
-        rewards = torch.FloatTensor(rewards).unsqueeze(1).to(device) # to convert a numpy array (size (batch_size)) into torch tensor size (batch_size,1) 
-        next_states = torch.FloatTensor(next_states).to(device)
-        dones = torch.FloatTensor(dones).unsqueeze(1).to(device) # to convert a numpy array (size (batch_size)) into torch tensor size (batch_size,1)
+        states = torch.FloatTensor(states).to(self.device)
+        actions = torch.FloatTensor(actions).to(self.device)
+        rewards = torch.FloatTensor(rewards).unsqueeze(1).to(self.device) # to convert a numpy array (size (batch_size)) into torch tensor size (batch_size,1) 
+        next_states = torch.FloatTensor(next_states).to(self.device)
+        dones = torch.FloatTensor(dones).unsqueeze(1).to(self.device) # to convert a numpy array (size (batch_size)) into torch tensor size (batch_size,1)
 
         # Update critic
         next_actions = self.actor_target(next_states) # next action given by the actor_target 
