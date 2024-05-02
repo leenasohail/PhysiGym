@@ -9,8 +9,8 @@ import gym
 class Actor(nn.Module):
     def __init__(self, state_dim:int, action_dim:int, max_action):
         super(Actor, self).__init__()
-        self.fc1 = nn.Linear(state_dim, 256)
-        self.fc2 = nn.Linear(256, 128)
+        self.fc1 = nn.Linear(state_dim, 512)
+        self.fc2 = nn.Linear(512, 128)
         self.fc3 = nn.Linear(128, action_dim)
         self.max_action = max_action
 
@@ -24,8 +24,8 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self, state_dim:int, action_dim:int):
         super(Critic, self).__init__()
-        self.fc1 = nn.Linear(state_dim + action_dim, 256)
-        self.fc2 = nn.Linear(256, 128)
+        self.fc1 = nn.Linear(state_dim + action_dim, 512)
+        self.fc2 = nn.Linear(512, 128)
         self.fc3 = nn.Linear(128, 1)
 
     def forward(self, state, action):
@@ -36,7 +36,7 @@ class Critic(nn.Module):
         return x
 
 class TD3Agent:
-    def __init__(self, state_dim, action_dim, max_action, gamma=0.99, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2, lr_actor=1e-3, lr_critic=1e-3, device="cpu"):
+    def __init__(self, state_dim, action_dim, max_action, gamma=0.99, tau=0.005, policy_noise=0.2, noise_clip=0.5, policy_freq=2, lr_actor=5e-3, lr_critic=3e-4, device="cpu"):
         self.actor = Actor(state_dim, action_dim, max_action).to(device)
         self.actor_target = Actor(state_dim, action_dim, max_action).to(device)
         self.actor_target.load_state_dict(self.actor.state_dict())
@@ -89,10 +89,11 @@ class TD3Agent:
         next_actions = torch.clamp(next_actions, -self.max_action, self.max_action)
 
         # Compute target Q-values
-        target_Q1 = self.critic1_target(next_states, next_actions)
-        target_Q2 = self.critic2_target(next_states, next_actions)
-        target_Q = torch.min(target_Q1, target_Q2)
-        target_Q = rewards + (1 - dones) * self.gamma * target_Q.detach()
+        with torch.no_grad():
+            target_Q1 = self.critic1_target(next_states, next_actions)
+            target_Q2 = self.critic2_target(next_states, next_actions)
+            target_Q = torch.min(target_Q1, target_Q2)
+            target_Q = rewards + (1 - dones) * self.gamma * target_Q
 
         # Compute current Q-values
         current_Q1 = self.critic1(states, actions)
@@ -183,9 +184,9 @@ if __name__ =="__main__":
     agent = TD3Agent(state_dim=state_dim, action_dim=action_dim, max_action=max_action, device=device)
     parameters = {
         "max_size":100000,
-        "batch_size":128,
-        "num_episodes":1000,
-        "num_steps":100
+        "batch_size":100,
+        "num_episodes":10000,
+        "num_steps":500
 
     }
     Trainer(env,agent,parameters)
