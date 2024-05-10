@@ -65,169 +65,79 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_settings_h__
-#define __PhysiCell_settings_h__
-
 #include <iostream>
-#include <ctime>
-#include <cmath>
+#include <fstream>
+#include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <vector>
-#include <random>
-#include <chrono>
-#include <unordered_map>
 
-#include "../modules/PhysiCell_pugixml.h"
-#include "../BioFVM/BioFVM.h"
+#ifndef _PhysiCell_POV_h_
+#define _PhysiCell_POV_h_
 
-#include "../core/PhysiCell_constants.h"
-#include "../core/PhysiCell_utilities.h"
+#include "../BioFVM/BioFVM_vector.h" 
 
-using namespace BioFVM; 
-
-namespace PhysiCell{
- 	
-extern pugi::xml_node physicell_config_root; 
-
-bool load_PhysiCell_config_file( std::string filename );
-
-class PhysiCell_Settings
+class Clipping_Plane
 {
  private:
  public:
-	// overall 
-	double max_time = 60*24*45;   
-
-	// units
-	std::string time_units = "min"; 
-	std::string space_units = "micron"; 
- 
-	// parallel options 
-	int omp_num_threads = 2; 
+	std::vector<double> normal; 
+	std::vector<double> point_on_plane; 
 	
-	// save options
-	std::string folder = "."; 
-
-	double full_save_interval = 60;  
-	bool enable_full_saves = true; 
-	bool enable_legacy_saves = false; 
-
-	bool disable_automated_spring_adhesions = false; 
+	// store [a,b,c,d], where 
+	// [a,b,c].*x + d = 0 on the plane
+	std::vector<double> coefficients; 
 	
-	double SVG_save_interval = 60; 
-	bool enable_SVG_saves = true; 
-
-	bool enable_substrate_plot = false;
-	std::string substrate_to_monitor = "oxygen"; 
-	bool limits_substrate_plot = false;
-	double min_concentration = -1.0;
-	double max_concentration = -1.0;
-
-	double intracellular_save_interval = 60; 
-	bool enable_intracellular_saves = false; 
-
-	// cell rules option
-	bool rules_enabled = false; 
-	std::string rules_protocol = "Cell Behavior Hypothesis Grammar (CBHG)"; 
-	std::string rules_protocol_version = "1.0"; 
+	double signed_distance_to_plane( std::vector<double>& test_point ); // done 
+	bool is_or_behind_plane( std::vector<double>& test_point );  // done 
+	bool is_in_front_of_plane( std::vector<double>& test_point ); // done 
 	
-	PhysiCell_Settings();
-	
-	void read_from_pugixml( void ); 
+	Clipping_Plane(); // done
+	void normal_point_to_coefficients( void ); // done 
+	void coefficients_to_normal_point( void );  // done 
 };
 
-class PhysiCell_Globals
+class POV_Options
 {
  private:
  public:
-	double current_time = 0.0; 
-	double next_full_save_time = 0.0; 
-	double next_SVG_save_time = 0.0; 
-	double next_intracellular_save_time = 0.0; 
-	int full_output_index = 0; 
-	int SVG_output_index = 0; 
-	int intracellular_output_index = 0; 
-};
+	POV_Options(); // done 
 
-template <class T> 
-class Parameter
-{
- private:
-	template <class Y>
-	friend std::ostream& operator<<(std::ostream& os, const Parameter<Y>& param); 
-
- public: 
-	std::string name; 
-	std::string units; 
-	T value; 
+	std::vector<double> domain_center;
+	std::vector<double> domain_size; 
 	
-	Parameter();
-	Parameter( std::string my_name ); 
-	
-	void operator=( T& rhs ); 
-	void operator=( T rhs ); 
-	void operator=( Parameter& p ); 
-};
-
-template <class T>
-class Parameters
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
-	
-	template <class Y>
-	friend std::ostream& operator<<( std::ostream& os , const Parameters<Y>& params ); 
-
- public: 
-	Parameters(); 
+	std::vector<double> background; 
  
-	std::vector< Parameter<T> > parameters; 
+	std::vector<double> camera_position; 
+	std::vector<double> camera_look_at; 
+	std::vector<double> camera_right; 
+	std::vector<double> camera_up; 
+	std::vector<double> camera_sky; 
 	
-	void add_parameter( std::string my_name ); 
-	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
-	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
+	int max_trace_level;
+	double assumed_gamma;
 	
-	void add_parameter( Parameter<T> param );
+	std::vector<double> light_position; 
+	double light_rgb; // a scalar, so it's a shade of white 
+	double light_fade_distance; 
+	int light_fade_power; 
 	
-	int find_index( std::string search_name ); 
+	bool no_shadow;
+	bool no_reflection; 
 	
-	// these access the values 
-	T& operator()( int i );
-	T& operator()( std::string str ); 
-
-	// these access the full, raw parameters 
-	Parameter<T>& operator[]( int i );
-	Parameter<T>& operator[]( std::string str ); 
+	std::vector<Clipping_Plane> clipping_planes; 
 	
-	int size( void ) const; 
+	// distance from center of domain, angle from x-axis, angle from z-axis 
+	void set_camera_from_spherical_location( double distance, double theta, double phi ); // done 
 };
 
-class User_Parameters
-{
- private:
-	friend std::ostream& operator<<( std::ostream& os , const User_Parameters up ); 
- 
- public:
-	Parameters<bool> bools; 
-	Parameters<int> ints; 
-	Parameters<double> doubles; 
-	Parameters<std::string> strings; 
-	
-	void read_from_pugixml( pugi::xml_node parent_node );
-}; 
+extern POV_Options default_POV_options; 
 
-extern PhysiCell_Globals PhysiCell_globals; 
+void Write_POV_start( POV_Options& options , std::ostream& os ); 
+void Write_POV_start( std::ostream& os ); 
 
-extern PhysiCell_Settings PhysiCell_settings; 
-
-extern User_Parameters parameters; 
-
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
-
-}
-
-#endif 
-
+// pigment: [r,g,b,f], where they vary from 0 to 1. I suggest f = 0. 
+// finish: [ambient,diffuse,specular]
+void Write_POV_sphere( std::ostream& os, std::vector<double>& center, double radius, std::vector<double>& pigment, std::vector<double>& finish );
+					
+#endif

@@ -337,9 +337,29 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
     // delete cells
     for (Cell* pCell: (*all_cells)) {
-        //delete pCell;
         pCell->die();
     }
+
+    // delete phenotype models
+    for (Cell_Definition* pCD: cell_definitions_by_index) {
+        // death models
+        for (unsigned int i=0; i < pCD->phenotype.death.models.size(); i++) {
+            pCD->phenotype.death.models.pop_back();
+        }
+        for (unsigned int i=0; i < pCD->phenotype.death.rates.size(); i++) {
+            pCD->phenotype.death.rates.pop_back();
+        }
+        for (unsigned int i=0; i < pCD->phenotype.death.parameters.size(); i++) {
+            pCD->phenotype.death.parameters.pop_back();
+        }
+    }
+    // delete cell type definitions
+    for (unsigned int i=0; i < cell_definitions_by_index.size(); i++) {
+        cell_definitions_by_index.pop_back();
+    }
+
+    // reset cell ID counter
+    BioFVM::reset_max_basic_agent_ID();
 
     // reset global variables
     PhysiCell_globals = PhysiCell_Globals();

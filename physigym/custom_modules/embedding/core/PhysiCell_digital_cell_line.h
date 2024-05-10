@@ -65,169 +65,178 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_settings_h__
-#define __PhysiCell_settings_h__
+#ifndef __PhysiCell_digital_cell_line_h__
+#define __PhysiCell_digital_cell_line_h__
 
-#include <iostream>
-#include <ctime>
-#include <cmath>
 #include <string>
+#include <cstdio>
+#include <cstdlib>
 #include <vector>
-#include <random>
-#include <chrono>
+#include <iostream>
+#include <ostream>
+#include <istream> 
 #include <unordered_map>
 
-#include "../modules/PhysiCell_pugixml.h"
-#include "../BioFVM/BioFVM.h"
-
-#include "../core/PhysiCell_constants.h"
-#include "../core/PhysiCell_utilities.h"
-
-using namespace BioFVM; 
+#include "../BioFVM/pugixml.hpp"
+#include "../BioFVM/BioFVM_basic_agent.h"
 
 namespace PhysiCell{
- 	
-extern pugi::xml_node physicell_config_root; 
 
-bool load_PhysiCell_config_file( std::string filename );
-
-class PhysiCell_Settings
+class Microenvironment_Sample
 {
- private:
- public:
-	// overall 
-	double max_time = 60*24*45;   
-
-	// units
-	std::string time_units = "min"; 
-	std::string space_units = "micron"; 
- 
-	// parallel options 
-	int omp_num_threads = 2; 
-	
-	// save options
-	std::string folder = "."; 
-
-	double full_save_interval = 60;  
-	bool enable_full_saves = true; 
-	bool enable_legacy_saves = false; 
-
-	bool disable_automated_spring_adhesions = false; 
-	
-	double SVG_save_interval = 60; 
-	bool enable_SVG_saves = true; 
-
-	bool enable_substrate_plot = false;
-	std::string substrate_to_monitor = "oxygen"; 
-	bool limits_substrate_plot = false;
-	double min_concentration = -1.0;
-	double max_concentration = -1.0;
-
-	double intracellular_save_interval = 60; 
-	bool enable_intracellular_saves = false; 
-
-	// cell rules option
-	bool rules_enabled = false; 
-	std::string rules_protocol = "Cell Behavior Hypothesis Grammar (CBHG)"; 
-	std::string rules_protocol_version = "1.0"; 
-	
-	PhysiCell_Settings();
-	
-	void read_from_pugixml( void ); 
+public:
+	std::vector<std::string> variables; 
+	std::vector<double> densities; 
 };
 
-class PhysiCell_Globals
-{
- private:
- public:
-	double current_time = 0.0; 
-	double next_full_save_time = 0.0; 
-	double next_SVG_save_time = 0.0; 
-	double next_intracellular_save_time = 0.0; 
-	int full_output_index = 0; 
-	int SVG_output_index = 0; 
-	int intracellular_output_index = 0; 
+class Geometry{
+public:
+	double radius; 
+	double nuclear_radius; 
+	double surface_area; 
+	std::vector<double> polarization; 
+	bool polarized; 
 };
 
-template <class T> 
-class Parameter
-{
- private:
-	template <class Y>
-	friend std::ostream& operator<<(std::ostream& os, const Parameter<Y>& param); 
+class Volume{
+public:
+	double total;
+	double solid;
+	double fluid;
+	double fluid_fraction; 
+	
+	double nuclear;
+	double nuclear_fluid;
+	double nuclear_solid; 
 
- public: 
+	double cytoplasmic;
+	double cytoplasmic_fluid; 
+	double cytoplasmic_solid; 
+	
+	double cytoplasmic_biomass_change_rate; 
+	double nuclear_biomass_change_rate; 
+	double fluid_change_rate;
+
+	
+	double target_solid_cytoplasmic;
+	double target_solid_nuclear;
+	double target_fluid_fraction;
+	
+	double cytoplasmic_to_nuclear_fraction;
+	
+	double rupture_threshold;
+	void divide( void );
+	void multiply_by_ratio(double);
+	double calcified_fraction;
+};
+
+class Phase{
+public:
+	int code; 
 	std::string name; 
-	std::string units; 
-	T value; 
 	
-	Parameter();
-	Parameter( std::string my_name ); 
-	
-	void operator=( T& rhs ); 
-	void operator=( T rhs ); 
-	void operator=( Parameter& p ); 
+	double elapsed_time; 
+	double duration; 	
+	double birth_rate; 
+	double death_rate; 
+	double necrosis_rate=0;
+	double calcification_rate; 
+	int death_type; 
+	double arrest_density; 
+	double volume_change_timescale_N;
+	double volume_change_timescale_C;
+	double volume_change_timescale_F;
 };
 
-template <class T>
-class Parameters
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
+class Cycle{
+public: 
+	int cycle_model; 
+	std::string cycle_model_name; 
 	
-	template <class Y>
-	friend std::ostream& operator<<( std::ostream& os , const Parameters<Y>& params ); 
-
- public: 
-	Parameters(); 
- 
-	std::vector< Parameter<T> > parameters; 
-	
-	void add_parameter( std::string my_name ); 
-	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
-	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-	
-	void add_parameter( Parameter<T> param );
-	
-	int find_index( std::string search_name ); 
-	
-	// these access the values 
-	T& operator()( int i );
-	T& operator()( std::string str ); 
-
-	// these access the full, raw parameters 
-	Parameter<T>& operator[]( int i );
-	Parameter<T>& operator[]( std::string str ); 
-	
-	int size( void ) const; 
+	std::vector<Phase> phases; 
 };
 
-class User_Parameters
-{
- private:
-	friend std::ostream& operator<<( std::ostream& os , const User_Parameters up ); 
- 
- public:
-	Parameters<bool> bools; 
-	Parameters<int> ints; 
-	Parameters<double> doubles; 
-	Parameters<std::string> strings; 
+/* Commented out on 5/2/2016
+class Death{
+public: 
+	int death_model; 
+	double duration; 
 	
-	void read_from_pugixml( pugi::xml_node parent_node );
+	double cytoplasmic_biomass_loss_timescale;
+	double nuclear_biomass_loss_timescale;
+	double fluid_loss_timescale; 
+	double adhesion_loss_timescale; 
+	
+	double calcification_rate; 
+};*/
+
+class Motility{
+public:
+	std::vector<double> gradient_correlations; 
+	double mean_speed; 
+};
+
+class Uptake_Rates{
+public:
+	std::vector<std::string> variables; 
+	std::vector<double> rates; 
 }; 
 
-extern PhysiCell_Globals PhysiCell_globals; 
+class Secretion_Rates{
+public:
+	std::vector<std::string> variables; 
+	std::vector<double> rates; 
+};
 
-extern PhysiCell_Settings PhysiCell_settings; 
+class Secretion_Saturation_Densities{
+public: 
+	std::vector<std::string> variables; 
+	std::vector<double> densities; 
+}; 
 
-extern User_Parameters parameters; 
+class Full_Phenotype{
+private: 
+	std::unordered_map<int, int> * phase_indices_map;
+public:
+	// std::vector<Phase> phase; 
+	int current_phase_index; 
+	bool phase_model_initialized; //should this be here?
+	// Phase current_phase;
+	Cycle cycle; 
+	
+	Geometry geometry; 
+	Volume volume; 	
+	// Death apoptosis; 
+	// Death necrosis; 
+	Motility motility; 
+	Uptake_Rates uptake_rates; 
+	Secretion_Rates secretion_rates;
+	Secretion_Saturation_Densities saturation_densities; 
+	void set_current_phase(int phase_code); // set current_phase based on a given phase_code
+	int get_phase_index(int phase_code); //return the phase_index of a given phase in cycle.phases
+	void update_volume_change_rates();
+	void update_radius();
+	void set_phase_maps(std::unordered_map<int,int> * phase_map);
+	std::unordered_map<int,int> * get_phase_maps(void);
+	
+	int get_current_phase_code(void); 
+};
 
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
+class Cell_Line{
+public:
+	std::string name; 
+	std::vector<std::string> phenotype_names; 
+	std::vector<Microenvironment_Sample> microenvironment_samples; 
+	std::vector<Full_Phenotype> phenotypes; 
+	
+	void display_information( std::ostream& os ); 
+};
 
-}
+// create some standard generic digital cell lines 
+void set_cancer_cell_line( Cell_Line& DCL );
+void set_cancer_cell_line_MCF7( Cell_Line& DCL );
+void set_endothelial_cell_line( Cell_Line& DCL );  
+	
+}; 
 
-#endif 
-
+#endif

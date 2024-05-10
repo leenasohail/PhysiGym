@@ -65,169 +65,103 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_settings_h__
-#define __PhysiCell_settings_h__
+#ifndef __PhysiCell_constants_h__
+#define __PhysiCell_constants_h__
 
-#include <iostream>
-#include <ctime>
-#include <cmath>
 #include <string>
-#include <vector>
-#include <random>
-#include <chrono>
 #include <unordered_map>
 
-#include "../modules/PhysiCell_pugixml.h"
-#include "../BioFVM/BioFVM.h"
-
-#include "../core/PhysiCell_constants.h"
-#include "../core/PhysiCell_utilities.h"
-
-using namespace BioFVM; 
-
-namespace PhysiCell{
- 	
-extern pugi::xml_node physicell_config_root; 
-
-bool load_PhysiCell_config_file( std::string filename );
-
-class PhysiCell_Settings
+namespace PhysiCell
 {
- private:
+	
+class PhysiCell_constants
+{
  public:
-	// overall 
-	double max_time = 60*24*45;   
-
-	// units
-	std::string time_units = "min"; 
-	std::string space_units = "micron"; 
- 
-	// parallel options 
-	int omp_num_threads = 2; 
+	static constexpr double pi=3.1415926535897932384626433832795;
 	
-	// save options
-	std::string folder = "."; 
-
-	double full_save_interval = 60;  
-	bool enable_full_saves = true; 
-	bool enable_legacy_saves = false; 
-
-	bool disable_automated_spring_adhesions = false; 
+	static constexpr double cell_removal_threshold_volume = 20; // 20 cubic microns -- about 1% of typical cell 
+	static const int keep_pushed_out_cells_in_outer_voxel=1;
+	static const int solid_boundary = 2;
+	static const int default_boundary_condition_for_pushed_out_agents = keep_pushed_out_cells_in_outer_voxel;		
 	
-	double SVG_save_interval = 60; 
-	bool enable_SVG_saves = true; 
-
-	bool enable_substrate_plot = false;
-	std::string substrate_to_monitor = "oxygen"; 
-	bool limits_substrate_plot = false;
-	double min_concentration = -1.0;
-	double max_concentration = -1.0;
-
-	double intracellular_save_interval = 60; 
-	bool enable_intracellular_saves = false; 
-
-	// cell rules option
-	bool rules_enabled = false; 
-	std::string rules_protocol = "Cell Behavior Hypothesis Grammar (CBHG)"; 
-	std::string rules_protocol_version = "1.0"; 
+	static const int deterministic_necrosis = 0;
+	static const int stochastic_necrosis = 1;
 	
-	PhysiCell_Settings();
+	static const int mesh_min_x_index=0;
+	static const int mesh_min_y_index=1;
+	static const int mesh_min_z_index=2;
+	static const int mesh_max_x_index=3;
+	static const int mesh_max_y_index=4;
+	static const int mesh_max_z_index=5;			
 	
-	void read_from_pugixml( void ); 
+	static const int mesh_lx_face_index=0;
+	static const int mesh_ly_face_index=1;
+	static const int mesh_lz_face_index=2;
+	static const int mesh_ux_face_index=3;
+	static const int mesh_uy_face_index=4;
+	static const int mesh_uz_face_index=5;
+	
+	// currently recognized cell cycle models 
+	static const int advanced_Ki67_cycle_model= 0;
+	static const int basic_Ki67_cycle_model=1;
+	static const int flow_cytometry_cycle_model=2;
+	static const int live_apoptotic_cycle_model=3;
+	static const int total_cells_cycle_model=4;
+	static const int live_cells_cycle_model = 5; 
+	static const int flow_cytometry_separated_cycle_model = 6; 
+	static const int cycling_quiescent_model = 7; 
+	
+	// currently recognized death models 
+	static const int apoptosis_death_model = 100; 
+	static const int necrosis_death_model = 101; 
+	static const int autophagy_death_model = 102; 
+	
+	static const int custom_cycle_model=9999; 
+	
+	// currently recognized cell cycle and death phases 
+	// cycle phases
+	static const int Ki67_positive_premitotic=0; 
+	static const int Ki67_positive_postmitotic=1; 
+	static const int Ki67_positive=2; 
+	static const int Ki67_negative=3; 
+	static const int G0G1_phase=4;
+	static const int G0_phase=5;
+	static const int G1_phase=6; 
+	static const int G1a_phase=7; 
+	static const int G1b_phase=8;
+	static const int G1c_phase=9;
+	static const int S_phase=10;
+	static const int G2M_phase=11;
+	static const int G2_phase=12;
+	static const int M_phase=13;
+	static const int live=14;
+	
+	static const int G1pm_phase = 15;
+	static const int G1ps_phase = 16; 
+	
+	static const int cycling = 17; 
+	static const int quiescent = 18; 
+	
+	
+	static const int custom_phase = 9999;
+	// death phases
+	static const int apoptotic=100;
+	static const int necrotic_swelling=101;
+	static const int necrotic_lysed=102;
+	static const int necrotic=103; 
+	static const int debris=104; 
+};
+extern std::string time_units;
+extern std::string space_units;
+extern double diffusion_dt; 
+extern double mechanics_dt;
+extern double phenotype_dt;
+extern double intracellular_dt;
+
+
+extern std::unordered_map<std::string,int> cycle_model_codes;
+int find_cycle_model_code( std::string model_name ); 
+
 };
 
-class PhysiCell_Globals
-{
- private:
- public:
-	double current_time = 0.0; 
-	double next_full_save_time = 0.0; 
-	double next_SVG_save_time = 0.0; 
-	double next_intracellular_save_time = 0.0; 
-	int full_output_index = 0; 
-	int SVG_output_index = 0; 
-	int intracellular_output_index = 0; 
-};
-
-template <class T> 
-class Parameter
-{
- private:
-	template <class Y>
-	friend std::ostream& operator<<(std::ostream& os, const Parameter<Y>& param); 
-
- public: 
-	std::string name; 
-	std::string units; 
-	T value; 
-	
-	Parameter();
-	Parameter( std::string my_name ); 
-	
-	void operator=( T& rhs ); 
-	void operator=( T rhs ); 
-	void operator=( Parameter& p ); 
-};
-
-template <class T>
-class Parameters
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
-	
-	template <class Y>
-	friend std::ostream& operator<<( std::ostream& os , const Parameters<Y>& params ); 
-
- public: 
-	Parameters(); 
- 
-	std::vector< Parameter<T> > parameters; 
-	
-	void add_parameter( std::string my_name ); 
-	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
-	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-	
-	void add_parameter( Parameter<T> param );
-	
-	int find_index( std::string search_name ); 
-	
-	// these access the values 
-	T& operator()( int i );
-	T& operator()( std::string str ); 
-
-	// these access the full, raw parameters 
-	Parameter<T>& operator[]( int i );
-	Parameter<T>& operator[]( std::string str ); 
-	
-	int size( void ) const; 
-};
-
-class User_Parameters
-{
- private:
-	friend std::ostream& operator<<( std::ostream& os , const User_Parameters up ); 
- 
- public:
-	Parameters<bool> bools; 
-	Parameters<int> ints; 
-	Parameters<double> doubles; 
-	Parameters<std::string> strings; 
-	
-	void read_from_pugixml( pugi::xml_node parent_node );
-}; 
-
-extern PhysiCell_Globals PhysiCell_globals; 
-
-extern PhysiCell_Settings PhysiCell_settings; 
-
-extern User_Parameters parameters; 
-
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
-
-}
-
-#endif 
-
+#endif

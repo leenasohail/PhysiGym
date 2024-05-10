@@ -19,7 +19,7 @@
 PhysiCell is a physics-based cell simulator for 3D multicellular systems.
 More precisely, [PhysiCell](https://github.com/MathCancer/PhysiCell) is an agent-based model and diffusion transport solver that is off-lattice, center-based, multiscale in space and time, and written in [C++](https://en.wikipedia.org/wiki/C%2B%2B).
 
-[Gymnasium](https://gymnasium.farama.org/main/) is the API standard for reinforcement learning, written in [Python3](https://en.wikipedia.org/wiki/Python_(programming_language).
+[Gymnasium](https://gymnasium.farama.org/main/) is the API standard for reinforcement learning, written in [Python3](https://en.wikipedia.org/wiki/Python_(programming_language)).
 
 The Python3-based physigym module presented here was written on top of the py3pc_embed [embedding](https://github.com/elmbeech/physicellembedding) module, which makes it possible to interact with PhysiCell models in the Python3 language.
 

@@ -1,4 +1,4 @@
-/*
+	/*
 ###############################################################################
 # If you use PhysiCell in your project, please cite PhysiCell and the version #
 # number, such as below:                                                      #
@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2023, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -64,170 +64,117 @@
 #                                                                             #
 ###############################################################################
 */
-
-#ifndef __PhysiCell_settings_h__
-#define __PhysiCell_settings_h__
-
-#include <iostream>
-#include <ctime>
-#include <cmath>
-#include <string>
+ 
 #include <vector>
-#include <random>
-#include <chrono>
-#include <unordered_map>
+#include <string>
 
-#include "../modules/PhysiCell_pugixml.h"
-#include "../BioFVM/BioFVM.h"
+#ifndef __PhysiCell_signal_response__
+#define __PhysiCell_signal_response__
 
-#include "../core/PhysiCell_constants.h"
-#include "../core/PhysiCell_utilities.h"
-
-using namespace BioFVM; 
+#include "./PhysiCell_constants.h" 
+#include "./PhysiCell_phenotype.h" 
+#include "./PhysiCell_cell.h" 
 
 namespace PhysiCell{
- 	
-extern pugi::xml_node physicell_config_root; 
 
-bool load_PhysiCell_config_file( std::string filename );
+// scales for the signals 
+extern std::vector<double> signal_scales; 
+// easy access to get or set scales 
+double& signal_scale( std::string signal_name ); // done 
+double& signal_scale( int signal_index ); // done 
 
-class PhysiCell_Settings
-{
- private:
- public:
-	// overall 
-	double max_time = 60*24*45;   
+// create the signal and behavior dictionaries 
+void setup_signal_behavior_dictionaries( void ); // done 
 
-	// units
-	std::string time_units = "min"; 
-	std::string space_units = "micron"; 
- 
-	// parallel options 
-	int omp_num_threads = 2; 
-	
-	// save options
-	std::string folder = "."; 
+// display dictionaries 
+void display_signal_dictionary( void ); // done 
+void display_behavior_dictionary( void ); // done 
 
-	double full_save_interval = 60;  
-	bool enable_full_saves = true; 
-	bool enable_legacy_saves = false; 
+void display_signal_dictionary( std::ostream& os ); // done 
+void display_behavior_dictionary( std::ostream& os ); // done 
 
-	bool disable_automated_spring_adhesions = false; 
-	
-	double SVG_save_interval = 60; 
-	bool enable_SVG_saves = true; 
+void display_signal_dictionary_with_synonyms( void ); // done 
+void display_behavior_dictionary_with_synonyms( void ); // done 
 
-	bool enable_substrate_plot = false;
-	std::string substrate_to_monitor = "oxygen"; 
-	bool limits_substrate_plot = false;
-	double min_concentration = -1.0;
-	double max_concentration = -1.0;
+/* signal functions */ 
 
-	double intracellular_save_interval = 60; 
-	bool enable_intracellular_saves = false; 
+// find index for named signal (returns -1 if not found)
+int find_signal_index( std::string signal_name ); // done 
 
-	// cell rules option
-	bool rules_enabled = false; 
-	std::string rules_protocol = "Cell Behavior Hypothesis Grammar (CBHG)"; 
-	std::string rules_protocol_version = "1.0"; 
-	
-	PhysiCell_Settings();
-	
-	void read_from_pugixml( void ); 
-};
+// coming soon: 
+std::vector<int> find_signal_indices( std::vector<std::string> signal_names ); // done 
 
-class PhysiCell_Globals
-{
- private:
- public:
-	double current_time = 0.0; 
-	double next_full_save_time = 0.0; 
-	double next_SVG_save_time = 0.0; 
-	double next_intracellular_save_time = 0.0; 
-	int full_output_index = 0; 
-	int SVG_output_index = 0; 
-	int intracellular_output_index = 0; 
-};
+// get the name of a signal index 
+std::string signal_name( int i ); // done 
 
-template <class T> 
-class Parameter
-{
- private:
-	template <class Y>
-	friend std::ostream& operator<<(std::ostream& os, const Parameter<Y>& param); 
+// create a full signal vector 
+std::vector<double> get_signals( Cell* pCell ); // done 
 
- public: 
-	std::string name; 
-	std::string units; 
-	T value; 
-	
-	Parameter();
-	Parameter( std::string my_name ); 
-	
-	void operator=( T& rhs ); 
-	void operator=( T rhs ); 
-	void operator=( Parameter& p ); 
-};
+// create a signal vector of only the cell contacts 
+std::vector<double> get_cell_contact_signals( Cell* pCell ); // done 
 
-template <class T>
-class Parameters
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
-	
-	template <class Y>
-	friend std::ostream& operator<<( std::ostream& os , const Parameters<Y>& params ); 
+// create a subset of the signal vector with the supplied indicies 
+std::vector<double> get_selected_signals( Cell* pCell , std::vector<int> indices ); // done 
+std::vector<double> get_selected_signals( Cell* pCell , std::vector<std::string> names );  // done 
 
- public: 
-	Parameters(); 
- 
-	std::vector< Parameter<T> > parameters; 
-	
-	void add_parameter( std::string my_name ); 
-	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
-	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-	
-	void add_parameter( Parameter<T> param );
-	
-	int find_index( std::string search_name ); 
-	
-	// these access the values 
-	T& operator()( int i );
-	T& operator()( std::string str ); 
+// grab a single signal by its index or name 
+double get_single_signal( Cell* pCell, int index ); // done 
+double get_single_signal( Cell* pCell, std::string name ); // done 
 
-	// these access the full, raw parameters 
-	Parameter<T>& operator[]( int i );
-	Parameter<T>& operator[]( std::string str ); 
-	
-	int size( void ) const; 
-};
+/* behavior functions */ 
 
-class User_Parameters
-{
- private:
-	friend std::ostream& operator<<( std::ostream& os , const User_Parameters up ); 
- 
- public:
-	Parameters<bool> bools; 
-	Parameters<int> ints; 
-	Parameters<double> doubles; 
-	Parameters<std::string> strings; 
-	
-	void read_from_pugixml( pugi::xml_node parent_node );
+// find index for named behavior / response / parameter (returns -1 if not found)
+int find_parameter_index( std::string response_name ); // done
+int find_behavior_index( std::string response_name ); // done 
+
+std::vector<int> find_behavior_indices( std::vector<std::string> behavior_names ); // done 
+
+// get the name of a behavior index 
+std::string behavior_name( int i ); // done 
+
+// make a properly sized behavior vector 
+std::vector<double> create_empty_behavior_vector(); // done 
+
+// write a full behavior vector (phenotype parameters) to the cell 
+void set_behaviors( Cell* pCell , std::vector<double> parameters ); // done 
+
+// write a selected set of behavior parameters to the cell 
+void set_selected_behaviors( Cell* pCell , std::vector<int> indices , std::vector<double> parameters ); // done 
+void set_selected_behaviors( Cell* pCell , std::vector<std::string> names , std::vector<double> parameters ); // done 
+
+// write a single behavior parameter 
+void set_single_behavior( Cell* pCell, int index , double parameter ); // done  
+void set_single_behavior( Cell* pCell, std::string name , double parameter ); // done 
+
+/* get current behaviors */ 
+
+// get all current behavior
+std::vector<double> get_behaviors( Cell* pCell ); // done 
+
+// get selected current behavior
+std::vector<double> get_behaviors( Cell* pCell , std::vector<int> indices ); // doen 
+std::vector<double> get_behaviors( Cell* pCell , std::vector<std::string> names ); // done 
+
+// get single current behavior 
+double get_single_behavior( Cell* pCell , int index ); // done 
+double get_single_behavior( Cell* pCell , std::string name ); // done 
+
+/* get base behaviors (from cell definition) */ 
+
+// get all base behaviors (from cell's definition) 
+std::vector<double> get_base_behaviors( Cell* pCell );  // done 
+
+// get selected base behaviors (from cell's definition)
+std::vector<double> get_base_behaviors( Cell* pCell , std::vector<int> indices ); // done 
+std::vector<double> get_base_behaviors( Cell* pCell , std::vector<std::string> names ); // done 
+
+// get single base behavior (from cell's definition)
+double get_single_base_behavior( Cell* pCell , int index ); // done 
+double get_single_base_behavior( Cell* pCell , std::string name ); // done 
+
+double get_single_base_behavior( Cell_Definition* pCD , std::string name ); 
+
+
 }; 
 
-extern PhysiCell_Globals PhysiCell_globals; 
-
-extern PhysiCell_Settings PhysiCell_settings; 
-
-extern User_Parameters parameters; 
-
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
-
-}
-
 #endif 
-

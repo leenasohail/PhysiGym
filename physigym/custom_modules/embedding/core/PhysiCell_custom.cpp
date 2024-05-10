@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2022, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -65,169 +65,194 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_settings_h__
-#define __PhysiCell_settings_h__
-
-#include <iostream>
-#include <ctime>
-#include <cmath>
-#include <string>
+#include "./PhysiCell_custom.h" 
 #include <vector>
-#include <random>
-#include <chrono>
-#include <unordered_map>
+#include <cstdio>
+#include <iostream>
+#include <cstring>
 
-#include "../modules/PhysiCell_pugixml.h"
-#include "../BioFVM/BioFVM.h"
-
-#include "../core/PhysiCell_constants.h"
-#include "../core/PhysiCell_utilities.h"
-
-using namespace BioFVM; 
-
-namespace PhysiCell{
- 	
-extern pugi::xml_node physicell_config_root; 
-
-bool load_PhysiCell_config_file( std::string filename );
-
-class PhysiCell_Settings
+namespace PhysiCell
 {
- private:
- public:
-	// overall 
-	double max_time = 60*24*45;   
-
-	// units
-	std::string time_units = "min"; 
-	std::string space_units = "micron"; 
- 
-	// parallel options 
-	int omp_num_threads = 2; 
 	
-	// save options
-	std::string folder = "."; 
-
-	double full_save_interval = 60;  
-	bool enable_full_saves = true; 
-	bool enable_legacy_saves = false; 
-
-	bool disable_automated_spring_adhesions = false; 
-	
-	double SVG_save_interval = 60; 
-	bool enable_SVG_saves = true; 
-
-	bool enable_substrate_plot = false;
-	std::string substrate_to_monitor = "oxygen"; 
-	bool limits_substrate_plot = false;
-	double min_concentration = -1.0;
-	double max_concentration = -1.0;
-
-	double intracellular_save_interval = 60; 
-	bool enable_intracellular_saves = false; 
-
-	// cell rules option
-	bool rules_enabled = false; 
-	std::string rules_protocol = "Cell Behavior Hypothesis Grammar (CBHG)"; 
-	std::string rules_protocol_version = "1.0"; 
-	
-	PhysiCell_Settings();
-	
-	void read_from_pugixml( void ); 
-};
-
-class PhysiCell_Globals
+Variable::Variable()
 {
- private:
- public:
-	double current_time = 0.0; 
-	double next_full_save_time = 0.0; 
-	double next_SVG_save_time = 0.0; 
-	double next_intracellular_save_time = 0.0; 
-	int full_output_index = 0; 
-	int SVG_output_index = 0; 
-	int intracellular_output_index = 0; 
-};
-
-template <class T> 
-class Parameter
-{
- private:
-	template <class Y>
-	friend std::ostream& operator<<(std::ostream& os, const Parameter<Y>& param); 
-
- public: 
-	std::string name; 
-	std::string units; 
-	T value; 
-	
-	Parameter();
-	Parameter( std::string my_name ); 
-	
-	void operator=( T& rhs ); 
-	void operator=( T rhs ); 
-	void operator=( Parameter& p ); 
-};
-
-template <class T>
-class Parameters
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
-	
-	template <class Y>
-	friend std::ostream& operator<<( std::ostream& os , const Parameters<Y>& params ); 
-
- public: 
-	Parameters(); 
- 
-	std::vector< Parameter<T> > parameters; 
-	
-	void add_parameter( std::string my_name ); 
-	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
-	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-	
-	void add_parameter( Parameter<T> param );
-	
-	int find_index( std::string search_name ); 
-	
-	// these access the values 
-	T& operator()( int i );
-	T& operator()( std::string str ); 
-
-	// these access the full, raw parameters 
-	Parameter<T>& operator[]( int i );
-	Parameter<T>& operator[]( std::string str ); 
-	
-	int size( void ) const; 
-};
-
-class User_Parameters
-{
- private:
-	friend std::ostream& operator<<( std::ostream& os , const User_Parameters up ); 
- 
- public:
-	Parameters<bool> bools; 
-	Parameters<int> ints; 
-	Parameters<double> doubles; 
-	Parameters<std::string> strings; 
-	
-	void read_from_pugixml( pugi::xml_node parent_node );
-}; 
-
-extern PhysiCell_Globals PhysiCell_globals; 
-
-extern PhysiCell_Settings PhysiCell_settings; 
-
-extern User_Parameters parameters; 
-
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
-
+	name = "unnamed"; 
+	units = "dimensionless"; 
+	value = 0.0; 
+	conserved_quantity = false; 
+	return; 
 }
 
-#endif 
+std::ostream& operator<<(std::ostream& os, const Variable& v)
+{
+	os << v.name << ": " << v.value << " " << v.units; 
+	return os; 
+}
 
+
+Vector_Variable::Vector_Variable()
+{
+	name = "unnamed"; 
+	units = "dimensionless"; 
+	value.resize(3, 0.0 );
+	conserved_quantity = false; 
+	return; 
+}
+
+std::ostream& operator<<(std::ostream& os, const Vector_Variable& v)
+{
+ 	os << v.name << ": ";
+	if( v.value.size() == 0 )
+	{ os << "[empty]"; return os; }
+/*
+	if( v.value.size() == 1 )
+	{ os << v.value[0] << " (" << v.units << ")"; return os;  }
+*/
+	for( int i=0; i < v.value.size()-1 ; i++ )
+	{ os << v.value[i] << ","; }
+	os << v.value[v.value.size()-1] << " (" << v.units << ")"; 
+	return os; 
+}
+
+	
+Custom_Cell_Data::Custom_Cell_Data()
+{
+//	std::cout << __FUNCTION__ << "(default)" << std::endl; 
+	variables.resize(0); 
+	vector_variables.resize(0); 
+	
+	name_to_index_map.clear(); 
+//	vector_name_to_index_map.clear();
+	
+	return;
+}
+
+Custom_Cell_Data::Custom_Cell_Data( const Custom_Cell_Data& ccd )
+{
+//	std::cout << __FUNCTION__ << "(copy)" << std::endl; 
+	variables = ccd.variables; 
+	vector_variables = ccd.vector_variables; 
+	
+	name_to_index_map= ccd.name_to_index_map; 
+	
+	return; 
+}
+
+int Custom_Cell_Data::add_variable( Variable& v )
+{
+	int n = variables.size(); 
+	variables.push_back( v ); 
+	name_to_index_map[ v.name ] = n; 
+	return n; 
+}
+
+int Custom_Cell_Data::add_variable( std::string name , std::string units , double value )
+{
+	int n = variables.size(); 
+	variables.resize( n+1 ); 
+	variables[n].name = name; 
+	variables[n].units = units; 
+	variables[n].value = value; 
+	name_to_index_map[ name ] = n; 
+	return n; 
+}
+
+int Custom_Cell_Data::add_variable( std::string name , double value )
+{
+	int n = variables.size(); 
+	variables.resize( n+1 ); 
+	variables[n].name = name; 
+	variables[n].units = "dimensionless"; 
+	variables[n].value = value; 
+	name_to_index_map[ name ] = n; 
+	return n; 
+}
+
+int Custom_Cell_Data::add_vector_variable( Vector_Variable& v )
+{
+	int n = vector_variables.size(); 
+	vector_variables.push_back( v ); 
+//	vector_name_to_index_map[ v.name ] = n; 
+	return n; 
+}
+
+int Custom_Cell_Data::add_vector_variable( std::string name , std::string units , std::vector<double>& value )
+{
+	int n = vector_variables.size(); 
+	vector_variables.resize( n+1 ); 
+	vector_variables[n].name = name; 
+	vector_variables[n].units = units; 
+	vector_variables[n].value = value; 
+//	vector_name_to_index_map[ name ] = n; 
+	return n; 
+}
+
+int Custom_Cell_Data::add_vector_variable( std::string name , std::vector<double>& value )
+{
+	int n = vector_variables.size(); 
+	vector_variables.resize( n+1 ); 
+	vector_variables[n].name = name; 
+	vector_variables[n].units = "dimensionless"; 
+	vector_variables[n].value = value; 
+//	vector_name_to_index_map[ name ] = n; 
+	return n; 
+}
+
+int Custom_Cell_Data::find_variable_index( std::string name )
+{
+	// this should return -1 if not found, not zero 
+	auto out = name_to_index_map.find( name ); 
+	if( out != name_to_index_map.end() )
+	{ return out->second; }
+	return -1; 
+}
+
+/*
+int Custom_Cell_Data::find_vector_variable_index( std::string name )
+{
+	return vector_name_to_index_map[ name ]; 
+}
+*/
+
+int Custom_Cell_Data::find_vector_variable_index( std::string name )
+{
+	int n = 0; 
+	while( n < vector_variables.size() )
+	{
+		if( std::strcmp( vector_variables[n].name.c_str() , name.c_str() ) == 0 )
+		{ return n; } 
+		n++; 
+	}
+	
+	return -1; 
+}
+
+
+double& Custom_Cell_Data::operator[](int i)
+{
+	return variables[i].value; 
+}
+
+double& Custom_Cell_Data::operator[]( std::string name )
+{
+	return variables[ name_to_index_map[name] ].value; 
+}
+
+std::ostream& operator<<(std::ostream& os, const Custom_Cell_Data& ccd)
+{
+	os << "Custom data (scalar): " << std::endl; 
+	for( int i=0 ; i < ccd.variables.size() ; i++ )
+	{
+		os << i << ": " << ccd.variables[i] << std::endl; 
+	}
+
+	os << "Custom data (vector): " << std::endl; 
+	for( int i=0 ; i < ccd.vector_variables.size() ; i++ )
+	{
+		os << i << ": " << ccd.vector_variables[i] << std::endl; 
+	}
+	
+	return os;
+}
+
+};
