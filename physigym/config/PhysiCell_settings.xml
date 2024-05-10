@@ -14,7 +14,7 @@
     </domain>
 
     <overall>
-        <max_time units="min">1440</max_time>
+        <max_time units="min">1440.0</max_time>
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -222,9 +222,9 @@
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">5</number_of_cells>
         <time type="double" units="min" description="PhysiGym never delete!">0.0</time>
         <dt_gym type="double" units="min" description="PhysiGym never delete!">60.0</dt_gym>
-        <my_float type="double" units="" description="">0.0</my_float>
-        <my_int type="int" units="" description="">0</my_int>
-        <my_bool type="bool" units="" description="">false</my_bool>
-        <my_str type="string" units="" description="">abc</my_str>
+        <my_float type="double" units="none" description="">0.0</my_float>
+        <my_int type="int" units="none" description="">0</my_int>
+        <my_bool type="bool" units="none" description="">false</my_bool>
+        <my_str type="string" units="none" description="">abc</my_str>
     </user_parameters>
 </PhysiCell_settings>

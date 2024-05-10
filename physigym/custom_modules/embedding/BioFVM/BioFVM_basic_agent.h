@@ -50,9 +50,9 @@
 #define __BioFVM_basic_agent_h__
 
 #include <vector>
-#include "BioFVM_microenvironment.h"
-#include "BioFVM_matlab.h"
-#include "BioFVM_vector.h"
+#include "../BioFVM/BioFVM_microenvironment.h"
+#include "../BioFVM/BioFVM_matlab.h"
+#include "../BioFVM/BioFVM_vector.h"
 
 namespace BioFVM{
 

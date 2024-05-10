@@ -46,9 +46,9 @@
 #############################################################################
 */
 
-#include "BioFVM_basic_agent.h"
-#include "BioFVM_agent_container.h"
-#include "BioFVM_vector.h" 
+#include "../BioFVM/BioFVM_basic_agent.h"
+#include "../BioFVM/BioFVM_agent_container.h"
+#include "../BioFVM/BioFVM_vector.h"
 
 namespace BioFVM{
 

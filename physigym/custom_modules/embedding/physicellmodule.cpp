@@ -359,7 +359,7 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     }
 
     // reset cell ID counter
-    BioFVM::reset_max_basic_agent_ID();
+    //BioFVM::reset_max_basic_agent_ID();
 
     // reset global variables
     PhysiCell_globals = PhysiCell_Globals();
