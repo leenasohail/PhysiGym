@@ -65,7 +65,7 @@
 ###############################################################################
 */
  
-#include "./PhysiCell_settings.h"
+#include "PhysiCell_settings.h"
 
 using namespace BioFVM; 
 
@@ -487,21 +487,22 @@ void Parameters<T>::add_parameter( std::string my_name , T my_value )
         }
 	return;
 }
+
 /*
 template <class T>
 void Parameters<T>::add_parameter( std::string my_name , T my_value )
 {
-	Parameter<T>* pNew; 
-	pNew = new Parameter<T> ;
-	pNew->name = my_name ; 
-	pNew->value = my_value; 
-	
-	int n = parameters.size(); 
-	
-	parameters.push_back( *pNew ); 
-	
-	name_to_index_map[ my_name ] = n; 
-	return; 
+	Parameter<T>* pNew;
+	pNew = new Parameter<T>;
+	pNew->name = my_name;
+	pNew->value = my_value;
+
+	int n = parameters.size();
+
+	parameters.push_back( *pNew );
+
+	name_to_index_map[ my_name ] = n;
+	return;
 }
 */
 
@@ -538,18 +539,18 @@ void Parameters<T>::add_parameter( std::string my_name , T my_value , std::strin
 template <class T>
 void Parameters<T>::add_parameter( std::string my_name , T my_value , std::string my_units )
 {
-	Parameter<T>* pNew; 
-	pNew = new Parameter<T> ;
-	pNew->name = my_name ; 
-	pNew->value = my_value; 
-	pNew->units = my_units; 
-	
-	int n = parameters.size(); 
-	
-	parameters.push_back( *pNew ); 
-	
-	name_to_index_map[ my_name ] = n; 
-	return; 
+	Parameter<T>* pNew;
+	pNew = new Parameter<T>;
+	pNew->name = my_name;
+	pNew->value = my_value;
+	pNew->units = my_units;
+
+	int n = parameters.size();
+
+	parameters.push_back( *pNew );
+
+	name_to_index_map[ my_name ] = n;
+	return;
 }
 */
 

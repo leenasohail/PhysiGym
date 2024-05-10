@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2022, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -65,169 +65,64 @@
 ###############################################################################
 */
 
-#ifndef __PhysiCell_settings_h__
-#define __PhysiCell_settings_h__
+#ifndef __PhysiCell_cell_container_h__
+#define __PhysiCell_cell_container_h__
 
-#include <iostream>
-#include <ctime>
-#include <cmath>
-#include <string>
 #include <vector>
-#include <random>
-#include <chrono>
-#include <unordered_map>
-
-#include "../modules/PhysiCell_pugixml.h"
-#include "../BioFVM/BioFVM.h"
-
-#include "../core/PhysiCell_constants.h"
-#include "../core/PhysiCell_utilities.h"
-
-using namespace BioFVM; 
+#include "PhysiCell_cell.h"
+#include "../BioFVM/BioFVM_agent_container.h"
+#include "../BioFVM/BioFVM_mesh.h"
+#include "../BioFVM/BioFVM_microenvironment.h"
 
 namespace PhysiCell{
- 	
-extern pugi::xml_node physicell_config_root; 
 
-bool load_PhysiCell_config_file( std::string filename );
+class Cell; 
 
-class PhysiCell_Settings
+class Cell_Container : public BioFVM::Agent_Container
 {
- private:
+ private:	
+	std::vector<Cell*> cells_ready_to_divide; // the index of agents ready to divide
+	std::vector<Cell*> cells_ready_to_die;
+	int boundary_condition_for_pushed_out_agents; 	// what to do with pushed out cells
+	bool initialzed = false;
+	
  public:
-	// overall 
-	double max_time = 60*24*45;   
+	BioFVM::Cartesian_Mesh underlying_mesh;
+	std::vector<double> max_cell_interactive_distance_in_voxel;
+	int num_divisions_in_current_step = 0;
+	int num_deaths_in_current_step = 0;
 
-	// units
-	std::string time_units = "min"; 
-	std::string space_units = "micron"; 
- 
-	// parallel options 
-	int omp_num_threads = 2; 
+	double last_diffusion_time  = 0.0; 
+	double last_cell_cycle_time = 0.0;
+	double last_mechanics_time  = 0.0;
+	Cell_Container();
+ 	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double voxel_size);
+	void initialize(double x_start, double x_end, double y_start, double y_end, double z_start, double z_end , double dx, double dy, double dz);
+	std::vector<std::vector<Cell*> > agent_grid;
+	std::vector<std::vector<Cell*> > agents_in_outer_voxels;
 	
-	// save options
-	std::string folder = "."; 
+	void update_all_cells(double t);
+	void update_all_cells(double t, double dt);
+	void update_all_cells(double t, double phenotype_dt, double mechanics_dt);
+	void update_all_cells(double t, double phenotype_dt, double mechanics_dt, double diffusion_dt ); 
 
-	double full_save_interval = 60;  
-	bool enable_full_saves = true; 
-	bool enable_legacy_saves = false; 
-
-	bool disable_automated_spring_adhesions = false; 
+	void register_agent( Cell* agent );
+	void add_agent_to_outer_voxel(Cell* agent);
+	void remove_agent(Cell* agent );
+	void remove_agent_from_voxel(Cell* agent, int voxel_index);
+	void add_agent_to_voxel(Cell* agent, int voxel_index);
 	
-	double SVG_save_interval = 60; 
-	bool enable_SVG_saves = true; 
-
-	bool enable_substrate_plot = false;
-	std::string substrate_to_monitor = "oxygen"; 
-	bool limits_substrate_plot = false;
-	double min_concentration = -1.0;
-	double max_concentration = -1.0;
-
-	double intracellular_save_interval = 60; 
-	bool enable_intracellular_saves = false; 
-
-	// cell rules option
-	bool rules_enabled = false; 
-	std::string rules_protocol = "Cell Behavior Hypothesis Grammar (CBHG)"; 
-	std::string rules_protocol_version = "1.0"; 
-	
-	PhysiCell_Settings();
-	
-	void read_from_pugixml( void ); 
+	void flag_cell_for_division( Cell* pCell ); 
+	void flag_cell_for_removal( Cell* pCell ); 
+	bool contain_any_cell(int voxel_index);
 };
 
-class PhysiCell_Globals
-{
- private:
- public:
-	double current_time = 0.0; 
-	double next_full_save_time = 0.0; 
-	double next_SVG_save_time = 0.0; 
-	double next_intracellular_save_time = 0.0; 
-	int full_output_index = 0; 
-	int SVG_output_index = 0; 
-	int intracellular_output_index = 0; 
+int find_escaping_face_index(Cell* agent);
+extern std::vector<Cell*> *all_cells; 
+
+Cell_Container* create_cell_container_for_microenvironment( BioFVM::Microenvironment& m , double mechanics_voxel_size );
+
+
+
 };
-
-template <class T> 
-class Parameter
-{
- private:
-	template <class Y>
-	friend std::ostream& operator<<(std::ostream& os, const Parameter<Y>& param); 
-
- public: 
-	std::string name; 
-	std::string units; 
-	T value; 
-	
-	Parameter();
-	Parameter( std::string my_name ); 
-	
-	void operator=( T& rhs ); 
-	void operator=( T rhs ); 
-	void operator=( Parameter& p ); 
-};
-
-template <class T>
-class Parameters
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
-	
-	template <class Y>
-	friend std::ostream& operator<<( std::ostream& os , const Parameters<Y>& params ); 
-
- public: 
-	Parameters(); 
- 
-	std::vector< Parameter<T> > parameters; 
-	
-	void add_parameter( std::string my_name ); 
-	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
-	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-	
-	void add_parameter( Parameter<T> param );
-	
-	int find_index( std::string search_name ); 
-	
-	// these access the values 
-	T& operator()( int i );
-	T& operator()( std::string str ); 
-
-	// these access the full, raw parameters 
-	Parameter<T>& operator[]( int i );
-	Parameter<T>& operator[]( std::string str ); 
-	
-	int size( void ) const; 
-};
-
-class User_Parameters
-{
- private:
-	friend std::ostream& operator<<( std::ostream& os , const User_Parameters up ); 
- 
- public:
-	Parameters<bool> bools; 
-	Parameters<int> ints; 
-	Parameters<double> doubles; 
-	Parameters<std::string> strings; 
-	
-	void read_from_pugixml( pugi::xml_node parent_node );
-}; 
-
-extern PhysiCell_Globals PhysiCell_globals; 
-
-extern PhysiCell_Settings PhysiCell_settings; 
-
-extern User_Parameters parameters; 
-
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
-
-}
-
-#endif 
-
+#endif

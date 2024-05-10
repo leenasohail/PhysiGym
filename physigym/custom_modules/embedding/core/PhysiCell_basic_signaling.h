@@ -1,4 +1,4 @@
-/*
+	/*
 ###############################################################################
 # If you use PhysiCell in your project, please cite PhysiCell and the version #
 # number, such as below:                                                      #
@@ -33,7 +33,7 @@
 #                                                                             #
 # BSD 3-Clause License (see https://opensource.org/licenses/BSD-3-Clause)     #
 #                                                                             #
-# Copyright (c) 2015-2018, Paul Macklin and the PhysiCell Project             #
+# Copyright (c) 2015-2023, Paul Macklin and the PhysiCell Project             #
 # All rights reserved.                                                        #
 #                                                                             #
 # Redistribution and use in source and binary forms, with or without          #
@@ -64,170 +64,68 @@
 #                                                                             #
 ###############################################################################
 */
-
-#ifndef __PhysiCell_settings_h__
-#define __PhysiCell_settings_h__
-
-#include <iostream>
-#include <ctime>
-#include <cmath>
-#include <string>
+ 
 #include <vector>
-#include <random>
-#include <chrono>
-#include <unordered_map>
+#include <string>
 
-#include "../modules/PhysiCell_pugixml.h"
-#include "../BioFVM/BioFVM.h"
+#ifndef __PhysiCell_basic_signaling__
+#define __PhysiCell_basic_signaling__
 
-#include "../core/PhysiCell_constants.h"
-#include "../core/PhysiCell_utilities.h"
-
-using namespace BioFVM; 
+#include "./PhysiCell_constants.h" 
+#include "./PhysiCell_phenotype.h" 
+#include "./PhysiCell_cell.h" 
 
 namespace PhysiCell{
- 	
-extern pugi::xml_node physicell_config_root; 
+	
+// std::vector<std::string> 
 
-bool load_PhysiCell_config_file( std::string filename );
+double Hill_response_function( double s, double half_max , double hill_power ); // done
+// increases from 0 (at s_min) to 1 (at s_max)
+double linear_response_function( double s, double s_min , double s_max ); // done 
+// decreases from 1 (at s_min) to 0 (at s_max)
+double decreasing_linear_response_function( double s, double s_min , double s_max ); // done 
 
-class PhysiCell_Settings
+
+double multivariate_Hill_response_function( std::vector<double> signals, std::vector<double> half_maxes , std::vector<double> hill_powers ); 
+double multivariate_linear_response_function( std::vector<double> signals, std::vector<double> min_thresholds , std::vector<double> max_thresholds ); 
+
+std::vector<double> linear_response_to_Hill_parameters( double s0, double s1 ); 
+std::vector<double> Hill_response_to_linear_parameters( double half_max , double Hill_power ); 
+
+
+double interpolate_behavior( double base_value , double max_changed_value, double response ); 
+
+// signal increases/decreases parameter
+// options: hill power
+// options: half max
+
+class Integrated_Signal
 {
  private:
- public:
-	// overall 
-	double max_time = 60*24*45;   
-
-	// units
-	std::string time_units = "min"; 
-	std::string space_units = "micron"; 
- 
-	// parallel options 
-	int omp_num_threads = 2; 
-	
-	// save options
-	std::string folder = "."; 
-
-	double full_save_interval = 60;  
-	bool enable_full_saves = true; 
-	bool enable_legacy_saves = false; 
-
-	bool disable_automated_spring_adhesions = false; 
-	
-	double SVG_save_interval = 60; 
-	bool enable_SVG_saves = true; 
-
-	bool enable_substrate_plot = false;
-	std::string substrate_to_monitor = "oxygen"; 
-	bool limits_substrate_plot = false;
-	double min_concentration = -1.0;
-	double max_concentration = -1.0;
-
-	double intracellular_save_interval = 60; 
-	bool enable_intracellular_saves = false; 
-
-	// cell rules option
-	bool rules_enabled = false; 
-	std::string rules_protocol = "Cell Behavior Hypothesis Grammar (CBHG)"; 
-	std::string rules_protocol_version = "1.0"; 
-	
-	PhysiCell_Settings();
-	
-	void read_from_pugixml( void ); 
-};
-
-class PhysiCell_Globals
-{
- private:
- public:
-	double current_time = 0.0; 
-	double next_full_save_time = 0.0; 
-	double next_SVG_save_time = 0.0; 
-	double next_intracellular_save_time = 0.0; 
-	int full_output_index = 0; 
-	int SVG_output_index = 0; 
-	int intracellular_output_index = 0; 
-};
-
-template <class T> 
-class Parameter
-{
- private:
-	template <class Y>
-	friend std::ostream& operator<<(std::ostream& os, const Parameter<Y>& param); 
-
  public: 
-	std::string name; 
-	std::string units; 
-	T value; 
+	double base_activity; 
+	double max_activity; 
 	
-	Parameter();
-	Parameter( std::string my_name ); 
+	std::vector<double> promoters; 
+	std::vector<double> promoter_weights; 
+	double promoters_Hill;
+	double promoters_half_max; 
 	
-	void operator=( T& rhs ); 
-	void operator=( T rhs ); 
-	void operator=( Parameter& p ); 
+	std::vector<double> inhibitors; 
+	std::vector<double> inhibitor_weights; 
+	double inhibitors_Hill;
+	double inhibitors_half_max; 
+	
+	Integrated_Signal();
+	void reset( void ); 
+	
+	void add_signal( char signal_type , double signal , double weight ); 
+	void add_signal( char signal_type , double signal );
+
+	double compute_signal( void );
 };
 
-template <class T>
-class Parameters
-{
- private:
-	std::unordered_map<std::string,int> name_to_index_map; 
-	
-	template <class Y>
-	friend std::ostream& operator<<( std::ostream& os , const Parameters<Y>& params ); 
 
- public: 
-	Parameters(); 
- 
-	std::vector< Parameter<T> > parameters; 
-	
-	void add_parameter( std::string my_name ); 
-	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
-	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-	
-	void add_parameter( Parameter<T> param );
-	
-	int find_index( std::string search_name ); 
-	
-	// these access the values 
-	T& operator()( int i );
-	T& operator()( std::string str ); 
-
-	// these access the full, raw parameters 
-	Parameter<T>& operator[]( int i );
-	Parameter<T>& operator[]( std::string str ); 
-	
-	int size( void ) const; 
-};
-
-class User_Parameters
-{
- private:
-	friend std::ostream& operator<<( std::ostream& os , const User_Parameters up ); 
- 
- public:
-	Parameters<bool> bools; 
-	Parameters<int> ints; 
-	Parameters<double> doubles; 
-	Parameters<std::string> strings; 
-	
-	void read_from_pugixml( pugi::xml_node parent_node );
 }; 
 
-extern PhysiCell_Globals PhysiCell_globals; 
-
-extern PhysiCell_Settings PhysiCell_settings; 
-
-extern User_Parameters parameters; 
-
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
-
-}
-
 #endif 
-

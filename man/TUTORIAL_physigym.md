@@ -239,7 +239,7 @@ self.fig.colorbar(
 #############
 
 df_cell = pd.DataFrame(physicell.get_cell(), columns=['ID', 'x','y', 'z'])
-df_variable = pd.DataFrame(physicell.get_variable("apoptosis_rate"), columns=['apoptosis_rate'])
+df_variable = pd.DataFrame(physicell.get_variable('apoptosis_rate'), columns=['apoptosis_rate'])
 df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how='left')
 df_cell = df_cell.loc[df_cell.z == 0.0, :]
 df_cell.plot(

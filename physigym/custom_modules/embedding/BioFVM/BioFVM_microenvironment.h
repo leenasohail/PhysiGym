@@ -49,9 +49,9 @@
 #ifndef __BioFVM_microenvironment_h__
 #define __BioFVM_microenvironment_h__
 
-#include "BioFVM_mesh.h"
-#include "BioFVM_agent_container.h"
-#include "BioFVM_MultiCellDS.h"
+#include "../BioFVM/BioFVM_mesh.h"
+#include "../BioFVM/BioFVM_agent_container.h"
+#include "../BioFVM/BioFVM_MultiCellDS.h"
 
 namespace BioFVM{
 
