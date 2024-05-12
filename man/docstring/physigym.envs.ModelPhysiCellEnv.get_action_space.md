@@ -1,4 +1,4 @@
-# env.get_action_space()
+# physigym.envs.ModelPhysiCellEnv.get_action_space()
 
 
 ## input:
@@ -13,6 +13,11 @@
                 custom variable, or custom vector label.
                 the value have to be defind as gymnasium space object.
                 + https://gymnasium.farama.org/main/api/spaces/
+```
+
+## run:
+```
+            internal function, user defined.
 
 ```
 

@@ -28,8 +28,8 @@
 #include <omp.h>
 
 // loade physicell libraries
-#include "../../core/PhysiCell.h"
-#include "../../modules/PhysiCell_standard_modules.h"
+#include "core/PhysiCell.h"
+#include "modules/PhysiCell_standard_modules.h"
 #include "../../custom_modules/custom.h"
 
 // load namespace
@@ -359,7 +359,7 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     }
 
     // reset cell ID counter
-    //BioFVM::reset_max_basic_agent_ID();
+    BioFVM::reset_max_basic_agent_ID();
 
     // reset global variables
     PhysiCell_globals = PhysiCell_Globals();

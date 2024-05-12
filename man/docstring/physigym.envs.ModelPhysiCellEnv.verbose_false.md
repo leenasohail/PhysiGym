@@ -1,4 +1,4 @@
-# env.verbose_true()
+# physigym.envs.ModelPhysiCellEnv.verbose_false()
 
 
 ## input:
@@ -11,10 +11,21 @@
 
 ```
 
+## run:
+```
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+            env.verbose_false()
+
+```
+
 ## description:
 ```
             run env.unwrapped.verbose_true()
-            to set verbosity true after initialization.
+            to set verbosity false after initialization.
 
             please not, only little from the standard output is coming
             actually from physigym. most of the output comes straight

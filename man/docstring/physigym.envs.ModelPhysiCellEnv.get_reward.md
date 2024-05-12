@@ -1,4 +1,4 @@
-# env.get_reward()
+# physigym.envs.ModelPhysiCellEnv.get_reward()
 
 
 ## input:
@@ -13,6 +13,12 @@
                 however, the algorithm is usually based on data as well retrived
                 by the get_observation function (o_observation, d_info),
                 and possibly by the render function (a_img).
+
+```
+
+## run:
+```
+            internal function, user defined.
 
 ```
 
