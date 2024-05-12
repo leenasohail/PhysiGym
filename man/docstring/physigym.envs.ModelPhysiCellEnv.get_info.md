@@ -1,4 +1,4 @@
-# env.get_info()
+# physigym.envs.ModelPhysiCellEnv.get_info()
 
 
 ## input:
@@ -9,6 +9,12 @@
 ## output:
 ```
             d_info: dictionary
+
+```
+
+## run:
+```
+            internal function, user defined.
 
 ```
 

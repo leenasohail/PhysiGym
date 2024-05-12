@@ -1,4 +1,4 @@
-# env.get_terminated()
+# physigym.envs.ModelPhysiCellEnv.get_terminated()
 
 
 ## input:
@@ -9,6 +9,12 @@
 ## output:
 ```
             b_terminated: bool
+
+```
+
+## run:
+```
+            internal function, user defined.
 
 ```
 

@@ -105,7 +105,7 @@ for s_line in fr:
     if (s_line.find('// Put physigym related parameter, variable, and vector action mapping here!') > -1):
         b_jump = True
         fw.writelines([
-        '    // update drug concentration\n',
+        '    // update substrate concentration\n',
         '    set_microenv("substrate_a", parameters.doubles("subs_conc"));\n',
         '    set_microenv("substrate_b", parameters.doubles("subs_conc"));\n',
         '    set_microenv("substrate_c", parameters.doubles("subs_conc"));\n',
@@ -166,7 +166,7 @@ for s_line in fr:
         b_jump = True
         fw.writelines([
         "        action_space = spaces.Dict({\n",
-        "            'drug_conc': spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)\n",
+        "            'subs_conc': spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)\n",
         "        })\n",
         "\n",
         "        # output\n",
@@ -196,9 +196,9 @@ for s_line in fr:
         "        # substrate data #\n",
         "        ##################\n",
         "\n",
-        "        df_conc = pd.DataFrame(physicell.get_microenv('drug'), columns=['x','y','z','drug'])\n",
+        "        df_conc = pd.DataFrame(physicell.get_microenv('substrate_a'), columns=['x','y','z','substarte_a'])\n",
         "        df_conc = df_conc.loc[df_conc.z == 0.0, :]\n",
-        "        df_mesh = df_conc.pivot(index='y', columns='x', values='drug')\n",
+        "        df_mesh = df_conc.pivot(index='y', columns='x', values='subs')\n",
         "        ax.contourf(\n",
         "            df_mesh.columns, df_mesh.index, df_mesh.values,\n",
         "            vmin=0.0, vmax=0.2, cmap='Reds',\n",
@@ -211,7 +211,7 @@ for s_line in fr:
         "\n",
         "        self.fig.colorbar(\n",
         "            mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=0.2), cmap='Reds'),\n",
-        "            label='drug_conc',\n",
+        "            label='subs_conc',\n",
         "            ax=ax,\n",
         "        )\n",
         "\n",
@@ -316,9 +316,8 @@ print('UNITTEST: ok!')
 print('\nUNITTEST make ...')
 os.chdir('../PhysiCell')
 os.system('make')
-#from embedding import physicell
-import gymnasium                                                                
-import physigym  # import the Gymnasium PhysiCell bridge module                 
+import gymnasium
+import physigym  # import the Gymnasium PhysiCell bridge module
 os.chdir('../PhysiGym')
 print('UNITTEST: ok!')
 
@@ -328,59 +327,63 @@ print('UNITTEST: ok!')
 #############
 
 print('\nUNITTEST run test ...')
-class TestPhysiGym(object):
-    ''' test for physigym. '''
+os.chdir('../PhysiCell')
 
-    def test_epoch(self):
-        os.chdir('../PhysiCell')
-        # set variables
-        i_cell_target = 128
+# set variables
+i_cell_target = 128
 
-        # load PhysiCell Gymnasium environment                                          
-        env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', render_mode='human', render_fps=10)
+# load PhysiCell Gymnasium environment
+env = gymnasium.make(
+    'physigym/ModelPhysiCellEnv-v0',
+    settingxml='config/PhysiCell_settings.xml',
+    #render_mode='rgb_array',
+    #render_fps=10
+)
 
-        # epoch loop
-        ddf_cell = {}
-        ddf_conc = {}
-        for i_epoch in range(3):
-            # reset output folder
-            shutil.rmtree('output/')
-            os.mkdir('output/')
 
-            # reset the environment                                                         
-            i_observation, d_info = env.reset()                                             
-                                                                                            
-            # episode time step loop                                                        
-            b_episode_over = False                                                          
-            while not b_episode_over:                                                       
-                # policy according to i_observation                                         
-                if (i_observation > 128):                                                   
-                    d_action = {'drug_conc': 1 - r_reward}                                  
-                else:                                                                       
-                    d_action = {'drug_conc': 0}                                             
-                                                                                            
-                # action                                                                    
-                o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
-                b_episode_over = b_terminated or b_truncated                                
-                                                                                            
-            # episode finishing                                                             
-            env.close()                                                                     
-             
-            # get timeseries data
-            mcdsts = pcdl.TimeSeries('output/')
-            ddf_cell.update({i_epoch: mcdsts.get_cell_df().drop({'runtime'}, axis=1)})
-            ddf_conc.update({i_epoch: mcdsts.get_conc_df().drop({'runtime'}, axis=1)})
+# epoch loop
+ddf_cell = {}
+ddf_conc = {}
+for i_epoch in range(3):
+    # reset output folder
+    shutil.rmtree('output/')
+    os.mkdir('output/')
 
-        # check results
-        for i_epoch in ddf_cell.keys():
-            ddf_cell[i_epoch].to_csv(f'timeseries_cell_epoch{str(i_epoch).zfill(3)}.csv')
-            ddf_conc[i_epoch].to_csv(f'timeseries_conc_epoch{str(i_epoch).zfill(3)}.csv')
+    # reset the environment
+    i_observation, d_info = env.reset()
 
-        assert False
-        os.chdir('../PhysiGym')
+    # episode time step loop
+    b_episode_over = False
+    i_step = 0
+    while not b_episode_over:
+        i_step += 1
+        # policy according to i_observation
+        if (i_observation > i_cell_target):
+            d_action = {'subs_conc': 1 - r_reward}
+        else:
+            d_action = {'subs_conc': 0}
 
+        # action
+        o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
+        b_episode_over = b_terminated or b_truncated
+        b_episode_over = True
+        print(f'epoch: {i_epoch}\tstep: {i_step}\tover: {b_episode_over}')
+
+    # episode finishing
+    env.close()
+
+    # get timeseries data
+    mcdsts = pcdl.TimeSeries('output/')
+    ddf_cell.update({i_epoch: mcdsts.get_cell_df().drop({'runtime'}, axis=1)})
+    ddf_conc.update({i_epoch: mcdsts.get_conc_df().drop({'runtime'}, axis=1)})
+
+    # check results
+    for i_epoch in ddf_cell.keys():
+        ddf_cell[i_epoch].to_csv(f'timeseries_cell_epoch{str(i_epoch).zfill(3)}.csv')
+        ddf_conc[i_epoch].to_csv(f'timeseries_conc_epoch{str(i_epoch).zfill(3)}.csv')
+
+os.chdir('../PhysiGym')
 print('UNITTEST: ok!')
-
 
 
 ###########################
@@ -392,4 +395,11 @@ print('UNITTEST: ok!')
 #os.system('make load=backup')
 #os.chdir('../PhysiGym')
 #print('UNITTEST: ok!')
+
+###########################
+# update reference manual #
+###########################
+print('\nREFERENCE manual update ...')
+os.system('python3 man/scarab.py')
+print('REFERENCE manual: ok!')
 

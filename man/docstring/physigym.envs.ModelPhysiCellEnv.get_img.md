@@ -1,4 +1,4 @@
-# env.get_img()
+# physigym.envs.ModelPhysiCellEnv.get_img()
 
 
 ## input:
@@ -10,6 +10,12 @@
 ```
             self.fig.savefig
                 instance attached matplotlib figure.
+
+```
+
+## run:
+```
+            internal function, user defined.
 
 ```
 

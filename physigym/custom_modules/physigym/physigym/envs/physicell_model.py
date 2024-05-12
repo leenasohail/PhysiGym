@@ -37,6 +37,16 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
     output:
         physigym.ModelPhysiCellEnv
 
+    run:
+        import gymnasium
+        import physigym
+
+        env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+        o_observation, d_info = env.reset()
+        o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action={})
+        env.close()
+
     description:
         this is the model physigym enviroment class, built on top of the
         physigym.CorePhysiCellEnv class, which is built on top of the
@@ -46,8 +56,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         you will have to edit this class, to specify the model specific
         reniforcement learning enviroment.
     """
-    def __init__(self):
-        super(ModelPhysiCellEnv, self).__init__()
+    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True):
+        super(ModelPhysiCellEnv, self).__init__(settingxml=settingxml, figsize=figsize, render_mode=render_mode, render_fps=render_fps, verbose=verbose)
 
 
     def get_action_space(self):
@@ -60,6 +70,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 custom variable, or custom vector label.
                 the value have to be defind as gymnasium space object.
                 + https://gymnasium.farama.org/main/api/spaces/
+        run:
+            internal function, user defined.
 
         description:
             dictionary structur built out of gymnasium.spaces elements.
@@ -88,6 +100,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 the struct have to be built out of gymnasium.spaces elements.
                 there are no other limits.
                 + https://gymnasium.farama.org/main/api/spaces/
+
+        run:
+            internal function, user defined.
 
         description:
             data structur built out of gymnasium.spaces elements.
@@ -119,6 +134,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         output:
             self.fig.savefig
                 instance attached matplotlib figure.
+
+        run:
+            internal function, user defined.
 
         description:
             templare code to generate a matplotlib figure from the data.
@@ -198,6 +216,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation: object compatible with the defined
                 observation space struct.
 
+        run:
+            internal function, user defined.
+
         description:
             data for the observation object for example be retrieved by:
             + physicell.get_parameter('my_parameter')
@@ -216,8 +237,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         input:
 
-        output: 
+        output:
             d_info: dictionary
+
+        run:
+            internal function, user defined.
 
         description:
             function to provide additional information important for
@@ -238,6 +262,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         output:
             b_terminated: bool
+
+        run:
+            internal function, user defined.
 
         description:
             function to determ, if the epoch is terminated.
@@ -263,6 +290,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 however, the algorithm is usually based on data as well retrived
                 by the get_observation function (o_observation, d_info),
                 and possibly by the render function (a_img).
+
+        run:
+            internal function, user defined.
 
         description:
             cost function.

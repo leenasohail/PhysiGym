@@ -31,7 +31,7 @@ setup(
             sources = [  # straight outta PhysiCell Makefile
                 # custom_modules_OBJECTS and components
                 "physicellmodule.cpp",
-                "../../custom_modules/custom.cpp",
+                "../custom.cpp",
 
                 # BioFVM_OBJECTS and components
                 "BioFVM/BioFVM_agent_container.cpp",

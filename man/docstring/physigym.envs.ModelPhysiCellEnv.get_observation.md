@@ -1,4 +1,4 @@
-# env.get_observation()
+# physigym.envs.ModelPhysiCellEnv.get_observation()
 
 
 ## input:
@@ -10,6 +10,12 @@
 ```
             o_observation: object compatible with the defined
                 observation space struct.
+
+```
+
+## run:
+```
+            internal function, user defined.
 
 ```
 

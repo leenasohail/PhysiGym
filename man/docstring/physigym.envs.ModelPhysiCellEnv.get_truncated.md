@@ -1,4 +1,4 @@
-# env.get_truncated()
+# physigym.envs.ModelPhysiCellEnv.get_truncated()
 
 
 ## input:
@@ -11,6 +11,12 @@
 ## output:
 ```
             b_truncated: bool
+
+```
+
+## run:
+```
+            internal function.
 
 ```
 

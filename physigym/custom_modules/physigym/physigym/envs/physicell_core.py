@@ -38,8 +38,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         physigym.CorePhysiCellEnv
 
 
-    offspring:
-        physigym.ModelPhysiCellEnv
+    run:
+        offspring: physigym.ModelPhysiCellEnv
 
     description:
         this is the core physigym environment class, built on top of the
@@ -126,6 +126,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         output:
             initialized PhysiCell Gymnasium enviroment.
 
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+            env = gymnasium.make('physigym/ModelPhysiCellEnv', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True)
+
         description:
             function to initialize the PhysiCell Gymnasium environment.
         """
@@ -136,6 +143,9 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # load physicell settings.xml file
         self.settingxml = settingxml
+        print("BUE:", os.getcwd())
+        print("BUE:", settingxml)
+        print("BUE:", self.settingxml)
         self.x_tree = etree.parse(self.settingxml)
         if self.verbose:
             print(f'physigym: reading {self.settingxml}')
@@ -188,6 +198,14 @@ class CorePhysiCellEnv(gymnasium.Env):
             d_info: dictionary
                 what information to be captured has to be
                 specified in the get_info function.
+
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+            o_observation, d_info = env.reset()
 
         description:
             The reset method will be called to initiate a new episode.
@@ -259,6 +277,15 @@ class CorePhysiCellEnv(gymnasium.Env):
                 human: the function will render and display the image and return None.
                 rgb_array: the function will return a numpy array,
                     8bit, shape (4,y,x) with red, green, blue, and alpha channel.
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='human')
+            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='rgb_array')
+
+            o_observation, d_info = env.reset()
+            env.render()
 
         description:
             function to render the image, specified in the get_img function
@@ -291,6 +318,9 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         output:
             b_truncated: bool
+
+        run:
+            internal function.
 
         description:
             function to evaluate if the epoch reached the max_time specified.
@@ -340,6 +370,15 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             self.iteration: integer
                 step counter.
+
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+            o_observation, d_info = env.reset()
+            o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action={})
 
         description:
             function does a dt_gym simulation step:
@@ -408,6 +447,15 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         output:
 
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+            o_observation, d_info = env.reset()
+            env.stop()
+
         description:
             function to finsih up the epoch.
         """
@@ -430,6 +478,14 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         output:
 
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+            env.verbose_true()
+
         description:
             run env.unwrapped.verbose_true()
             to set verbosity true after initialization.
@@ -447,6 +503,14 @@ class CorePhysiCellEnv(gymnasium.Env):
         input:
 
         output:
+
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+            env.verbose_false()
 
         description:
             run env.unwrapped.verbose_true()
