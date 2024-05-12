@@ -1,20 +1,17 @@
 ####
-# title: test_py3pc_embed.py
+# title: test/test_physigym.py
 #
 # language: python3
 # author: Elmar Bucher
 # date: 2024-05-07
 # license: BSD 3-Clause
 #
-# description:
-#   pytest unit test library for the physicellembedding py3pc_embed project
-#   + https://docs.pytest.org/
+# run:
+#     python3 test/test_physigym.py
 #
-#   note:
-#   assert actual == expected, message
-#   == value equality
-#   is reference equality
-#   pytest.approx for real values
+# description:
+#     unit test code for the physigym project
+#     note: pytest and physigym enviroment are incompatible.
 #####
 
 
@@ -316,8 +313,6 @@ print('UNITTEST: ok!')
 print('\nUNITTEST make ...')
 os.chdir('../PhysiCell')
 os.system('make')
-import gymnasium
-import physigym  # import the Gymnasium PhysiCell bridge module
 os.chdir('../PhysiGym')
 print('UNITTEST: ok!')
 
@@ -329,13 +324,16 @@ print('UNITTEST: ok!')
 print('\nUNITTEST run test ...')
 os.chdir('../PhysiCell')
 
+import gymnasium
+import physigym  # import the Gymnasium PhysiCell bridge module
+
 # set variables
 i_cell_target = 128
 
 # load PhysiCell Gymnasium environment
 env = gymnasium.make(
     'physigym/ModelPhysiCellEnv-v0',
-    settingxml='config/PhysiCell_settings.xml',
+    #settingxml='config/PhysiCell_settings.xml',
     #render_mode='rgb_array',
     #render_fps=10
 )
