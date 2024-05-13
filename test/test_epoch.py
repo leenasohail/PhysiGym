@@ -7,7 +7,7 @@
 # license: BSD 3-Clause
 #
 # run:
-#     python3 test/test_physigym.py
+#     python3 test/test_epoch.py
 #
 # description:
 #     unit test code for the physigym project

@@ -1,5 +1,5 @@
 ####
-# title: test/test_uninstall.py
+# title: test/tuninstall_physigym.py
 #
 # language: python3
 # author: Elmar Bucher
@@ -7,10 +7,10 @@
 # license: BSD 3-Clause
 #
 # run:
-#     python3 test/test_physigym.py
+#     python3 test/tuninstall_physigym.py
 #
 # description:
-#     unit test code for the physigym project
+#     uninstall unit test code for the physigym project
 #     note: pytest and physigym enviroment are incompatible.
 #####
 
