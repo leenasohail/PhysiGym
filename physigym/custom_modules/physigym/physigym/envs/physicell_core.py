@@ -143,9 +143,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # load physicell settings.xml file
         self.settingxml = settingxml
-        print("BUE:", os.getcwd())
-        print("BUE:", settingxml)
-        print("BUE:", self.settingxml)
         self.x_tree = etree.parse(self.settingxml)
         if self.verbose:
             print(f'physigym: reading {self.settingxml}')

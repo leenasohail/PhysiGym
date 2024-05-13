@@ -271,7 +271,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
             if (phenotype_countdown <= 0) {
                 phenotype_countdown += phenotype_dt;
 
-                // Put phenotype time scale actions here!
+                // Put phenotype time scale code here!
                 //std::cout << "processing phenotype time step observation block ... " << std::endl;
                 //step = false;
             }
@@ -280,14 +280,14 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
             if (mechanics_countdown <= 0) {
                 mechanics_countdown += mechanics_dt;
 
-                // Put mechanics time scale actions here!
+                // Put mechanics time scale code here!
                 //std::cout << "processing mechanic time step observation block ... " << std::endl;
                 //step = false;
             }
 
             // on diffusion time step
 
-            // Put diffusion time scale actions here!
+            // Put diffusion time scale code here!
             //std::cout << "processing diffusion time step observation block ... " << std::endl << std::endl;
             //step = false;
 
