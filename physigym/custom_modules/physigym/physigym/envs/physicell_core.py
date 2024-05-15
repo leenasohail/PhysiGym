@@ -151,7 +151,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         # initialize class whide variables
         if self.verbose:
             print(f'physigym: declare class instance-wide variables.')
-        self.iteration = None
+        self.episode = -1
+        self.step_episode = None
+        self.step_env = 0
 
         # handle render mode and figsize
         if self.verbose:
@@ -170,96 +172,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output
         if self.verbose:
             print(f'physigym: ok!')
-
-
-    def reset(self, seed=None, options={}):
-        """
-        input:
-            self.get_observation()
-            self.get_info()
-            self.get_img()
-
-            seed: integer or None; default is None
-                seed = None: generate a random seed. seed with this value python and PhyiCell (via the setting.xml file).
-                seed < 0: take seed from setting.xml
-                seed >= 0: the seed from this value and seed python and PhysiCell (via the setting.xml file).
-
-            options: dictionary or None
-                reserved for possible future use.
-
-        output:
-            o_observation: structure
-                the exact structure has to be
-                specified in the get_observation_space function.
-
-            d_info: dictionary
-                what information to be captured has to be
-                specified in the get_info function.
-
-        run:
-            import gymnasium
-            import physigym
-
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
-
-            o_observation, d_info = env.reset()
-
-        description:
-            The reset method will be called to initiate a new episode.
-            You may assume that the step method will not be called
-            before the reset function has been called.
-        """
-        if self.verbose :
-            print(f'physigym: reset epoch ...')
-
-        # handle random seeding
-        if (seed is None):
-            i_seed = seed
-            self.x_root.xpath('//random_seed')[0].text = str(-1)
-            self.x_tree.write(self.settingxml, pretty_print=True)
-        # handle setting.xml based seeding
-        elif (seed < 0):
-            i_seed = int(self.x_root.xpath('//random_seed')[0].text)
-            if (i_seed < 0):
-                i_seed = None
-        # handle gymnasium based seeding
-        else: # seed >= 0
-            i_seed = seed
-            self.x_root.xpath('//random_seed')[0].text = str(i_seed)
-            self.x_tree.write(self.settingxml, pretty_print=True)
-        # seed self.np_random number generator
-        super().reset(seed=i_seed)
-        if self.verbose:
-            print(f'physigym: seed random number generator with {i_seed}.')
-
-        # initialize physcell model
-        if self.verbose:
-            print(f'physigym: declare PhysiCell model instance.')
-        os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
-        physicell.start()
-
-        # observe domain
-        if self.verbose:
-            print(f'physigym: domain observation.')
-        o_observation = self.get_observation()
-        d_info = self.get_info()
-
-        # render domain
-        if self.verbose:
-            print(f'physigym: render {self.render_mode} frame.')
-        if not (self.render_mode is None):
-            plt.ion()
-            self.fig, axs = plt.subplots(figsize=self.figsize)
-            if (self.render_mode == 'human'):
-                self.get_img()
-                if not (self.metadata['render_fps'] is None):
-                    plt.pause(1 / self.metadata['render_fps'])
-
-        # output
-        self.iteration = 0
-        if self.verbose:
-            print(f'physigym: ok!')
-        return o_observation, d_info
 
 
     def render(self):
@@ -307,6 +219,105 @@ class CorePhysiCellEnv(gymnasium.Env):
         return a_img
 
 
+    def reset(self, seed=None, options={}):
+        """
+        input:
+            self.get_observation()
+            self.get_info()
+            self.get_img()
+
+            seed: integer or None; default is None
+                seed = None: generate a random seed. seed with this value python and PhyiCell (via the setting.xml file).
+                seed < 0: take seed from setting.xml
+                seed >= 0: the seed from this value and seed python and PhysiCell (via the setting.xml file).
+
+            options: dictionary or None
+                reserved for possible future use.
+
+        output:
+            o_observation: structure
+                the exact structure has to be
+                specified in the get_observation_space function.
+
+            d_info: dictionary
+                what information to be captured has to be
+                specified in the get_info function.
+
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+
+            o_observation, d_info = env.reset()
+
+        description:
+            The reset method will be called to initiate a new episode,
+            increment episode counter, reset  episode step counter.
+            You may assume that the step method will not be called
+            before the reset function has been called.
+        """
+        if self.verbose :
+            print(f'physigym: reset episode ...')
+
+        # handle random seeding
+        if (seed is None):
+            i_seed = seed
+            self.x_root.xpath('//random_seed')[0].text = str(-1)
+            self.x_tree.write(self.settingxml, pretty_print=True)
+        # handle setting.xml based seeding
+        elif (seed < 0):
+            i_seed = int(self.x_root.xpath('//random_seed')[0].text)
+            if (i_seed < 0):
+                i_seed = None
+        # handle gymnasium based seeding
+        else: # seed >= 0
+            i_seed = seed
+            self.x_root.xpath('//random_seed')[0].text = str(i_seed)
+            self.x_tree.write(self.settingxml, pretty_print=True)
+        # seed self.np_random number generator
+        super().reset(seed=i_seed)
+        if self.verbose:
+            print(f'physigym: seed random number generator with {i_seed}.')
+
+        # update class whide variables
+        if self.verbose:
+            print(f'physigym: update class instance-wide variables.')
+        self.episode += 1
+        self.step_episode = 0
+        #self.step_env NOP
+
+        # initialize physcell model
+        if self.verbose:
+            print(f'physigym: declare PhysiCell model instance.')
+        os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
+        if (self.episode > 0):
+            physicell.reset()
+        physicell.start()
+
+        # observe domain
+        if self.verbose:
+            print(f'physigym: domain observation.')
+        o_observation = self.get_observation()
+        d_info = self.get_info()
+
+        # render domain
+        if self.verbose:
+            print(f'physigym: render {self.render_mode} frame.')
+        if not (self.render_mode is None):
+            plt.ion()
+            self.fig, axs = plt.subplots(figsize=self.figsize)
+            if (self.render_mode == 'human'):
+                self.get_img()
+                if not (self.metadata['render_fps'] is None):
+                    plt.pause(1 / self.metadata['render_fps'])
+
+        # output
+        if self.verbose:
+            print(f'physigym: ok!')
+        return o_observation, d_info
+
+
     def get_truncated(self):
         """
         input:
@@ -320,7 +331,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             internal function.
 
         description:
-            function to evaluate if the epoch reached the max_time specified.
+            function to evaluate if the episode reached the max_time specified.
         """
         # processing
         b_truncated = False
@@ -365,8 +376,14 @@ class CorePhysiCellEnv(gymnasium.Env):
             info: dict
                 algorithm defined by the user in self.get_info().
 
-            self.iteration: integer
-                step counter.
+            self.episode: integer
+                episode counter.
+
+            self.step_episode: integer
+                within an episode step counter.
+
+            self.step_env: integer
+                overall episodes step counter.
 
         run:
             import gymnasium
@@ -379,29 +396,10 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         description:
             function does a dt_gym simulation step:
-            observe, retrieve reward, apply action, increment iteration counter.
+            observe, retrieve reward, apply action, increment step counters.
         """
         if self.verbose :
             print(f'physigym: taking a dt_gym time step ...')
-
-        # get observation
-        if self.verbose:
-            print(f'physigym: domain observation.')
-        o_observation = self.get_observation()
-        b_terminated = self.get_terminated()
-        b_truncated = self.get_truncated()
-        d_info = self.get_info()
-
-        # get revard
-        r_reward = self.get_reward()
-
-        # do rendering
-        if self.verbose:
-            print(f'physigym: render {self.render_mode} frame.')
-        if (self.render_mode == 'human'):
-            self.get_img()
-            if not (self.metadata['render_fps'] is None):
-                plt.pause(1 / self.metadata['render_fps'])
 
         # do action
         if self.verbose:
@@ -431,8 +429,39 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f'physigym: PhysiCell model step.')
         physicell.step()
 
+        # update class whide variables
+        if self.verbose:
+            print(f'physigym: update class instance-wide variables.')
+        #self.episode NOP
+        self.step_episode += 1
+        self.step_env += 1
+
+        # get observation
+        if self.verbose:
+            print(f'physigym: domain observation.')
+        o_observation = self.get_observation()
+        b_terminated = self.get_terminated()
+        b_truncated = self.get_truncated()
+        d_info = self.get_info()
+
+        # get revard
+        r_reward = self.get_reward()
+
+        # do rendering
+        if self.verbose:
+            print(f'physigym: render {self.render_mode} frame.')
+        if (self.render_mode == 'human'):
+            self.get_img()
+            if not (self.metadata['render_fps'] is None):
+                plt.pause(1 / self.metadata['render_fps'])
+
+        # check if episode finish
+        if b_terminated or b_truncated:
+            if self.verbose:
+                print(f'physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated}).')
+            physicell.stop()
+
         # output
-        self.iteration += 1
         if self.verbose:
             print(f'physigym: ok!')
         return o_observation, r_reward, b_terminated, b_truncated, d_info
@@ -450,19 +479,18 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            o_observation, d_info = env.reset()
             env.stop()
 
         description:
-            function to finsih up the epoch.
+            function to finsih up the episode.
         """
         if self.verbose :
-            print(f'physigym: epoch closure ...')
+            print(f'physigym: episode closure ...')
 
         # processing
         if self.verbose:
-            print(f'physigym: shut down PhysiCell model run.')
-        physicell.stop()
+            print(f'physigym: Gymnasium PhysiCell model enviroment shut down.')
+        pass
 
         # output
         if self.verbose:

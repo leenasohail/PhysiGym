@@ -18,7 +18,6 @@
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            o_observation, d_info = env.reset()
             env.stop()
 
 ```

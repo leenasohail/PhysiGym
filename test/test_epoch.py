@@ -41,11 +41,10 @@ env = gymnasium.make(
     #render_fps=10
 )
 
-
 # epoch loop
 ddf_cell = {}
 ddf_conc = {}
-for i_epoch in range(3):
+for i_epoch in range(1):
     # reset output folder
     shutil.rmtree('output/')
     os.mkdir('output/')
@@ -66,12 +65,13 @@ for i_epoch in range(3):
 
         # action
         o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
-        b_episode_over = b_terminated or b_truncated
-        b_episode_over = True
-        print(f'epoch: {i_epoch}\tstep: {i_step}\tover: {b_episode_over}')
 
-    # episode finishing
-    env.close()
+        # check if episode finsih
+        b_episode_over = b_terminated or b_truncated
+        if b_episode_over:
+            i_observation, d_info = env.reset()
+
+        print(f'epoch: {i_epoch}\tstep: {i_step}\tover: {b_episode_over}\tb_terminated: {b_terminated}\tb_truncated: {b_truncated}')
 
     # get timeseries data
     mcdsts = pcdl.TimeSeries('output/')
@@ -82,6 +82,9 @@ for i_epoch in range(3):
     for i_epoch in ddf_cell.keys():
         ddf_cell[i_epoch].to_csv(f'timeseries_cell_epoch{str(i_epoch).zfill(3)}.csv')
         ddf_conc[i_epoch].to_csv(f'timeseries_conc_epoch{str(i_epoch).zfill(3)}.csv')
+
+# free PhysiCell Gymnasium environment
+env.close()
 
 os.chdir('../PhysiGym')
 print('UNITTEST: ok!')

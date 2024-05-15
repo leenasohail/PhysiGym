@@ -758,7 +758,7 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 		return; 
 	}
 
-	// bue 20240509: added to save mesh every epoche, possibly even more.
+	// bue 20240509: added to save mesh every episode, possibly even more.
 	else
 	{
 		if( save_mesh_as_matlab == true)
