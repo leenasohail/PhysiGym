@@ -36,8 +36,14 @@
             info: dict
                 algorithm defined by the user in self.get_info().
 
-            self.iteration: integer
-                step counter.
+            self.episode: integer
+                episode counter.
+
+            self.step_episode: integer
+                within an episode step counter.
+
+            self.step_env: integer
+                overall episodes step counter.
 
 ```
 
@@ -56,6 +62,6 @@
 ## description:
 ```
             function does a dt_gym simulation step:
-            observe, retrieve reward, apply action, increment iteration counter.
+            observe, retrieve reward, apply action, increment step counters.
         
 ```

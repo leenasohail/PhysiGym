@@ -141,6 +141,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f'physigym: initialize environment ...')
 
+        # initialize class whide variables
+        if self.verbose:
+            print(f'physigym: declare class instance-wide variables.')
+        self.episode = -1
+        self.step_episode = None
+        self.step_env = 0
+
         # load physicell settings.xml file
         self.settingxml = settingxml
         self.x_tree = etree.parse(self.settingxml)
@@ -148,18 +155,15 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f'physigym: reading {self.settingxml}')
         self.x_root = self.x_tree.getroot()
 
-        # initialize class whide variables
-        if self.verbose:
-            print(f'physigym: declare class instance-wide variables.')
-        self.iteration = None
-
         # handle render mode and figsize
         if self.verbose:
             print(f'physigym: declare render settings.')
         assert render_mode is None or render_mode in self.metadata['render_modes'], f"'{render_mode}' is an unknown render_mode. known are {sorted(self.metadata['render_modes'])}, and None."
+        self.figsize = figsize
         self.render_mode = render_mode
         self.metadata.update({'render_fps': render_fps})
-        self.figsize = figsize
+        if not (self.render_mode is None):
+            self.fig, axs = plt.subplots(figsize=self.figsize)
 
         # handle spaces
         if self.verbose:
@@ -170,6 +174,48 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output
         if self.verbose:
             print(f'physigym: ok!')
+
+
+    def render(self):
+        """
+        input:
+            self.get_img()
+
+        output:
+            a_img: numpy array or None
+                if self.render_mode is
+                None: the function will return None.
+                rgb_array or huamn: the function will return a numpy array,
+                    8bit, shape (4,y,x) with red, green, blue, and alpha channel.
+        run:
+            import gymnasium
+            import physigym
+
+            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode= None)
+            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='human')
+            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='rgb_array')
+
+            o_observation, d_info = env.reset()
+            env.render()
+
+        description:
+            function to render the image into an 8bit numpy array,
+            if render_mode is not None.
+        """
+        if self.verbose :
+            print(f'physigym: render {self.render_mode} frame ...')
+
+        # processing
+        a_img = None
+
+        if not (self.render_mode is None): # human or rgb_array
+            self.fig.canvas.draw()
+            a_img = np.array(self.fig.canvas.buffer_rgba(), dtype=np.uint8)
+
+        # output
+        if self.verbose :
+            print(f'ok!')
+        return a_img
 
 
     def reset(self, seed=None, options={}):
@@ -205,12 +251,13 @@ class CorePhysiCellEnv(gymnasium.Env):
             o_observation, d_info = env.reset()
 
         description:
-            The reset method will be called to initiate a new episode.
+            The reset method will be called to initiate a new episode,
+            increment episode counter, reset episode step counter.
             You may assume that the step method will not be called
             before the reset function has been called.
         """
         if self.verbose :
-            print(f'physigym: reset epoch ...')
+            print(f'physigym: reset episode ...')
 
         # handle random seeding
         if (seed is None):
@@ -232,10 +279,19 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f'physigym: seed random number generator with {i_seed}.')
 
+        # update class whide variables
+        if self.verbose:
+            print(f'physigym: update class instance-wide variables.')
+        self.episode += 1
+        self.step_episode = 0
+        #self.step_env NOP
+
         # initialize physcell model
         if self.verbose:
             print(f'physigym: declare PhysiCell model instance.')
         os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
+        if (self.episode > 0):
+            physicell.reset()
         physicell.start()
 
         # observe domain
@@ -249,62 +305,17 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f'physigym: render {self.render_mode} frame.')
         if not (self.render_mode is None):
             plt.ion()
-            self.fig, axs = plt.subplots(figsize=self.figsize)
-            if (self.render_mode == 'human'):
-                self.get_img()
+            self.get_img()
+            if (self.render_mode == 'human'): # human
                 if not (self.metadata['render_fps'] is None):
                     plt.pause(1 / self.metadata['render_fps'])
+            else: # rgb_array
+                self.fig.canvas.setVisible(False)
 
         # output
-        self.iteration = 0
         if self.verbose:
             print(f'physigym: ok!')
         return o_observation, d_info
-
-
-    def render(self):
-        """
-        input:
-            self.get_img()
-
-        output:
-            a_img: numpy array or None
-                if self.render_mode is
-                None: the function will return None.
-                human: the function will render and display the image and return None.
-                rgb_array: the function will return a numpy array,
-                    8bit, shape (4,y,x) with red, green, blue, and alpha channel.
-        run:
-            import gymnasium
-            import physigym
-
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='human')
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='rgb_array')
-
-            o_observation, d_info = env.reset()
-            env.render()
-
-        description:
-            function to render the image, specified in the get_img function
-            according to the set render_mode.
-        """
-        if self.verbose :
-            print(f'physigym: render {self.render_mode} frame ...')
-
-        # processing
-        a_img = None
-        if not (self.render_mode is None):
-            self.get_img()
-            if (self.render_mode == 'human') and not (self.metadata['render_fps'] is None):
-                    plt.pause(1 / self.metadata['render_fps'])
-            else:
-                self.fig.canvas.draw()
-                a_img = np.array(fig.canvas.buffer_rgba(), dtype=np.uint8)
-
-        # output
-        if self.verbose :
-            print(f'ok!')
-        return a_img
 
 
     def get_truncated(self):
@@ -320,7 +331,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             internal function.
 
         description:
-            function to evaluate if the epoch reached the max_time specified.
+            function to evaluate if the episode reached the max_time specified.
         """
         # processing
         b_truncated = False
@@ -365,8 +376,14 @@ class CorePhysiCellEnv(gymnasium.Env):
             info: dict
                 algorithm defined by the user in self.get_info().
 
-            self.iteration: integer
-                step counter.
+            self.episode: integer
+                episode counter.
+
+            self.step_episode: integer
+                within an episode step counter.
+
+            self.step_env: integer
+                overall episodes step counter.
 
         run:
             import gymnasium
@@ -379,10 +396,51 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         description:
             function does a dt_gym simulation step:
-            observe, retrieve reward, apply action, increment iteration counter.
+            observe, retrieve reward, apply action, increment step counters.
         """
         if self.verbose :
             print(f'physigym: taking a dt_gym time step ...')
+
+        # do action
+        if self.verbose:
+            print(f'physigym: action.')
+        for s_action, o_value in action.items():
+            # python/physicell api
+
+            if (type(o_value) in {np.ndarray}):
+                # try custom_vector
+                try:
+                    physicell.set_vector(s_action, o_value)
+                except:
+                    if (o_value.shape == (1,)):
+                        o_value = o_value[0]
+                    else:
+                        # error
+                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable variable type detected! {s_action} {type(o_value)} {o_value}.")
+
+            if  not (type(o_value) in {np.ndarray}):
+                try:
+                    # try custom_variable
+                    physicell.set_variable(s_action, o_value)
+                except:
+                    # try parameter
+                    try:
+                        physicell.set_parameter(s_action, o_value)
+                    except:
+                        # error
+                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable variable type detected! {s_action} {type(o_value)} {o_value}.")
+
+        # do dt_gym time step
+        if self.verbose:
+            print(f'physigym: PhysiCell model step.')
+        physicell.step()
+
+        # update class whide variables
+        if self.verbose:
+            print(f'physigym: update class instance-wide variables.')
+        #self.episode NOP
+        self.step_episode += 1
+        self.step_env += 1
 
         # get observation
         if self.verbose:
@@ -398,41 +456,18 @@ class CorePhysiCellEnv(gymnasium.Env):
         # do rendering
         if self.verbose:
             print(f'physigym: render {self.render_mode} frame.')
-        if (self.render_mode == 'human'):
+        if not (self.render_mode is None): # human or rgb_array
             self.get_img()
-            if not (self.metadata['render_fps'] is None):
+            if (self.render_mode == 'human') and not (self.metadata['render_fps'] is None):
                 plt.pause(1 / self.metadata['render_fps'])
 
-        # do action
-        if self.verbose:
-            print(f'physigym: action.')
-        for s_action, o_value in action.items():
-
-            # parameter action
-            if type(o_value) in {bool, int, float, str}:
-                physicell.set_parameter(s_action, o_value)
-
-            elif type(o_value) in {list, tuple, set, np.array}:
-
-                # vector action
-                if type(o_value[0]) in {list, tuple, np.array}:
-                    physicell.set_vector(s_action, o_value)
-
-                # variable action
-                else:
-                    physicell.set_variable(s_action, o_value)
-
-            # error
-            else:
-                sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : {s_action} {type(o_value)} unknowen variable type detected!.")
-
-        # do dt_gym time step
-        if self.verbose:
-            print(f'physigym: PhysiCell model step.')
-        physicell.step()
+        # check if episode finish
+        if b_terminated or b_truncated:
+            if self.verbose:
+                print(f'physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated}).')
+            physicell.stop()
 
         # output
-        self.iteration += 1
         if self.verbose:
             print(f'physigym: ok!')
         return o_observation, r_reward, b_terminated, b_truncated, d_info
@@ -450,19 +485,19 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            o_observation, d_info = env.reset()
             env.stop()
 
         description:
-            function to finsih up the epoch.
+            function to finsih up the episode.
         """
         if self.verbose :
-            print(f'physigym: epoch closure ...')
+            print(f'physigym: episode closure ...')
 
         # processing
         if self.verbose:
-            print(f'physigym: shut down PhysiCell model run.')
-        physicell.stop()
+            print(f'physigym: Gymnasium PhysiCell model enviroment is shutting down.')
+        if not (self.render_mode is None):
+            plt.close(self.fig)
 
         # output
         if self.verbose:

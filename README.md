@@ -60,8 +60,7 @@ Within the PhysiGym library, we tried to stick to the documentation policy laid 
 # Contributions:
 
 + Concept and implementation: Alexandre Bertin, Elmar Bucher
-+ Testing: Marcelo Hurtado
-+ Supervision: Emmanuel Rachelson, Heber Lima da Rocha, Paul Macklin, Vera Pancaldi, Vincent François
++ Involved: Emmanuel Rachelson, Heber Lima da Rocha, Marcelo Hurtado, Paul Macklin, Vera Pancaldi, Vincent François
 
 
 # Cite:

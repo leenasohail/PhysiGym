@@ -64,7 +64,7 @@ studio -c config/PhysiCell_settings.xml
 + Cell Types / Custom Data: add variable Name: apoptosis_rate; Value 0.0; Units [1/min]
 + User Params: have a look at the time and dt_gym parameters!
 + User Params: delete parameters my_str, my_bool, my_int, my_float.
-+ User Params: add a parameter drug_conc; Type double; Value 0.0; Units [fraction].
++ User Params: add a parameter drug_dose; Type double; Value 0.0; Units [fraction].
 + User Params: add a parameter cell_count; Type int; Value 1; Unit dimensionless.
 + Rules: drug increases apoptosis; Half-max 0.5; Saturation value: 1.0; Hill power 4; Add rule; enable.
 + File / Save.
@@ -107,11 +107,11 @@ for (int i = 0 ; i < all_cells->size(); i++) {
 At the bottom of the file, add this function to update the microenvironment.
 
 ```C++
-int set_microenv(std::string s_substrate, double r_conc) {
+int set_microenv(std::string s_substrate, double r_dose) {
     // update substrate concentration
     int k = microenvironment.find_density_index(s_substrate);
     for (unsigned int n=0; n < microenvironment.number_of_voxels(); n++) {
-        microenvironment(n)[k] += r_conc;
+        microenvironment(n)[k] += r_dose;
     }
     return 0;
 }
@@ -124,7 +124,7 @@ At the bottom of the file, add the fresh implemented function.
 
 ```C++
 // add substrate
-int set_microenv(std::string s_substrate, double r_conc);
+int set_microenv(std::string s_substrate, double r_dose);
 ```
 
 
@@ -140,12 +140,12 @@ Please have a look at this function.
 At line around 190, you will find already prepared, commented out example code, for action and observation, for all possible parameter, variable and vector types.
 
 Let's first focus on the action.
-The only thing left to do is to connect our drug_conc parameter with the already implemented set_microenv function.
+The only thing left to do is to connect our drug_dose parameter with the already implemented set_microenv function.
 After the commented-out action example code, at line 225, inserts the following line.
 
 ```C++
 // add drug
-set_microenv("drug", parameters.doubles("drug_conc"));
+set_microenv("drug", parameters.doubles("drug_dose"));
 ```
 
 Similar to observation.
@@ -176,11 +176,11 @@ Finally, let's update the Gymnasium ModelPhysiCellEnv class, found in the custom
 3.1.1 get_action_space function
 
 Let's declare the action space.
-In the studio, we specified the unit of the drug_conc parameter as a fraction.
+In the studio, we specified the unit of the drug_dose parameter as a fraction.
 This means, in Gymnasium terms, we have a Box space.
 
 First, let's comment out the default 'discrete': spaces.Discrete(2)!
-Then let's declare a Box space labeled drug_conc
+Then let's declare a Box space labeled drug_dose
 This is a single continuous vector with all possible real values from 0 to 1.
 
 Now, very important, in physigym, the action has always to be provided in dictionary form.
@@ -190,7 +190,7 @@ PhysiCell model and the Python embedding.
 Replace the default with:
 ```python
 action_space = spaces.Dict({
-    'drug_conc': spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)
+    'drug_dose': spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)
 })
 ```
 
@@ -342,9 +342,9 @@ b_episode_over = False
 while not b_episode_over:
     # policy according to i_observation
     if (i_observation > 128):
-        d_action = {'drug_conc': 1 - r_reward}
+        d_action = {'drug_dose': 1 - r_reward}
     else:
-        d_action = {'drug_conc': 0}
+        d_action = {'drug_dose': 0}
 
     # action
     o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)

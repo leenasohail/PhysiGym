@@ -65,7 +65,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         input:
 
         output:
-            action_space: dictionary
+            d_action_space: dictionary composition space
                 the dictionary keys have to match the parameter,
                 custom variable, or custom vector label.
                 the value have to be defind as gymnasium space object.
@@ -76,19 +76,24 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             dictionary structur built out of gymnasium.spaces elements.
             this struct has to specify type and range for each
-            action parameter, custom variable, and custom vector.
+            action parameter, action custom variable, and action custom vector.
         """
-        # model dependent processing logic goes here!
-        action_space = spaces.Dict({
-            'discrete': spaces.Discrete(2)  # boolean, string
-            #'discrete': spaces.MultyBinary()  # boolean
-            #'discrete': spaces.MultyDiscrete()  # string
-            #'discrete': spaces.Text() # e.g. DNA letter
-            #'numeric': spaces.Box()   # int, float
+        # template
+        #action_space = spaces.Dict({
+        #    'discrete': spaces.Discrete(2)  # boolean, int
+        #    'discrete': spaces.MultiBinary()  # boolean in a numpy array
+        #    'discrete': spaces.MultiDiscrete()
+        #    'discrete': spaces.Text() # string e.g. DNA letter
+        #    'numeric': spaces.Box()   # ints or floats in a numpy array
+        #})
+
+        # model dependent action_space processing logic goes here!
+        d_action_space = spaces.Dict({
+            'discrete': spaces.Discrete(2)
         })
 
         # output
-        return action_space
+        return d_action_space
 
 
     def get_observation_space(self):
@@ -96,7 +101,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         input:
 
         output:
-            observation_space structur.
+            o_observation_space structur.
                 the struct have to be built out of gymnasium.spaces elements.
                 there are no other limits.
                 + https://gymnasium.farama.org/main/api/spaces/
@@ -109,22 +114,119 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             this struct has to specify type and range
             for each observed variable.
         """
-        # model dependent processing logic goes here!
+        # template
         #observation_space =
         #compositione: spaces.Dict({})
         #compositione: spaces.Tuple(())
-        #discrete: spaces.Discrete()  # boolean, string
-        #discrete: spaces.MultyBinary()  # boolean
-        #discrete: spaces.MultyDiscrete()  # string
-        #discrete: spaces.Text()  # char e.g. DNA letters
-        #numeric: spaces.Box()  # int, float
+        #discrete: spaces.Discrete()  # boolean, int
+        #discrete: spaces.MultiBinary()  # boolean in a numpy array
+        #discrete: spaces.MultiDiscrete()
+        #discrete: spaces.Text()  # string e.g. DNA letters
+        #numeric: spaces.Box()  # int or float in a numpy array
         #niche: spaces.Graph(())
         #niche: spaces.Sequence(())  # set of spaces
 
-        observation_space = spaces.Discrete(2)
+        # model dependent observation_space processing logic goes here!
+        o_observation_space = spaces.Discrete(2)
 
         # output
-        return observation_space
+        return o_observation_space
+
+
+    def get_observation(self):
+        """
+        input:
+
+        output:
+            o_observation: object compatible with the defined
+                observation space struct.
+
+        run:
+            internal function, user defined.
+
+        description:
+            data for the observation object for example be retrieved by:
+            + physicell.get_parameter('my_parameter')
+            + physicell.get_variable('my_variable')
+            + physicell.get_vector('my_vector')
+            however, there are no limts.
+        """
+        # model dependent observation processing logic goes here!
+        o_observation = True
+
+        # output
+        return o_observation
+
+
+    def get_info(self):
+        """
+        input:
+
+        output:
+            d_info: dictionary
+
+        run:
+            internal function, user defined.
+
+        description:
+            function to provide additional information important for
+            controlling the action of the policy. for example,
+            if we do reinforcement learning on a jump and run game,
+            the number of hearts (lives left) from our character.
+        """
+        # model dependent info processing logic goes here!
+        d_info = {}
+
+        # output
+        return d_info
+
+
+    def get_terminated(self):
+        """
+        input:
+
+        output:
+            b_terminated: bool
+
+        run:
+            internal function, user defined.
+
+        description:
+            function to determ, if the epoch is terminated.
+            for example, if we do reinforcement learning on a
+            jump and run game, if ouer character died.
+            please notice, that this ending is different form
+            truncated (the epoch reached the max time limit).
+        """
+        # model dependent terminated processing logic goes here!
+        b_terminated = False
+
+        # output
+        return b_terminated
+
+
+    def get_reward(self):
+        """
+        input:
+
+        output:
+            r_reward: float between or equal to 0.0 and 1.0.
+                there are no other limits to the algorithm implementation enforced.
+                however, the algorithm is usually based on data as well retrived
+                by the get_observation function (o_observation, d_info),
+                and possibly by the render function (a_img).
+
+        run:
+            internal function, user defined.
+
+        description:
+            cost function.
+        """
+        # model dependent reward processing logic goes here!
+        r_reward = 0.0
+
+        # output
+        return r_reward
 
 
     def get_img(self):
@@ -146,8 +248,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             + physicell.get_variable('my_variable')
             however, there are no limts.
         """
-        # model dependent ploting logic goes here!
-        self.fig.axes[0].remove()
+        # model dependent img processing logic goes here!
+        self.fig.clf()
         ax = self.fig.add_subplot(1,1,1)
         ax.axis('equal')
         #ax.axis('off')
@@ -205,101 +307,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         #plt.tight_layout()
         #s_path = self.x_root.xpath('//save/folder')[0].text
-        #self.fig.savefig(f'{s_path}/timeseries_step{str(self.iteration).zfill(3)}.jpeg', facecolor='white')
+        #self.fig.savefig(f'{s_path}/timeseries_step{str(self.step_env).zfill(3)}.jpeg', facecolor='white')
 
-
-    def get_observation(self):
-        """
-        input:
-
-        output:
-            o_observation: object compatible with the defined
-                observation space struct.
-
-        run:
-            internal function, user defined.
-
-        description:
-            data for the observation object for example be retrieved by:
-            + physicell.get_parameter('my_parameter')
-            + physicell.get_variable('my_variable')
-            + physicell.get_vector('my_vector')
-            however, there are no limts.
-        """
-        # model dependent processing logic goes here!
-        o_observation = {'discrete': True}
-
-        # output
-        return o_observation
-
-
-    def get_info(self):
-        """
-        input:
-
-        output:
-            d_info: dictionary
-
-        run:
-            internal function, user defined.
-
-        description:
-            function to provide additional information important for
-            controlling the action of the policy. for example,
-            if we do reinforcement learning on a jump and run game,
-            the number of hearts (lives left) from our character.
-        """
-        # model dependent processing logic goes here!
-        d_info = {}
-
-        # output
-        return d_info
-
-
-    def get_terminated(self):
-        """
-        input:
-
-        output:
-            b_terminated: bool
-
-        run:
-            internal function, user defined.
-
-        description:
-            function to determ, if the epoch is terminated.
-            for example, if we do reinforcement learning on a
-            jump and run game, if ouer character died.
-            please notice, that this ending is different form
-            truncated (the epoch reached the max time limit).
-        """
-        # model dependent processing logic goes here!
-        b_terminated = False
-
-        # output
-        return b_terminated
-
-
-    def get_reward(self):
-        """
-        input:
-
-        output:
-            r_reward: float between or equal to 0.0 and 1.0.
-                there are no other limits to the algorithm implementation enforced.
-                however, the algorithm is usually based on data as well retrived
-                by the get_observation function (o_observation, d_info),
-                and possibly by the render function (a_img).
-
-        run:
-            internal function, user defined.
-
-        description:
-            cost function.
-        """
-        # model dependent processing logic goes here!
-        r_reward = 0.0
-
-        # output
-        return r_reward
 

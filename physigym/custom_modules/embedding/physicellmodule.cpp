@@ -335,6 +335,14 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     BioFVM::display_stopwatch_value(std::cout, BioFVM::runtime_stopwatch_value());
     std::cout << std::endl;
 
+    // go home
+    return PyLong_FromLong(0);
+}
+
+
+// extended python3 C++ function stop
+static PyObject* physicell_reset(PyObject *self, PyObject *args) {
+
     // delete cells
     for (Cell* pCell: (*all_cells)) {
         pCell->die();
@@ -702,7 +710,13 @@ static struct PyMethodDef ExtendpyMethods[] = {
      "input: none.\noutput: physicell processing.\ndescription: function initializes physicell as specified in the settings.xml, cells.csv, and cell_rules.csv files."
     },
     {"step", physicell_step, METH_VARARGS,
-     "input: none.\noutput: physicell processing.\ndescription: function runs one mcds data dump time step."
+     "input: none.\noutput: physicell processing.\ndescription: function runs one time step."
+    },
+    {"stop", physicell_stop, METH_VARARGS,
+     "input: none.\noutput: physicell processing.\ndescription: function finalizes a physicell run."
+    },
+    {"reset", physicell_reset, METH_VARARGS,
+     "input: none.\noutput: physicell processing.\ndescription: function resets all variables to physicell start up condition."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
      "input: parameter name (string), vector value (bool or int or float or str).\noutput: 0 for success and -1 for failure.\ndescription: function to store a user parameter."
@@ -727,9 +741,6 @@ static struct PyMethodDef ExtendpyMethods[] = {
     },
     {"get_microenv", physicell_get_microenv, METH_VARARGS,
      "input: substrate name (string)\noutput: values (list of list of floats).\ndescription: function to recall a voxel center coordinates and substrate concentration."
-    },
-    {"stop", physicell_stop, METH_VARARGS,
-     "input: none.\noutput: physicell processing.\ndescription: function finalizes a physicell run."
     },
     {"system", physicell_system, METH_VARARGS, "execute a shell command."},
     /*{NULL, NULL, 0, NULL}  // Sentinel */
