@@ -24,6 +24,6 @@
 
 ## description:
 ```
-            function to finsih up the epoch.
+            function to finsih up the episode.
         
 ```

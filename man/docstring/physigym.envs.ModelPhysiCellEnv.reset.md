@@ -42,7 +42,8 @@
 
 ## description:
 ```
-            The reset method will be called to initiate a new episode.
+            The reset method will be called to initiate a new episode,
+            increment episode counter, reset episode step counter.
             You may assume that the step method will not be called
             before the reset function has been called.
         

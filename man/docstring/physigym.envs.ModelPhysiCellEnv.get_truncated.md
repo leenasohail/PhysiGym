@@ -22,6 +22,6 @@
 
 ## description:
 ```
-            function to evaluate if the epoch reached the max_time specified.
+            function to evaluate if the episode reached the max_time specified.
         
 ```

@@ -59,9 +59,9 @@ for i_epoch in range(1):
         i_step += 1
         # policy according to i_observation
         if (i_observation > i_cell_target):
-            d_action = {'subs_conc': 1 - r_reward}
+            d_action = {'subs_dose': 1 - r_reward}
         else:
-            d_action = {'subs_conc': 0}
+            d_action = {'subs_dose': 0}
 
         # action
         o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)

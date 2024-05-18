@@ -8,7 +8,7 @@
 
 ## output:
 ```
-            action_space: dictionary
+            d_action_space: dictionary composition space
                 the dictionary keys have to match the parameter,
                 custom variable, or custom vector label.
                 the value have to be defind as gymnasium space object.
@@ -25,6 +25,6 @@
 ```
             dictionary structur built out of gymnasium.spaces elements.
             this struct has to specify type and range for each
-            action parameter, custom variable, and custom vector.
+            action parameter, action custom variable, and action custom vector.
         
 ```
