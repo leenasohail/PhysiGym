@@ -50,16 +50,16 @@ help(physigym.envs.CorePhysiCellEnv.get_truncated)
 ### Python/PhysiCell API functions:
 
 **observation**
-+ [help(physicell.get_parameter)](physicell.get_parameter.md)
-+ [help(physicell.get_variable)](physicell.get_variable.md)
-+ [help(physicell.get_vector)](physicell.get_vector.md)
-+ [help(physicell.get_cell)](physicell.get_cell.md)
-+ [help(physicell.get_microenv)](physicell.get_microenv.md)
++ [help(physicell.get_parameter)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_parameter.md)
++ [help(physicell.get_variable)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_variable.md)
++ [help(physicell.get_vector)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_vector.md)
++ [help(physicell.get_cell)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_cell.md)
++ [help(physicell.get_microenv)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_microenv.md)
 
 **action**
-+ [help(physicell.set_parameter)](physicell.set_parameter.md)
-+ [help(physicell.set_variable)](physicell.set_variable.md)
-+ [help(physicell.set_vector)](physicell.set_vector.md)
++ [help(physicell.set_parameter)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.set_parameter.md)
++ [help(physicell.set_variable)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.set_variable.md)
++ [help(physicell.set_vector)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.set_vector.md)
 
 **internal control**
 + help(physicell.start)
