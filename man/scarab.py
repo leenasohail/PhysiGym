@@ -19,6 +19,7 @@
 
 
 # library
+from embedding import physicell  # import the Python/PhysiCell API module
 import gymnasium
 import physigym  # import the Gymnasium PhysiCell bridge module
 import os
@@ -89,7 +90,7 @@ def docstring_md(s_function, ls_doc, s_header=None, s_opath='../PhysiGym/man/doc
         elif (s_doc.find('output:') > -1):
             f.write(f'```\n\n## {s_doc.strip()}\n```\n')
         elif (s_doc.find('run:') > -1):
-            f.write(f'```\n\n## {s_doc.strip()}\n```\n')
+            f.write(f'```\n\n## {s_doc.strip()}\n```python\n')
         elif (s_doc.find('description:') > -1):
             f.write(f'```\n\n## {s_doc.strip()}\n```\n')
         else:
@@ -112,7 +113,7 @@ docstring_md(
     ls_doc = physigym.envs.ModelPhysiCellEnv.__doc__.split('\n'),
 )
 
-# to run epochs 
+# to run epochs
 docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.__init__',
     ls_doc = physigym.envs.CorePhysiCellEnv.__init__.__doc__.split('\n'),
@@ -177,5 +178,55 @@ docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.get_truncated',
     ls_doc = physigym.envs.ModelPhysiCellEnv.get_truncated.__doc__.split('\n'),
 )
-os.chdir('../PhysiGym')
 
+# python physicell api functions
+docstring_md(
+    s_function = 'physicell.start',
+    ls_doc = physicell.start.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.step',
+    ls_doc = physicell.step.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.stop',
+    ls_doc = physicell.stop.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.reset',
+    ls_doc = physicell.reset.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.set_parameter',
+    ls_doc = physicell.set_parameter.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.get_parameter',
+    ls_doc = physicell.get_parameter.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.set_variable',
+    ls_doc = physicell.get_variable.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.get_variable',
+    ls_doc = physicell.get_variable.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.set_vector',
+    ls_doc = physicell.set_vector.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.get_vector',
+    ls_doc = physicell.get_vector.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.get_cell',
+    ls_doc = physicell.get_cell.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physicell.get_microenv',
+    ls_doc = physicell.get_microenv.__doc__.split('\n'),
+)
+
+os.chdir('../PhysiGym')

@@ -6,7 +6,7 @@ This is the technical description of the machinery and how to operate it.
 ## physigym module
 
 References are maintained in each module's [docstring](https://en.wikipedia.org/wiki/Docstring).\
-You can access them through the [source code](https://github.com/Dante-Berth/PhysiGym/tree/main/physigym/custom_modules/physigym/physigym/envs) 
+You can access them through the [source code](https://github.com/Dante-Berth/PhysiGym/tree/main/physigym/custom_modules/physigym/physigym/envs)
 or by first loading the physigym module and environment,
 
 ```bash
@@ -14,6 +14,7 @@ cd path/to/PhysiCell
 ```
 
 ```python3
+from embedding import physicell
 import gymnasium
 import physigym
 
@@ -45,3 +46,23 @@ then, for each physicell module, getting on-the-fly reference information with t
 
 ### Pure internal class functions:
 help(physigym.envs.CorePhysiCellEnv.get_truncated)
+
+### Python/PhysiCell API functions:
+
+**observation**
++ [help(physicell.get_parameter)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_parameter.md)
++ [help(physicell.get_variable)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_variable.md)
++ [help(physicell.get_vector)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_vector.md)
++ [help(physicell.get_cell)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_cell.md)
++ [help(physicell.get_microenv)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.get_microenv.md)
+
+**action**
++ [help(physicell.set_parameter)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.set_parameter.md)
++ [help(physicell.set_variable)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.set_variable.md)
++ [help(physicell.set_vector)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physicell.set_vector.md)
+
+**internal control**
++ help(physicell.start)
++ help(physicell.step)
++ help(physicell.stop)
++ help(physicell.reset)

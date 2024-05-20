@@ -14,7 +14,7 @@
 ```
 
 ## run:
-```
+```python
         import gymnasium
         import physigym
 

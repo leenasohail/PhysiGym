@@ -559,8 +559,8 @@
     <user_parameters>
         <random_seed type="int" units="dimensionless" description="">-1</random_seed>
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">32</number_of_cells>
-        <time type="double" units="min" description="PhysiGym never delete!">0.0</time>
-        <dt_gym type="double" units="min" description="PhysiGym never delete!">60.0</dt_gym>
+        <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
+        <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60.0</dt_gym>
         <my_float type="double" units="none" description="">0.0</my_float>
         <my_int type="int" units="none" description="">0</my_int>
         <my_bool type="bool" units="none" description="">false</my_bool>
