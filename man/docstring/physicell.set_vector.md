@@ -10,10 +10,10 @@
 ```
     0 for success and -1 for failure.
 
-```python
+```
 
 ## run:
-```
+```python
     from embedding import physicell
     physicell.set_vector('my_vector', value)
 

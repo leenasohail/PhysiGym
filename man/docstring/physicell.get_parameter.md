@@ -10,10 +10,10 @@
 ```
     values (bool or int or float or str).
 
-```python
+```
 
 ## run:
-```
+```python
     from embedding import physicell
     physicell.get_parameter('my_parameter')
 

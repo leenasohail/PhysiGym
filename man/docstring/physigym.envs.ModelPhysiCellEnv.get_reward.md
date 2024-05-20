@@ -14,10 +14,10 @@
                 by the get_observation function (o_observation, d_info),
                 and possibly by the render function (a_img).
 
-```python
+```
 
 ## run:
-```
+```python
             internal function, user defined.
 
 ```

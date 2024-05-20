@@ -12,10 +12,10 @@
 ```
             b_truncated: bool
 
-```python
+```
 
 ## run:
-```
+```python
             internal function.
 
 ```

@@ -39,10 +39,10 @@
 ```
             initialized PhysiCell Gymnasium enviroment.
 
-```python
+```
 
 ## run:
-```
+```python
             import gymnasium
             import physigym
 

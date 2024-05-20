@@ -14,10 +14,10 @@
                 None: the function will return None.
                 rgb_array or huamn: the function will return a numpy array,
                     8bit, shape (4,y,x) with red, green, blue, and alpha channel.
-```python
+```
 
 ## run:
-```
+```python
             import gymnasium
             import physigym
 
