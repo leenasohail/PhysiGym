@@ -11,7 +11,7 @@
             self.fig.savefig
                 instance attached matplotlib figure.
 
-```
+```python
 
 ## run:
 ```

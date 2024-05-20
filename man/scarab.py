@@ -90,7 +90,7 @@ def docstring_md(s_function, ls_doc, s_header=None, s_opath='../PhysiGym/man/doc
         elif (s_doc.find('output:') > -1):
             f.write(f'```\n\n## {s_doc.strip()}\n```\n')
         elif (s_doc.find('run:') > -1):
-            f.write(f'```\n\n## {s_doc.strip()}\n```\n')
+            f.write(f'```python\n\n## {s_doc.strip()}\n```\n')
         elif (s_doc.find('description:') > -1):
             f.write(f'```\n\n## {s_doc.strip()}\n```\n')
         else:

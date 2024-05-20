@@ -12,7 +12,7 @@
 ```
             b_truncated: bool
 
-```
+```python
 
 ## run:
 ```

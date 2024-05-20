@@ -11,7 +11,7 @@
             o_observation: object compatible with the defined
                 observation space struct.
 
-```
+```python
 
 ## run:
 ```

@@ -9,7 +9,7 @@
 ## output:
 ```
 
-```
+```python
 
 ## run:
 ```

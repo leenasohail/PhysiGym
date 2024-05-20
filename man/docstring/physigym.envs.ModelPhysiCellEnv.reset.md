@@ -27,7 +27,7 @@
                 what information to be captured has to be
                 specified in the get_info function.
 
-```
+```python
 
 ## run:
 ```

@@ -39,7 +39,7 @@
 ```
             initialized PhysiCell Gymnasium enviroment.
 
-```
+```python
 
 ## run:
 ```

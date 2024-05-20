@@ -13,7 +13,7 @@
                 there are no other limits.
                 + https://gymnasium.farama.org/main/api/spaces/
 
-```
+```python
 
 ## run:
 ```

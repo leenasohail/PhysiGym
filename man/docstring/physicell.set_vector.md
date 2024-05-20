@@ -10,7 +10,7 @@
 ```
     0 for success and -1 for failure.
 
-```
+```python
 
 ## run:
 ```
