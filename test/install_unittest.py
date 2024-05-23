@@ -1,5 +1,5 @@
 ####
-# title: test/tinstall_physigym.py
+# title: test/install_unittest.py
 #
 # language: python3
 # author: Elmar Bucher
@@ -7,7 +7,7 @@
 # license: BSD 3-Clause
 #
 # run:
-#     python3 test/tinstall_physigym.py
+#     python3 test/install_unittest.py
 #
 # description:
 #     install unit test code for the physigym project
@@ -26,27 +26,27 @@ import shutil
 
 print('\nUNITTEST: install physigym ...')
 os.chdir('../PhysiCell')
-os.system('rm -fr user_projects/utest')
-os.system('cp -r ../PhysiGym/physigym user_projects/utest')
+os.system('rm -fr user_projects/unittest')
+os.system('cp -r ../PhysiGym/physigym user_projects/unittest')
 os.system('make save PROJ=backup')
 os.system('make data-cleanup clean reset')
 os.system("sed -i 's/cp .\/user_projects\/$(PROJ)\/custom_modules\//cp -r .\/user_projects\/$(PROJ)\/custom_modules\//' ./Makefile")
-os.system('make load PROJ=utest')
+os.system('make load PROJ=unittest')
 os.chdir('../PhysiGym')
 print('UNITTEST: ok!')
 
 
-##########################
-# copy utest model files #
-##########################
+#############################
+# copy unittest model files #
+#############################
 
-print('\nUNITTEST: copy utest model files ...')
+print('\nUNITTEST: copy unittest config files ...')
 shutil.copyfile(
-    'test/config/PhysiCell_settings.xml',
+    'test/config_unittest/PhysiCell_settings.xml',
     '../PhysiCell/config/PhysiCell_settings.xml',
 )
 shutil.copyfile(
-    'test/config/cell_rules.csv',
+    'test/config_unittest/cell_rules.csv',
     '../PhysiCell/config/cell_rules.csv',
 )
 print('UNITTEST: ok!')
@@ -287,7 +287,7 @@ for s_line in fr:
         "        elif (i_cellcount < 128):\n",
         "            r_reward = i_cellcount / 128\n",
         "        elif (i_cellcount > 128):\n",
-        "            r_reward = (i_cellcount - 128) / 128\n",
+        "            r_reward = 1 - (i_cellcount - 128) / 128\n",
         "        else:\n",
         "            sys.exit('Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.')\n",
         "\n",
