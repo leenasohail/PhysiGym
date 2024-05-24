@@ -14,7 +14,7 @@
     </domain>
 
     <overall>
-        <max_time units="min">10080.0</max_time>
+        <max_time units="min">1440.0</max_time> <!-- bue: 720.0 1440.0 10080.0 -->
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -23,14 +23,14 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>6</omp_num_threads>
+        <omp_num_threads>1</omp_num_threads>  <!-- bue: 16 -->
     </parallel>
 
     <save>
         <folder>output</folder>
         <full_data>
             <interval units="min">60</interval>
-            <enable>false</enable>
+            <enable>true</enable>
         </full_data>
         <SVG>
             <interval units="min">60</interval>
@@ -202,7 +202,7 @@
     </cell_definitions>
 
     <initial_conditions>
-        <cell_positions type="csv" enabled="false">
+        <cell_positions type="csv" enabled="true">
             <folder>./config</folder>
             <filename>cells.csv</filename>
         </cell_positions>
@@ -219,7 +219,7 @@
     </cell_rules>
 
     <user_parameters>
-        <random_seed type="int" units="dimensionless" description="">-1</random_seed>
+        <random_seed type="int" units="dimensionless" description="">-1</random_seed> <!-- bue: -1 0; real seeding is done in env.reset(seed=n) -->
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">64</number_of_cells>
         <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
         <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60.0</dt_gym>

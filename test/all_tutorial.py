@@ -1,5 +1,5 @@
 ####
-# title: test/all_unittest.py
+# title: test/all_tutorial.py
 #
 # language: python3
 # author: Elmar Bucher
@@ -7,10 +7,11 @@
 # license: BSD 3-Clause
 #
 # run:
-#     python3 test/all_unittest.py
+#     python3 test/all_tutorial.py
 #
 # description:
-#     run complete unit test code for the physigym project
+#     run complete tutorial code, and unittest on the tutorial,
+#     for the physigym project.
 #####
 
 
@@ -18,7 +19,7 @@
 import subprocess
 
 # install test
-subprocess.run(['python3', 'test/install_unittest.py'], check=True)
+subprocess.run(['python3', 'test/install_tutorial.py'], check=True)
 
 # run tests
 subprocess.run(['python3', 'test/test_episode.py'], check=True)

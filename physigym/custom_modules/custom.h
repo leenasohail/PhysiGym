@@ -17,6 +17,7 @@ using namespace BioFVM;
 using namespace PhysiCell;
 
 // setup functions to help us along
+void random_seed(void);
 void create_cell_types(void);
 void setup_tissue(void);
 

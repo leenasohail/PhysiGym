@@ -193,8 +193,8 @@ docstring_md(
     ls_doc = physicell.stop.__doc__.split('\n'),
 )
 docstring_md(
-    s_function = 'physicell.reset',
-    ls_doc = physicell.reset.__doc__.split('\n'),
+    s_function = 'physicell.restart',
+    ls_doc = physicell.restart.__doc__.split('\n'),
 )
 docstring_md(
     s_function = 'physicell.set_parameter',

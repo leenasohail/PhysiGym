@@ -49,6 +49,10 @@ shutil.copyfile(
     'test/config_unittest/cell_rules.csv',
     '../PhysiCell/config/cell_rules.csv',
 )
+shutil.copyfile(
+    'test/config_unittest/cells.csv',
+    '../PhysiCell/config/cells.csv',
+)
 print('UNITTEST: ok!')
 
 
@@ -283,7 +287,7 @@ for s_line in fr:
         fw.writelines([
         "        i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)\n",
         "        if (i_cellcount == 128):\n",
-        "            r_reward == 1\n",
+        "            r_reward = 1\n",
         "        elif (i_cellcount < 128):\n",
         "            r_reward = i_cellcount / 128\n",
         "        elif (i_cellcount > 128):\n",

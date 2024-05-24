@@ -307,7 +307,7 @@ df_cell.plot(
     ],
     vmin=0.0, vmax=0.1, cmap='viridis',
     grid=True,
-    title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfil    l(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / 128 [cell]',
+    title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / 128 [cell]',
     ax=ax,
 )
 ```
