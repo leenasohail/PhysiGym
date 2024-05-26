@@ -19,14 +19,18 @@ static const std::vector<double> VECTOR_ZERO (4, ZERO);  // generate a 4 charact
 
 
 // functions
-void create_cell_types(void) {
+void random_seed(void) {
     // set the random seed
     if (parameters.ints("random_seed") < 0) {
         SeedRandom();  // random
     } else {
         SeedRandom(parameters.ints("random_seed"));  // fix
     }
+    return;
+}
 
+
+void create_cell_types(void) {
     /*
        Put any modifications to default cell definition here if you
        want to have "inherited" by other cell types.

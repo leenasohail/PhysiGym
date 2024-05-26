@@ -14,7 +14,7 @@
     </domain>
 
     <overall>
-        <max_time units="min">1440.0</max_time>
+        <max_time units="min">1440.0</max_time> <!-- bue: 720.0 1440.0 10080.0 -->
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -23,7 +23,7 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>6</omp_num_threads>
+        <omp_num_threads>1</omp_num_threads>  <!-- bue: 16 -->
     </parallel>
 
     <save>
@@ -34,9 +34,9 @@
         </full_data>
         <SVG>
             <interval units="min">60</interval>
-            <enable>true</enable>
+            <enable>false</enable>
             <plot_substrate enabled="false" limits="false">
-                <substrate>my_substrate</substrate>
+                <substrate>drug</substrate>
                 <min_conc />
                 <max_conc />
             </plot_substrate>
@@ -53,10 +53,10 @@
     </options>
 
     <microenvironment_setup>
-        <variable name="my_substrate" units="dimensionless" ID="0">
+        <variable name="drug" units="dimensionless" ID="0">
             <physical_parameter_set>
                 <diffusion_coefficient units="micron^2/min">100000.0</diffusion_coefficient>
-                <decay_rate units="1/min">10</decay_rate>
+                <decay_rate units="1/min">0.001</decay_rate>
             </physical_parameter_set>
             <initial_condition units="mmHg">0</initial_condition>
             <Dirichlet_boundary_condition units="mmHg" enabled="False">0</Dirichlet_boundary_condition>
@@ -91,7 +91,7 @@
                 </cycle>
                 <death>
                     <model code="100" name="apoptosis">
-                        <death_rate units="1/min">5.31667e-05</death_rate>
+                        <death_rate units="1/min">0.0</death_rate>
                         <phase_transition_rates units="1/min">
                             <rate start_index="0" end_index="1" fixed_duration="false">0.001938</rate>
                         </phase_transition_rates>
@@ -155,20 +155,20 @@
                         <use_2D>true</use_2D>
                         <chemotaxis>
                             <enabled>false</enabled>
-                            <substrate>my_substrate</substrate>
+                            <substrate>drug</substrate>
                             <direction>1</direction>
                         </chemotaxis>
                         <advanced_chemotaxis>
                             <enabled>false</enabled>
                             <normalize_each_gradient>false</normalize_each_gradient>
                             <chemotactic_sensitivities>
-                                <chemotactic_sensitivity substrate="my_substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="drug">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
                 </motility>
                 <secretion>
-                    <substrate name="my_substrate">
+                    <substrate name="drug">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0.0</uptake_rate>
@@ -196,12 +196,13 @@
             </phenotype>
             <custom_data>
                 <my_variable conserved="false" units="dimensionless" description="">0</my_variable>
+                <apoptosis_rate conserved="false" units="[1/min]" description="">0.0</apoptosis_rate>
             </custom_data>
         </cell_definition>
     </cell_definitions>
 
     <initial_conditions>
-        <cell_positions type="csv" enabled="false">
+        <cell_positions type="csv" enabled="true">
             <folder>./config</folder>
             <filename>cells.csv</filename>
         </cell_positions>
@@ -209,7 +210,7 @@
 
     <cell_rules>
         <rulesets>
-            <ruleset protocol="CBHG" version="2.0" format="csv" enabled="false">
+            <ruleset protocol="CBHG" version="2.0" format="csv" enabled="true">
                 <folder>./config</folder>
                 <filename>cell_rules.csv</filename>
             </ruleset>
@@ -218,13 +219,15 @@
     </cell_rules>
 
     <user_parameters>
-        <random_seed type="int" units="dimensionless" description="">0</random_seed>
-        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">5</number_of_cells>
+        <random_seed type="int" units="dimensionless" description="">-1</random_seed> <!-- bue: -1 0; real seeding is done in env.reset(seed=n) -->
+        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">64</number_of_cells>
         <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
         <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60.0</dt_gym>
         <my_float type="double" units="none" description="">0.0</my_float>
         <my_int type="int" units="none" description="">0</my_int>
         <my_bool type="bool" units="none" description="">false</my_bool>
         <my_str type="string" units="none" description="">abc</my_str>
+        <drug_dose type="double" units="[fraction]" description="">0.0</drug_dose>
+        <cell_count type="int" units="dimensionless" description="">0</cell_count>
     </user_parameters>
 </PhysiCell_settings>

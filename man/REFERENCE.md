@@ -63,6 +63,6 @@ help(physigym.envs.CorePhysiCellEnv.get_truncated)
 
 **internal control**
 + help(physicell.start)
++ help(physicell.restart)
 + help(physicell.step)
 + help(physicell.stop)
-+ help(physicell.reset)

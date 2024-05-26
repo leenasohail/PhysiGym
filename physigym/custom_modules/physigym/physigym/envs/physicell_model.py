@@ -297,7 +297,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #    ],
         #    vmin=0.0, vmax=1.0, cmap='viridis',
         #    grid=True,
-        #    title=None,
+        #    title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} [cell]',\n",
         #    ax=ax,
         #)
 

@@ -49,8 +49,6 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // load and parse settings file(s)
     bool XML_status = false;
-    char copy_command [1024];
-
     // bue 2024-02-01: simplify (no args)
     //if (argc > 1) {
     //    XML_status = load_PhysiCell_config_file(argv[1]);
@@ -60,11 +58,11 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     //    sprintf(copy_command, "cp ../config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
     //}
     XML_status = load_PhysiCell_config_file("./config/PhysiCell_settings.xml");
-    sprintf(copy_command, "cp ./config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
-
     if (!XML_status) { exit(-1); }
 
     // copy config file to output directry
+    char copy_command [1024];
+    sprintf(copy_command, "cp ./config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
     system(copy_command);
 
     // OpenMP setup
@@ -84,7 +82,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
 
     // Users typically start modifying here. START USERMODS //
-
+    random_seed();
     create_cell_types();
 
     setup_tissue();
@@ -97,6 +95,105 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     set_save_biofvm_data_as_matlab(true);
     set_save_biofvm_cell_data(true);
     set_save_biofvm_cell_data_as_custom_matlab(true);
+
+    // save a simulation snapshot
+
+    //char filename[1024];  // bue 20240130: going global
+    sprintf(filename, "%s/initial", PhysiCell_settings.folder.c_str());
+    save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
+
+    // save a quick SVG cross section through z = 0, after setting its
+    // length bar to 200 microns
+
+    PhysiCell_SVG_options.length_bar = 200;
+
+    // for simplicity, set a pathology coloring function
+
+    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: going global
+    sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+
+    sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
+    create_plot_legend(filename, cell_coloring_function);
+
+    display_citations();
+
+    // set the performance timers
+
+    BioFVM::RUNTIME_TIC();
+    BioFVM::TIC();
+
+    //std::ofstream report_file;  // bue 20240130: going global
+    if (PhysiCell_settings.enable_legacy_saves == true) {
+        sprintf(filename, "%s/simulation_report.txt", PhysiCell_settings.folder.c_str());
+        report_file.open(filename);  // create the data log file
+        report_file << "simulated time\tnum cells\tnum division\tnum death\twall time" << std::endl;
+    }
+
+    // going home
+    return PyLong_FromLong(0);
+}
+
+
+// extended python3 C++ function restart
+static PyObject* physicell_restart(PyObject *self, PyObject *args) {
+
+    // load and parse settings file(s)
+
+    // BUE: OUT! NOP!
+    bool XML_status = false;
+    XML_status = load_PhysiCell_config_file("./config/PhysiCell_settings.xml");
+    if (!XML_status) { exit(-1); }
+
+    // copy config file to output directry
+    char copy_command [1024];
+    sprintf(copy_command, "cp ./config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
+    system(copy_command);
+
+    // copy cell seedig file
+    // BUE!
+    // NOP
+
+    // copy rules file
+    // BUE!
+    // save rules (v1)
+    std::string rules_file = PhysiCell_settings.folder + "/cell_rules.csv";
+    export_rules_csv_v1( rules_file );
+
+    // OpenMP setup
+    // BUE: OUT!
+    //omp_set_num_threads(PhysiCell_settings.omp_num_threads);
+
+    // time setup
+    //std::string time_units = "min";
+
+    // Microenvironment setup //
+    setup_microenvironment(); // modify this in the custom code
+
+    // PhysiCell setup ///
+
+    // set mechanics voxel size, and match the data structure to BioFVM
+    // BUE: OUT! NOP!
+    double mechanics_voxel_size = 30;
+    Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
+
+    // Users typically start modifying here. START USERMODS //
+    random_seed();
+    //create_cell_types();  //BUE! OUT! this is what i no longer do!!!
+    // BUE!
+    display_cell_definitions(std::cout);
+
+    setup_tissue();  // BUE: seed the cells and such
+
+    // Users typically stop modifying here. END USERMODS //
+
+    // set MultiCellDS save options
+
+    // BUE: OUT!
+    //set_save_biofvm_mesh_as_matlab(true);
+    //set_save_biofvm_data_as_matlab(true);
+    //set_save_biofvm_cell_data(true);
+    //set_save_biofvm_cell_data_as_custom_matlab(true);
 
     // save a simulation snapshot
 
@@ -335,35 +432,9 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     BioFVM::display_stopwatch_value(std::cout, BioFVM::runtime_stopwatch_value());
     std::cout << std::endl;
 
-    // go home
-    return PyLong_FromLong(0);
-}
-
-
-// extended python3 C++ function stop
-static PyObject* physicell_reset(PyObject *self, PyObject *args) {
-
     // delete cells
     for (Cell* pCell: (*all_cells)) {
         pCell->die();
-    }
-
-    // delete phenotype models
-    for (Cell_Definition* pCD: cell_definitions_by_index) {
-        // death models
-        for (unsigned int i=0; i < pCD->phenotype.death.models.size(); i++) {
-            pCD->phenotype.death.models.pop_back();
-        }
-        for (unsigned int i=0; i < pCD->phenotype.death.rates.size(); i++) {
-            pCD->phenotype.death.rates.pop_back();
-        }
-        for (unsigned int i=0; i < pCD->phenotype.death.parameters.size(); i++) {
-            pCD->phenotype.death.parameters.pop_back();
-        }
-    }
-    // delete cell type definitions
-    for (unsigned int i=0; i < cell_definitions_by_index.size(); i++) {
-        cell_definitions_by_index.pop_back();
     }
 
     // reset cell ID counter
@@ -707,7 +778,7 @@ static PyObject* physicell_system(PyObject *self, PyObject *args) {
 // method table lists method name and address
 static struct PyMethodDef ExtendpyMethods[] = {
     {"start", physicell_start, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.start()\n\ndescription:\n    function initializes physicell as specified in the settings.xml, cells.csv, and cell_rules.csv files."
+     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.start()\n\ndescription:\n    function initializes physicell as specified in the settings.xml, cells.csv, and cell_rules.csv files and initializes the first episode."
     },
     {"step", physicell_step, METH_VARARGS,
      "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
@@ -715,8 +786,8 @@ static struct PyMethodDef ExtendpyMethods[] = {
     {"stop", physicell_stop, METH_VARARGS,
      "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a physicell run."
     },
-    {"reset", physicell_reset, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.reset()\n\ndescription:\n    function resets all variables to physicell start up condition."
+    {"restart", physicell_restart, METH_VARARGS,
+     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.restart()\n\ndescription:\n    function resets all variables to physicell start up condition and intializes a new episode."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
      "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."

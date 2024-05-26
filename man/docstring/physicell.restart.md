@@ -1,4 +1,4 @@
-# physicell.reset()
+# physicell.restart()
 
 ## input:
 ```
@@ -15,11 +15,11 @@
 ## run:
 ```python
     from embedding import physicell
-    physicell.reset()
+    physicell.restart()
 
 ```
 
 ## description:
 ```
-    function resets all variables to physicell start up condition.
+    function resets all variables to physicell start up condition and intializes a new episode.
 ```

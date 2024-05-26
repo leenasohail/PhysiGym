@@ -62,11 +62,12 @@ studio -c config/PhysiCell_settings.xml
 + Cell Types / Death: death rate = 0.0 [1/min].
 + Cell Types / Custom Data: delete variable my_variable.
 + Cell Types / Custom Data: add variable Name: apoptosis_rate; Value 0.0; Units [1/min]
++ User Params: random_seed to -1.
 + User Params: have a look at the time and dt_gym parameters!
 + User Params: delete parameters my_str, my_bool, my_int, my_float.
 + User Params: add a parameter drug_dose; Type double; Value 0.0; Units [fraction].
-+ User Params: add a parameter cell_count; Type int; Value 1; Unit dimensionless.
-+ Rules: drug increases apoptosis; Half-max 0.5; Saturation value: 1.0; Hill power 4; Add rule; enable.
++ User Params: add a parameter cell_count; Type int; Value 0; Unit dimensionless.
++ Cell Type: default; Rules: drug increases apoptosis; Half-max: 0.5; Saturation value: 1.0; Hill power: 4; apply to dead: False; Add rule; enable: True.
 + File / Save.
 + Studio / Quit.
 
@@ -189,8 +190,8 @@ PhysiCell model and the Python embedding.
 
 Replace the default with:
 ```python
-action_space = spaces.Dict({
-    'drug_dose': spaces.Box(low=0.0, high=1.0, shape=(), dtype=np.float64)
+d_action_space = spaces.Dict({
+    'drug_dose': spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64)
 })
 ```
 
@@ -202,11 +203,63 @@ Based on our classic run we do not expect to have more than 2^14 cells.
 
 Replace the default with:
 ```python
-observation_space = spaces.Box(low=0, high=(2**16 - 1), shape=(), dtype=np.uint16)
+o_observation_space = spaces.Box(low=0, high=(2**16 - 1), shape=(1,), dtype=np.uint16)
 ```
 
 
-3.1.3 get_img function
+3.1.3 get_observation
+
+In our model, the only thing we have to observe is the cell count.
+The way we provide this information has to be compatible with the observation space we defined above, in our case, a single integer number.
+
+Replace the default `o_observation = {'discrete': True}` with:
+
+```python
+o_observation = np.array(physicell.get_parameter('cell_count'), dtype=np.uint16)
+```
+
+3.1.4 get_info
+
+We could provide additional information important for controlling the action of the policy.
+For example, if we do reinforcement learning on a [jump and run game](https://c64online.com/c64-games/the-great-giana-sisters/), the number of hearts (lives left) from our character.
+
+In our simple model, we don't have such information.
+
+So, just leave the default, the empty dictionary.
+
+
+3.1.5 get_terminated
+
+In our model, the run (epoch) will be terminated if all cells are dead and the species has died out.
+Note that it is a huge difference, if the model is terminated (all cells are dead) or is truncated (simply runs out of max time).
+
+Replace the default `b_terminated = False` with:
+
+```python
+b_terminated = physicell.get_parameter('cell_count') <= 0
+```
+
+
+3.1.6 get_reward
+
+The reward has to be a float number between or equal to 0.0 and 1.0.
+Delete the default `r_reward = 0.0`.
+Our reward algorithm looks like this:
+
+```python
+i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)
+if (i_cellcount == 128):
+    r_reward == 1
+elif (i_cellcount < 128):
+    r_reward = i_cellcount / 128
+elif (i_cellcount > 128):
+    r_reward = 1 - (i_cellcount - 128) / 128
+else:
+    sys.exit('Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.')
+```
+
+
+3.1.7 get_img function
 
 We will now implement a plot, to display drug concentration in the domain, as well as all cells, colored by the apoptosis rate.
 
@@ -230,7 +283,7 @@ ax.contourf(
 
 self.fig.colorbar(
     mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=0.2), cmap='Reds'),
-    label='drug_conc',
+    label='drug_concentration',
     ax=ax,
 )
 
@@ -254,61 +307,9 @@ df_cell.plot(
     ],
     vmin=0.0, vmax=0.1, cmap='viridis',
     grid=True,
-    title=f'dt_gym step {str(self.iteration).zfill(3)}: {df_cell.shape[0]} / 128 [cell]',
+    title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / 128 [cell]',
     ax=ax,
 )
-```
-
-
-3.1.4 get_observation
-
-In our model, the only thing we have to observe is the cell count.
-The way we provide this information has to be compatible with the observation space we defined above, in our case, a single integer number.
-
-Replace the default `o_observation = {'discrete': True}` with:
-
-```python
-o_observation = np.array(physicell.get_parameter('cell_count'), dtype=np.uint16)
-```
-
-3.1.5 get_info
-
-We could provide additional information important for controlling the action of the policy.
-For example, if we do reinforcement learning on a [jump and run game](https://c64online.com/c64-games/the-great-giana-sisters/), the number of hearts (lives left) from our character.
-
-In our simple model, we don't have such information.
-
-So, just leave the default, the empty dictionary.
-
-
-3.1.6 get_terminated
-
-In our model, the run (epoch) will be terminated if all cells are dead and the species has died out.
-Note that it is a huge difference, if the model is terminated (all cells are dead) or is truncated (simply runs out of max time).
-
-Replace the default `b_terminated = False` with:
-
-```python
-b_terminated = physicell.get_parameter('cell_count') <= 0
-```
-
-
-3.1.7 get_reward
-
-The reward has to be a float number between or equal to 0.0 and 1.0.
-Delete the default `r_reward = 0.0`.
-Our reward algorithm looks like this:
-
-```python
-i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)
-if (i_cellcount == 128):
-    r_reward == 1
-elif (i_cellcount < 128):
-    r_reward = i_cellcount / 128
-elif (i_cellcount > 128):
-    r_reward = (i_cellcount - 128) / 128
-else:
-    sys.exit('Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.')
 ```
 
 
