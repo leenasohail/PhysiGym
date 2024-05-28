@@ -1,5 +1,5 @@
 ####
-# title: test/check_drift.py
+# title: test/physigym_drift_ice.py
 #
 # language: python3
 # author: Elmar Bucher

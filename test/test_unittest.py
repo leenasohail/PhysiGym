@@ -17,6 +17,7 @@
 
 # modules
 import gymnasium
+import matplotlib.pyplot as plt
 import os
 import pcdl
 import physigym  # import the Gymnasium PhysiCell bridge module
@@ -32,7 +33,7 @@ print('\nUNITTEST run test ...')
 os.chdir('../PhysiCell')
 os.system('rm timeseries_*_episode*.csv')
 # set variables
-i_cell_target = 128
+i_cell_target = 64
 
 # load PhysiCell Gymnasium environment
 env = gymnasium.make(
@@ -50,39 +51,36 @@ for i_episode in range(4):
     shutil.rmtree('output/')
     os.mkdir('output/')
 
+    # reset variable
+    random.seed(0)
+
     # reset the environment
     i_observation, d_info = env.reset(seed=0)
     r_reward = 0
-
-    # reset variable
-    random.seed(0)
 
     # episode time step loop
     b_episode_over = False
     while not b_episode_over:
         # policy according to i_observation
         print(f'r_reward: {r_reward}')
-        #if (i_observation > i_cell_target):
-        #    #d_action = {'drug_dose': 1 - r_reward}
-        #    d_action = {
-        #        'subs_dose_a': 1 - r_reward,
-        #        'subs_dose_b': 1 - r_reward,
-        #        'subs_dose_c': 1 - r_reward,
-        #    }
-        #else:
-        #    #d_action = {'drug_dose': 0}
-        #    d_action = {
-        #        'subs_dose_a': 0,
-        #        'subs_dose_b': 0,
-        #        'subs_dose_c': 0,
-        #    }
+        if (i_observation > i_cell_target):
+            d_action = {
+                'substrate_dose_a': 1, #- r_reward,
+                'substrate_dose_b': 1, #- r_reward,
+                'substrate_dose_c': 1, #- r_reward,
+            }
+        else:
+            d_action = {
+                'substrate_dose_a': 0,
+                'substrate_dose_b': 0,
+                'substrate_dose_c': 0,
+            }
 
-        #d_action = {'drug_dose': random.random()}
-        d_action = {
-            'subs_dose_a': random.random(),
-            'subs_dose_b': random.random(),
-            'subs_dose_c': random.random(),
-        }
+        #d_action = {
+        #    'substrate_dose_a': random.random() * 0.1,
+        #    'substrate_dose_b': random.random() * 0.1,
+        #    'substrate_dose_c': random.random() * 0.1,
+        #}
 
         # action
         o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
@@ -98,10 +96,19 @@ for i_episode in range(4):
     ddf_cell[i_episode].to_csv(f'timeseries_cell_episode{str(i_episode).zfill(3)}.csv')
     ddf_conc[i_episode].to_csv(f'timeseries_conc_episode{str(i_episode).zfill(3)}.csv')
 
+    # plot timeseries
+    fig, axs = plt.subplots(nrows=5, ncols=1 ,figsize=(8,12))
+    mcdsts.plot_timeseries('cell_type', ax=axs[0])
+    mcdsts.plot_timeseries(None, 'substrate_a', ylim=(0.0,1.0), ax=axs[1])
+    mcdsts.plot_timeseries(None, 'substrate_b', ylim=(0.0,1.0), ax=axs[2])
+    mcdsts.plot_timeseries(None, 'substrate_c', ylim=(0.0,1.0), ax=axs[3])
+    mcdsts.plot_timeseries('cell_type', 'death_rates_0', ax=axs[4])
+    fig.suptitle(f'timeseries episode {str(i_episode).zfill(3)}')
+    plt.tight_layout()
+    fig.savefig(f'timeseries_plot_unittest_episode{str(i_episode).zfill(3)}.png')
+
 # free PhysiCell Gymnasium environment
 env.close()
-
-# check results
 
 # finish
 os.chdir('../PhysiGym')

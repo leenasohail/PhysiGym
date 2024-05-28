@@ -21,7 +21,7 @@ import subprocess
 subprocess.run(['python3', 'test/install_unittest.py'], check=True)
 
 # run tests
-subprocess.run(['python3', 'test/test_episode.py'], check=True)
+subprocess.run(['python3', 'test/test_unittest.py'], check=True)
 
 # install test
-subprocess.run(['python3', 'test/uninstall_unittest.py'], check=True)
+subprocess.run(['python3', 'test/uninstall.py'], check=True)

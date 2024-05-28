@@ -408,22 +408,22 @@ class CorePhysiCellEnv(gymnasium.Env):
         for s_action, o_value in action.items():
             # python/physicell api
 
-            if (type(o_value) in {np.ndarray}):
+            if (type(o_value) in {np.ndarray, np.array, list, tuple}):
                 # try custom_vector
                 try:
                     physicell.set_vector(s_action, o_value)
-                except:
+                except ValueError:  # bue 20250528: embedding gives ValueError back.
                     if (o_value.shape == (1,)):
                         o_value = o_value[0]
                     else:
                         # error
                         sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable variable type detected! {s_action} {type(o_value)} {o_value}.")
 
-            if  not (type(o_value) in {np.ndarray}):
+            if  not (type(o_value) in {np.ndarray, np.array, list, tuple}):
                 try:
                     # try custom_variable
                     physicell.set_variable(s_action, o_value)
-                except:
+                except ValueError:  # bue 20250528: embedding gives ValueError back.
                     # try parameter
                     try:
                         physicell.set_parameter(s_action, o_value)
