@@ -335,7 +335,7 @@ save:
 	cp Makefile ./user_projects/$(PROJ)
 	sed -i "0,/PROJ := /{s/PROJ := .*/PROJ := $(PROJ)/}" ./user_projects/$(PROJ)/Makefile
 	cp VERSION.txt ./user_projects/$(PROJ)
-	cp ./config/* ./user_projects/$(PROJ)/config
+	cp -r ./config/* ./user_projects/$(PROJ)/config
 	rm -fr ./custom_modules/embedding/BioFVM
 	rm -fr ./custom_modules/embedding/build
 	rm -fr ./custom_modules/embedding/core
@@ -348,7 +348,7 @@ load:
 	echo "Loading project from $(PROJ) ... "
 	cp ./user_projects/$(PROJ)/main.cpp .
 	cp ./user_projects/$(PROJ)/Makefile .
-	cp ./user_projects/$(PROJ)/config/* ./config/
+	cp -r ./user_projects/$(PROJ)/config/* ./config/
 	cp -r ./user_projects/$(PROJ)/custom_modules/* ./custom_modules/
 
 pack:
