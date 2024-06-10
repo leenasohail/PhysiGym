@@ -442,125 +442,121 @@ Parameters<T>::Parameters()
 template <class T>
 void Parameters<T>::add_parameter( std::string my_name )
 {
-
-        // bue 20240430: check if variable already exist
-        auto it = name_to_index_map.find(my_name);
-
-        if (it == name_to_index_map.end()) {
-            // generate new variable
-	    Parameter<T>* pNew;
-	    pNew = new Parameter<T>;
-	    pNew->name = my_name;
-
-	    int n = parameters.size();
-
-	    parameters.push_back( *pNew );
-
-	    name_to_index_map[ my_name ] = n;
-        }
-	return;
+	// this function is not currently (2024-06-03) called in the code, so these defaults largely do not matter; very unlikely others are directly calling this function, let alone this implementation
+	T my_value = T(); // for {int, double, bool, string} this will be {0, 0.0, false, ""} (this would technically change the behavior for strings since it is hardcoded above to default to "none", but nobody should rely on the default value of a string being "none")
+	return add_parameter( my_name , my_value );
 }
 
 template <class T>
 void Parameters<T>::add_parameter( std::string my_name , T my_value )
 {
-        // bue 20240430: check if variable already exist
-        auto it = name_to_index_map.find(my_name);
-
-        if (it == name_to_index_map.end()) {
-            // generate new variable
-            Parameter<T>* pNew;
-	    pNew = new Parameter<T>;
-	    pNew->name = my_name;
-	    pNew->value = my_value;
-
-	    int n = parameters.size();
-
-	    parameters.push_back( *pNew );
-
-	    name_to_index_map[ my_name ] = n;
-
-        } else {
-            // change value
-            int index = it->second;
-            parameters[index].value = my_value;
-        }
-	return;
+	// this function is not currently (2024-06-03) called in the code, so these defaults largely do not matter; very unlikely others are directly calling this function, let alone this implementation
+	std::string my_units = "dimensionless"; // technically this would change the behavior for strings since it is hardcoded above to default to "none", but nobody should be using units on strings; also, if the xml does not have units, then "dimensionless" is used even for strings
+	return add_parameter( my_name , my_value , my_units );
 }
-
-/*
-template <class T>
-void Parameters<T>::add_parameter( std::string my_name , T my_value )
-{
-	Parameter<T>* pNew;
-	pNew = new Parameter<T>;
-	pNew->name = my_name;
-	pNew->value = my_value;
-
-	int n = parameters.size();
-
-	parameters.push_back( *pNew );
-
-	name_to_index_map[ my_name ] = n;
-	return;
-}
-*/
 
 template <class T>
 void Parameters<T>::add_parameter( std::string my_name , T my_value , std::string my_units )
 {
-        // bue 20240430: check if variable already exist
-        auto it = name_to_index_map.find(my_name);
+	if (exists(my_name))
+	{
+		std::cout << "Error: Parameter " << my_name << " already exists. Make sure all parameters (of a given type) have unique names." << std::endl;
+		exit(-1);
+	}
 
-        if (it == name_to_index_map.end()) {
-            // generate new variable
-            Parameter<T>* pNew;
-	    pNew = new Parameter<T>;
-	    pNew->name = my_name;
-	    pNew->value = my_value;
-	    pNew->units = my_units;
-
-	    int n = parameters.size();
-
-	    parameters.push_back( *pNew );
-
-	    name_to_index_map[ my_name ] = n;
-
-        } else {
-            // change value and unit
-            int index = it->second;
-            parameters[index].value = my_value;
-            parameters[index].units = my_units;
-        }
-	return;
+	Parameter<T>* pNew; 
+	pNew = new Parameter<T> ;
+	pNew->name = my_name ; 
+	pNew->value = my_value; 
+	pNew->units = my_units; 
+	
+	int n = parameters.size(); 
+	
+	parameters.push_back( *pNew ); 
+	
+	name_to_index_map[ my_name ] = n; 
+	return; 
 }
-
-/*
-template <class T>
-void Parameters<T>::add_parameter( std::string my_name , T my_value , std::string my_units )
-{
-	Parameter<T>* pNew;
-	pNew = new Parameter<T>;
-	pNew->name = my_name;
-	pNew->value = my_value;
-	pNew->units = my_units;
-
-	int n = parameters.size();
-
-	parameters.push_back( *pNew );
-
-	name_to_index_map[ my_name ] = n;
-	return;
-}
-*/
 
 template <class T>
 void Parameters<T>::add_parameter( Parameter<T> param )
 {
+	if (exists(param.name))
+	{ exit(-1);}
+
 	int n = parameters.size(); 
 	parameters.push_back( param); 
 	name_to_index_map[ param.name ] = n; 
 	return; 
+}
+
+template <class T>
+int Parameters<T>::update_parameter( std::string my_name , T my_value )
+{
+	// check if variable already exist
+	int parameter_index = -1;
+	auto it = name_to_index_map.find(my_name);
+
+	if (it == name_to_index_map.end()) {
+		// generate new variable
+		Parameters::add_parameter(my_name, my_value);
+	} else {
+		// change value
+		parameter_index = it->second;
+		parameters[parameter_index].value = my_value;
+	}
+	return parameter_index;
+}
+
+template <class T>
+int Parameters<T>::update_parameter( std::string my_name , T my_value , std::string my_units )
+{
+	// check if variable already exist
+	int parameter_index = -1;
+	auto it = name_to_index_map.find(my_name);
+
+	if (it == name_to_index_map.end()) {
+		// generate new variable
+		Parameters::add_parameter(my_name, my_value, my_units);
+	} else {
+		// change value and unit
+		parameter_index = it->second;
+		parameters[parameter_index].value = my_value;
+		parameters[parameter_index].units = my_units;
+	}
+	return parameter_index;
+}
+
+template <class T>
+int Parameters<T>::update_parameter( Parameter<T> param )
+{
+	// check if variable already exist
+	int parameter_index = -1;
+	auto it = name_to_index_map.find(param.name);
+
+	if (it == name_to_index_map.end()) {
+		// generate new variable
+		Parameters::add_parameter(param);
+	} else {
+		// change value and unit
+		parameter_index = it->second;
+		parameters[parameter_index].value = param.value;
+		parameters[parameter_index].units = param.units;
+	}
+	return parameter_index;
+}
+
+template <class T>
+bool Parameters<T>::exists( std::string search_name )
+{
+	auto it = name_to_index_map.find( search_name );
+	if( it != name_to_index_map.end() )
+	{
+		std::cout << "Parameter " << search_name << " already exists." << std::endl;
+		return true;
+	}
+		std::cout << "Parameter " << search_name << " does not exists." << std::endl;
+	return false;
 }
 
 std::ostream& operator<<( std::ostream& os , const User_Parameters up )

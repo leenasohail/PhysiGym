@@ -185,11 +185,14 @@ class Parameters
 	
 	void add_parameter( std::string my_name ); 
 	void add_parameter( std::string my_name , T my_value ); 
-//	void add_parameter( std::string my_name , T my_value ); 
 	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-//	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
-	
 	void add_parameter( Parameter<T> param );
+
+	int update_parameter( std::string my_name , T my_value ); 
+	int update_parameter( std::string my_name , T my_value , std::string my_units ); 
+	int update_parameter( Parameter<T> param );
+
+	bool exists( std::string search_name ); 
 	
 	int find_index( std::string search_name ); 
 	
