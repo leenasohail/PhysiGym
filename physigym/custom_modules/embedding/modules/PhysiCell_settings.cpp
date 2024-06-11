@@ -78,8 +78,8 @@ bool physicell_config_dom_initialized = false;
 pugi::xml_document physicell_config_doc; 	
 pugi::xml_node physicell_config_root; 
 	
-// bue 20240611: update_density parameter
-bool load_PhysiCell_config_file( std::string filename, update_density=false)
+// bue 20240611: update_variables parameter
+bool load_PhysiCell_config_file( std::string filename, bool update_variables )
 {
 	std::cout << "Using config file " << filename << " ... " << std::endl ; 
 	pugi::xml_parse_result result = physicell_config_doc.load_file( filename.c_str()  );
@@ -93,11 +93,11 @@ bool load_PhysiCell_config_file( std::string filename, update_density=false)
 	physicell_config_root = physicell_config_doc.child("PhysiCell_settings");
 	physicell_config_dom_initialized = true; 
 	
-	PhysiCell_settings.read_from_pugixml(); 
+	PhysiCell_settings.read_from_pugixml( update_variables );
 	
 	// now read the microenvironment (optional) 
 	
-	if( !setup_microenvironment_from_XML( physicell_config_root, update_density) )
+	if( !setup_microenvironment_from_XML( physicell_config_root, update_variables ) )
 	{
 		std::cout << std::endl 
 				  << "Warning: microenvironment_setup not found in " << filename << std::endl 
@@ -107,7 +107,7 @@ bool load_PhysiCell_config_file( std::string filename, update_density=false)
 	
 	// now read user parameters
 	
-	parameters.read_from_pugixml( physicell_config_root ); 
+	parameters.read_from_pugixml( physicell_config_root, update_variables );
 
 	return true; 	
 }
@@ -148,7 +148,7 @@ PhysiCell_Settings::PhysiCell_Settings()
 	return; 
 }
  	
-void PhysiCell_Settings::read_from_pugixml( void )
+void PhysiCell_Settings::read_from_pugixml( bool update_parameter )
 {
 	pugi::xml_node node; 
 	
@@ -573,7 +573,8 @@ std::ostream& operator<<( std::ostream& os , const User_Parameters up )
 	return os; 
 }
 
-void User_Parameters::read_from_pugixml( pugi::xml_node parent_node )
+// bue 20240611: add update_parameter parameter
+void User_Parameters::read_from_pugixml( pugi::xml_node parent_node , bool update_parameter )
 {
 	pugi::xml_node node = xml_find_node( parent_node , "user_parameters" ); 
 	
@@ -591,48 +592,63 @@ void User_Parameters::read_from_pugixml( pugi::xml_node parent_node )
 		bool done = false ; 
 		if( type == "bool" && done == false )
 		{
-			bool value = xml_get_my_bool_value( node1 ); 
-			bools.add_parameter( name , value, units ); 
+			bool value = xml_get_my_bool_value( node1 );
+                        if ( update_parameter )
+                        { bools.update_parameter( name , value, units ); }
+                        else
+			{ bools.add_parameter( name , value, units ); }
 			done = true; 
 		}
 		
 		if( type == "int" && done == false )
 		{
-			int value = xml_get_my_int_value( node1 ); 
-			ints.add_parameter( name , value, units ); 
-			done = true; 
+			int value = xml_get_my_int_value( node1 );
+                        if ( update_parameter )
+                        { ints.update_parameter( name , value, units ); }
+                        else
+			{ ints.add_parameter( name , value, units ); }
+			done = true;
 		}
 		
 		if( type == "double" && done == false )
 		{
-			double value = xml_get_my_double_value( node1 ); 
-			doubles.add_parameter( name , value, units ); 
-			done = true; 
+			double value = xml_get_my_double_value( node1 );
+                        if ( update_parameter )
+                        { doubles.update_parameter( name , value, units ); }
+                        else
+			{ doubles.add_parameter( name , value, units ); }
+			done = true;
 		}
 				
 		if( done == false && type == "string" )
 		{
-			std::string value = xml_get_my_string_value( node1 ); 
-			strings.add_parameter( name, value , units ); 
-			done = true; 
+			std::string value = xml_get_my_string_value( node1 );
+                        if ( update_parameter )
+                        { strings.update_parameter( name , value, units ); }
+                        else
+			{ strings.add_parameter( name, value , units ); }
+			done = true;
 		}
 		
 		/* default if no type specified: */
 		if( done == false )
 		{
-			double value = xml_get_my_double_value( node1 ); 
-			doubles.add_parameter( name , value, units ); 
-			done = true; 
+			double value = xml_get_my_double_value( node1 );
+                        if ( update_parameter )
+                        { doubles.update_parameter( name , value, units ); }
+                        else
+			{ doubles.add_parameter( name , value, units ); }
+			done = true;
 		}
 		
-		node1 = node1.next_sibling(); 
-		i++; 
+		node1 = node1.next_sibling();
+		i++;
 	}
 	
-	std::cout << "User parameters in XML config file: " << std::endl; 
-	std::cout << *this << std::endl; 
+	std::cout << "User parameters in XML config file: " << std::endl;
+	std::cout << *this << std::endl;
 	
-	return; 
+	return;
 }
 
 // need this so that the template gets filled and compiled prior to linking 
@@ -653,7 +669,7 @@ template std::ostream& operator<<(std::ostream& os, const Parameter<double>& par
 template std::ostream& operator<<(std::ostream& os, const Parameter<std::string>& param);
 
 // bue 20240611: update_density parameter
-bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_density=false )
+bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_density )
 {
 	pugi::xml_node node; 
 
@@ -711,7 +727,7 @@ bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_dens
 		// add the substrate 
 		if( i == 0 )
 		{ microenvironment.set_density( 0, name, units ); }
-		else if(update_density)
+		else if( update_density )
 		{ microenvironment.update_density( name, units ); }
 		else
 		{ microenvironment.add_density( name, units ); }
@@ -975,7 +991,7 @@ bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_dens
 }
 
 // bue 20240611: update_density parameter
-bool setup_microenvironment_from_XML( update_density=false )
+bool setup_microenvironment_from_XML( bool update_density )
 { return setup_microenvironment_from_XML( physicell_config_root, update_density ); }
 
 }; 

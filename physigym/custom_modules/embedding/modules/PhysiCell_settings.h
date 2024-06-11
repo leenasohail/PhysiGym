@@ -89,9 +89,10 @@ namespace PhysiCell{
  	
 extern pugi::xml_node physicell_config_root; 
 
-// bue 20240611: update_density parameter                                       
-bool load_PhysiCell_config_file( std::string filename, bool update_density=false );
+// bue 20240611: add update_variables parameter
+bool load_PhysiCell_config_file( std::string filename, bool update_variables = false );
 
+// bue 20240611: add update_parameter parameter
 class PhysiCell_Settings
 {
  private:
@@ -134,7 +135,7 @@ class PhysiCell_Settings
 	
 	PhysiCell_Settings();
 	
-	void read_from_pugixml( void ); 
+	void read_from_pugixml( bool update_parameter = false );
 };
 
 class PhysiCell_Globals
@@ -170,6 +171,7 @@ class Parameter
 	void operator=( Parameter& p ); 
 };
 
+// bue 20240610: add update_parameter
 template <class T>
 class Parameters
 {
@@ -208,6 +210,7 @@ class Parameters
 	int size( void ) const; 
 };
 
+// bue 20240611: add update_parameter parameter
 class User_Parameters
 {
  private:
@@ -219,7 +222,7 @@ class User_Parameters
 	Parameters<double> doubles; 
 	Parameters<std::string> strings; 
 	
-	void read_from_pugixml( pugi::xml_node parent_node );
+	void read_from_pugixml( pugi::xml_node parent_node, bool update_parameter = false);
 }; 
 
 extern PhysiCell_Globals PhysiCell_globals; 
@@ -228,8 +231,8 @@ extern PhysiCell_Settings PhysiCell_settings;
 
 extern User_Parameters parameters; 
 
-// bue 20240611: update_density parameter                                       
-bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_density=false );
+// bue 20240611: add update_density parameter
+bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_density = false );
 bool setup_microenvironment_from_XML( bool update_density=false );
 
 }
