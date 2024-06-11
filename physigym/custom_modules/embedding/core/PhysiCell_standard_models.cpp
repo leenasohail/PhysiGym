@@ -763,7 +763,6 @@ void initialize_default_cell_definition( void )
 	cell_defaults.functions.plot_agent_SVG = standard_agent_SVG;
 	cell_defaults.functions.plot_agent_legend = standard_agent_legend;
 	
-	// bue 20240523: here i could check if the death models already exist.
 	// add the standard death models to the default phenotype. 
 	cell_defaults.phenotype.death.add_death_model( 0.00319/60.0 , &apoptosis , apoptosis_parameters );
 		// MCF10A, to get a 2% apoptotic index 

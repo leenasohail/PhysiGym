@@ -1898,14 +1898,22 @@ Cell_Definition& get_cell_definition( int search_type )
 
 Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node )
 {
-	Cell_Definition* pCD; 
-	
-	// if this is not "default" then create a new one 
-	if( std::strcmp( cd_node.attribute( "name" ).value() , "default" ) != 0 
-	    && std::strcmp( cd_node.attribute( "ID" ).value() , "0" ) != 0 )
-	{ pCD = new Cell_Definition; }
-	else
+	Cell_Definition* pCD;
+
+        // bue 20240610: begin cell definition exists?
+	// if this is not "default" or not already exist then create a new one
+	//if( std::strcmp( cd_node.attribute( "ID" ).value() , "0" ) == 0
+        //    || std::strcmp( cd_node.attribute( "name" ).value() , "default" ) == 0 )
+	if( std::strcmp( cd_node.attribute( "ID" ).value() , "0" ) == 0 )
 	{ pCD = &cell_defaults; }
+	else if( find_cell_definition( cd_node.attribute( "name" ).value() ) != NULL )
+	{
+		// bue 20240610: will have to handle error case too
+		pCD = &get_cell_definition( cd_node.attribute( "name" ).value() );
+	}
+        else
+	{ pCD = new Cell_Definition; }
+        // bue 20240610: end cell definition exists?
 	
 	// set the name 
 	pCD->name = cd_node.attribute("name").value();

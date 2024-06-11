@@ -561,15 +561,15 @@ void Microenvironment::add_density( std::string name , std::string units, double
 }
 // bue 20240610: end bergmann
 
-// bue 20240501: update density
-int Microenvironment::update_density( std::string name , std::string units, double diffusion_constant, double decay_rate )
+// bue 20240610: begin update density
+int Microenvironment::update_density( std::string name , std::string units )
 {
 	// fix in PhysiCell preview November 2017
-        density_index = find_density_index( name )
+        int density_index = find_density_index( name );
 	if ( density_index == -1 )
 	{
 		std::cout << "BUE: new density!" << std::endl;
-		Microenvironment::add_density( name , units, diffusion_constant, decay_rate )
+		Microenvironment::add_density( name , units );
 	}
 
 	std::cout << "BUE: update density!" << std::endl;
@@ -582,23 +582,23 @@ int Microenvironment::update_density( std::string name , std::string units, doub
 int Microenvironment::update_density( std::string name , std::string units, double diffusion_constant, double decay_rate )
 {
 	// fix in PhysiCell preview November 2017
-        density_index = find_density_index( name )
+        int density_index = find_density_index( name );
 	if ( density_index == -1 )
 	{
 		std::cout << "BUE: new density!" << std::endl;
-		Microenvironment::add_density( name , units, diffusion_constant, decay_rate )
+		Microenvironment::add_density( name , units, diffusion_constant, decay_rate );
 	}
 
 	std::cout << "BUE: update density!" << std::endl;
 	// update units
 	density_units[density_index] = units;
-
 	// update coefficients
 	diffusion_coefficients[density_index] = diffusion_constant;
 	decay_rates[density_index] = decay_rate;
 
 	return density_index;
 }
+// bue 20240610: end update density
 
 
 int Microenvironment::find_density_index( std::string name )

@@ -439,6 +439,7 @@ Parameters<T>::Parameters()
 	return; 
 }
 
+// bue 20240610: begin bergmann
 template <class T>
 void Parameters<T>::add_parameter( std::string my_name )
 {
@@ -490,6 +491,21 @@ void Parameters<T>::add_parameter( Parameter<T> param )
 	return; 
 }
 
+template <class T>
+bool Parameters<T>::exists( std::string search_name )
+{
+	auto it = name_to_index_map.find( search_name );
+	if( it != name_to_index_map.end() )
+	{
+		std::cout << "Parameter " << search_name << " already exists." << std::endl;
+		return true;
+	}
+		std::cout << "Parameter " << search_name << " does not exists." << std::endl;
+	return false;
+}
+// bue 20240610: end bergmann
+
+// bue 20240610: begin update parameter
 template <class T>
 int Parameters<T>::update_parameter( std::string my_name , T my_value )
 {
@@ -545,19 +561,7 @@ int Parameters<T>::update_parameter( Parameter<T> param )
 	}
 	return parameter_index;
 }
-
-template <class T>
-bool Parameters<T>::exists( std::string search_name )
-{
-	auto it = name_to_index_map.find( search_name );
-	if( it != name_to_index_map.end() )
-	{
-		std::cout << "Parameter " << search_name << " already exists." << std::endl;
-		return true;
-	}
-		std::cout << "Parameter " << search_name << " does not exists." << std::endl;
-	return false;
-}
+// bue 20240610: end update parameter
 
 std::ostream& operator<<( std::ostream& os , const User_Parameters up )
 {

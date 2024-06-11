@@ -48,14 +48,14 @@ setup(
                 # PhysiCell_core_OBJECTS and components
                 "core/PhysiCell_basic_signaling.cpp",
                 "core/PhysiCell_cell_container.cpp",
-                "core/PhysiCell_cell.cpp",  # bue 20240523: death_model_already_exists
+                "core/PhysiCell_cell.cpp",  # bue 20240610: modified (cell_definition exists?)
                 "core/PhysiCell_constants.cpp",
                 "core/PhysiCell_custom.cpp",
                 #"core/PhysiCell_digital_cell_line.cpp",
                 "core/PhysiCell_phenotype.cpp",
                 "core/PhysiCell_rules.cpp",
                 "core/PhysiCell_signal_behavior.cpp",
-                "core/PhysiCell_standard_models.cpp",  # bue 20240523: implement (death_model_already_exists)
+                "core/PhysiCell_standard_models.cpp",
                 "core/PhysiCell_utilities.cpp",
 
                 # PhysiCell_module_OBJECTS and components
