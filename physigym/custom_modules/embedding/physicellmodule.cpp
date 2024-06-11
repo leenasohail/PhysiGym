@@ -57,7 +57,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     //    XML_status = load_PhysiCell_config_file("../config/PhysiCell_settings.xml");
     //    sprintf(copy_command, "cp ../config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
     //}
-    XML_status = load_PhysiCell_config_file("./config/PhysiCell_settings.xml");
+    XML_status = load_PhysiCell_config_file("./config/PhysiCell_settings.xml", update_density=true);
     if (!XML_status) { exit(-1); }
 
     // copy config file to output directry

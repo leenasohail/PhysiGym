@@ -78,7 +78,8 @@ bool physicell_config_dom_initialized = false;
 pugi::xml_document physicell_config_doc; 	
 pugi::xml_node physicell_config_root; 
 	
-bool load_PhysiCell_config_file( std::string filename )
+// bue 20240611: update_density parameter
+bool load_PhysiCell_config_file( std::string filename, update_density=false)
 {
 	std::cout << "Using config file " << filename << " ... " << std::endl ; 
 	pugi::xml_parse_result result = physicell_config_doc.load_file( filename.c_str()  );
@@ -96,7 +97,7 @@ bool load_PhysiCell_config_file( std::string filename )
 	
 	// now read the microenvironment (optional) 
 	
-	if( !setup_microenvironment_from_XML( physicell_config_root ) )
+	if( !setup_microenvironment_from_XML( physicell_config_root, update_density) )
 	{
 		std::cout << std::endl 
 				  << "Warning: microenvironment_setup not found in " << filename << std::endl 
@@ -651,7 +652,8 @@ template std::ostream& operator<<(std::ostream& os, const Parameter<int>& param)
 template std::ostream& operator<<(std::ostream& os, const Parameter<double>& param);
 template std::ostream& operator<<(std::ostream& os, const Parameter<std::string>& param);
 
-bool setup_microenvironment_from_XML( pugi::xml_node root_node )
+// bue 20240611: update_density parameter
+bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_density=false )
 {
 	pugi::xml_node node; 
 
@@ -709,6 +711,8 @@ bool setup_microenvironment_from_XML( pugi::xml_node root_node )
 		// add the substrate 
 		if( i == 0 )
 		{ microenvironment.set_density( 0, name, units ); }
+		else if(update_density)
+		{ microenvironment.update_density( name, units ); }
 		else
 		{ microenvironment.add_density( name, units ); }
 		
@@ -970,7 +974,8 @@ bool setup_microenvironment_from_XML( pugi::xml_node root_node )
 	return true;  
 }
 
-bool setup_microenvironment_from_XML( void )
-{ return setup_microenvironment_from_XML( physicell_config_root ); }
+// bue 20240611: update_density parameter
+bool setup_microenvironment_from_XML( update_density=false )
+{ return setup_microenvironment_from_XML( physicell_config_root, update_density ); }
 
 }; 

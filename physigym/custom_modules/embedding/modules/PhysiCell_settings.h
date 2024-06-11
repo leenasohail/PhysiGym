@@ -89,7 +89,8 @@ namespace PhysiCell{
  	
 extern pugi::xml_node physicell_config_root; 
 
-bool load_PhysiCell_config_file( std::string filename );
+// bue 20240611: update_density parameter                                       
+bool load_PhysiCell_config_file( std::string filename, bool update_density=false );
 
 class PhysiCell_Settings
 {
@@ -227,8 +228,9 @@ extern PhysiCell_Settings PhysiCell_settings;
 
 extern User_Parameters parameters; 
 
-bool setup_microenvironment_from_XML( pugi::xml_node root_node );
-bool setup_microenvironment_from_XML( void );
+// bue 20240611: update_density parameter                                       
+bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_density=false );
+bool setup_microenvironment_from_XML( bool update_density=false );
 
 }
 
