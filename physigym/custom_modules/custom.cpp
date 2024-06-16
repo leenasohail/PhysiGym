@@ -29,33 +29,24 @@ void random_seed(void) {
     return;
 }
 
-bool episode_zero = true;
-Cell_Definition cell_defaults_copy;
-void create_cell_types(bool update_definition) {
-    /*
-       Put any modifications to default cell definition here if you
-       want to have "inherited" by other cell types.
 
-       This is a good place to set default functions.
-    */
+void create_cell_types(void) {
 
-    // bue 2024-06-13: begin reset cell definition for each episode
-    if (episode_zero) {
-        cell_defaults_copy = cell_defaults;
-        episode_zero = false;
-    } else {
-        cell_defaults = cell_defaults_copy;
-        cell_definitions_by_index.clear();
-        cell_definitions_by_index.push_back(&cell_defaults);
-    }
-    //cell_definitions_by_name_constructed = false;
-    cell_definition_indices_by_name.clear();
-    cell_definition_indices_by_type.clear();
-    cell_definitions_by_name.clear();
-    cell_definitions_by_type.clear();
-    // bue 2024-06-13: end reset cell definition for each episode
-   
-    // run the usual code
+    // Put any modifications to default cell definition here if you
+    // want to have "inherited" by other cell types.
+    // This is a good place to set default functions.
+
+    // reset cell definition for each episode (core/PhysiCell_cell.cpp).
+    cell_defaults = PhysiCell::Cell_Definition();
+    PhysiCell::cell_definitions_by_index.clear();
+    PhysiCell::cell_definitions_by_index.push_back(&cell_defaults);
+    PhysiCell::cell_definitions_by_name_constructed = false;
+    PhysiCell::cell_definition_indices_by_name.clear();
+    PhysiCell::cell_definition_indices_by_type.clear();
+    PhysiCell::cell_definitions_by_name.clear();
+    PhysiCell::cell_definitions_by_type.clear();
+
+    // cell_default initial definition
     initialize_default_cell_definition();
     cell_defaults.phenotype.secretion.sync_to_microenvironment(&microenvironment);
 
@@ -70,45 +61,26 @@ void create_cell_types(bool update_definition) {
     cell_defaults.functions.add_cell_basement_membrane_interactions = NULL;
     cell_defaults.functions.calculate_distance_to_membrane = NULL;
 
-    /*
-       This parses the cell definitions in the XML config file.
-    */
-
+    // parse the cell definitions in the XML config file (core/PhysiCell_cell.cpp).
     initialize_cell_definitions_from_pugixml();
 
-    /*
-       This builds the map of cell definitions and summarizes the setup.
-    */
-
-    // bue 20240612: this should not be necessay because it is done with the initialize_cell_definitions_from_pugixml step after each node!
+    // generate the maps of cell definitions.
     build_cell_definitions_maps();
 
-    /*
-       This intializes cell signal and response dictionaries
-    */
-
+    // intializes cell signal and response dictionaries
     setup_signal_behavior_dictionaries();
 
-    /*
-       Cell rule definitions
-    */
-
+    // initializ cell rule definitions
     setup_cell_rules();
 
-    /*
-       Put any modifications to individual cell definitions here.
-
-       This is a good place to set custom functions.
-    */
+    // Put any modifications to individual cell definitions here.
+    // This is a good place to set custom functions.
 
     cell_defaults.functions.update_phenotype = phenotype_function;
     cell_defaults.functions.custom_cell_rule = custom_function;
     cell_defaults.functions.contact_function = contact_function;
 
-    /*
-       This builds the map of cell definitions and summarizes the setup.
-    */
-
+    // summarize the cell defintion setup.
     display_cell_definitions(std::cout);
 
     return;
@@ -118,11 +90,10 @@ void create_cell_types(bool update_definition) {
 void setup_microenvironment(void) {
     // set domain parameters
 
-    // put any custom code to set non-homogeneous initial conditions or
-    // extra Dirichlet nodes here.
+    // Put any custom code here,
+    // to set non-homogeneous initial conditions or extra Dirichlet nodes.
 
     // initialize BioFVM
-
     initialize_microenvironment();
 
     return;
@@ -148,7 +119,6 @@ void setup_tissue( void ) {
     double Zrange = Zmax - Zmin;
 
     // create some of each type of cell
-
     Cell* pC;
 
     for (int k=0; k < cell_definitions_by_index.size(); k++) {
@@ -167,7 +137,6 @@ void setup_tissue( void ) {
     std::cout << std::endl;
 
     // load cells from your CSV file (if enabled)
-
     load_cells_from_pugixml();
 
     // add custom data vector
