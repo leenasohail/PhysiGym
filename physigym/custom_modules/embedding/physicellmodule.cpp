@@ -47,23 +47,26 @@ std::ofstream report_file;
 // extended python3 C++ function start
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
-    // load and parse settings file(s)
+    // extract args, if any overwrite default argument
+    char *argument;
+    if (args == NULL) {
+        strcopy(argument, "config/diescheisse/PhysiCell_settings.xml");
+    } else if (!PyArg_ParseTuple(args, "s", &argument)) {
+        return NULL;
+    }
+
+    // load and parse settings file (modules/PhysiCell_settings.cpp).
     bool XML_status = false;
-    // bue 2024-02-01: simplify (no args)
-    //if (argc > 1) {
-    //    XML_status = load_PhysiCell_config_file(argv[1]);
-    //    sprintf(copy_command, "cp %s %s", argv[1], PhysiCell_settings.folder.c_str());
-    //} else {
-    //    XML_status = load_PhysiCell_config_file("../config/PhysiCell_settings.xml");
-    //    sprintf(copy_command, "cp ../config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
-    //}
-    XML_status = load_PhysiCell_config_file("./config/PhysiCell_settings.xml", true);
+    XML_status = load_PhysiCell_config_file(argument);  // (over)load parameter and density definitions
     if (!XML_status) { exit(-1); }
 
-    // copy config file to output directry
+    // copy config file to output directory
     char copy_command [1024];
-    sprintf(copy_command, "cp ./config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
+    sprintf(copy_command, "cp %s %s", *argument, PhysiCell_settings.folder.c_str());
     system(copy_command);
+
+    // copy seeding file
+    // nop
 
     // OpenMP setup
     omp_set_num_threads(PhysiCell_settings.omp_num_threads);
@@ -72,7 +75,6 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     std::string time_units = "min";
 
     // Microenvironment setup //
-
     setup_microenvironment(); // modify this in the custom code
 
     // PhysiCell setup ///
@@ -81,153 +83,61 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     double mechanics_voxel_size = 30;
     Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
 
-    // Users typically start modifying here. START USERMODS //
+    // Users typically start modifying here.
     random_seed();
-    create_cell_types();
-
+    create_cell_types();  // (re)load cell definitions; display_cell_definitions; generates rules.csv v1 file
     setup_tissue();
-
-    // Users typically stop modifying here. END USERMODS //
+    // Users typically stop modifying here.
 
     // set MultiCellDS save options
-
     set_save_biofvm_mesh_as_matlab(true);
     set_save_biofvm_data_as_matlab(true);
     set_save_biofvm_cell_data(true);
     set_save_biofvm_cell_data_as_custom_matlab(true);
 
-    // save a simulation snapshot
-
+    // save data initial simulation snapshot
     //char filename[1024];  // bue 20240130: going global
     sprintf(filename, "%s/initial", PhysiCell_settings.folder.c_str());
     save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
 
-    // save a quick SVG cross section through z = 0, after setting its
-    // length bar to 200 microns
+    // save data output00000000 simulation snapshot
+    if (PhysiCell_settings.enable_full_saves == true ) {
+        sprintf(filename, "%s/output%08u", PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index);
+        save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
+    }
 
-    PhysiCell_SVG_options.length_bar = 200;
-
-    // for simplicity, set a pathology coloring function
-
-    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: going global
-    sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    // save legend.svg and initial.svg cross section through z = 0
+    PhysiCell_SVG_options.length_bar = 200;  // after setting cross section length bar to 200 microns
+    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // set pathology coloring function // bue 20240130: not going global
 
     sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
     create_plot_legend(filename, cell_coloring_function);
 
-    display_citations();
+    sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
 
-    // set the performance timers
+    // save snapshot00000000.svg cross section through z = 0
+    if (PhysiCell_settings.enable_SVG_saves == true) {
+        sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
+        SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    }
 
-    BioFVM::RUNTIME_TIC();
-    BioFVM::TIC();
-
+    // save legacy simulation_report
     //std::ofstream report_file;  // bue 20240130: going global
     if (PhysiCell_settings.enable_legacy_saves == true) {
         sprintf(filename, "%s/simulation_report.txt", PhysiCell_settings.folder.c_str());
         report_file.open(filename);  // create the data log file
         report_file << "simulated time\tnum cells\tnum division\tnum death\twall time" << std::endl;
+        log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
     }
 
-    // going home
-    return PyLong_FromLong(0);
-}
-
-
-// extended python3 C++ function restart
-static PyObject* physicell_restart(PyObject *self, PyObject *args) {
-
-    // load and parse settings file(s)
-
-    // BUE: OUT! NOP!
-    bool XML_status = false;
-    XML_status = load_PhysiCell_config_file("./config/PhysiCell_settings.xml", true);
-    if (!XML_status) { exit(-1); }
-
-    // copy config file to output directry
-    char copy_command [1024];
-    sprintf(copy_command, "cp ./config/PhysiCell_settings.xml %s", PhysiCell_settings.folder.c_str());
-    system(copy_command);
-
-    // copy cell seedig file
-    // BUE!
-    // NOP
-
-    // copy rules file
-    // BUE!
-    // save rules (v1)
-    std::string rules_file = PhysiCell_settings.folder + "/cell_rules.csv";
-    export_rules_csv_v1( rules_file );
-
-    // OpenMP setup
-    // BUE: OUT!
-    //omp_set_num_threads(PhysiCell_settings.omp_num_threads);
-
-    // time setup
-    //std::string time_units = "min";
-
-    // Microenvironment setup //
-    setup_microenvironment(); // modify this in the custom code
-
-    // PhysiCell setup ///
-
-    // set mechanics voxel size, and match the data structure to BioFVM
-    // BUE: OUT! NOP!
-    double mechanics_voxel_size = 30;
-    Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
-
-    // Users typically start modifying here. START USERMODS //
-    random_seed();
-    //create_cell_types();  //BUE! OUT! this is what i no longer do!!!
-    // BUE!
-    display_cell_definitions(std::cout);
-
-    setup_tissue();  // BUE: seed the cells and such
-
-    // Users typically stop modifying here. END USERMODS //
-
-    // set MultiCellDS save options
-
-    // BUE: OUT!
-    //set_save_biofvm_mesh_as_matlab(true);
-    //set_save_biofvm_data_as_matlab(true);
-    //set_save_biofvm_cell_data(true);
-    //set_save_biofvm_cell_data_as_custom_matlab(true);
-
-    // save a simulation snapshot
-
-    //char filename[1024];  // bue 20240130: going global
-    sprintf(filename, "%s/initial", PhysiCell_settings.folder.c_str());
-    save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
-
-    // save a quick SVG cross section through z = 0, after setting its
-    // length bar to 200 microns
-
-    PhysiCell_SVG_options.length_bar = 200;
-
-    // for simplicity, set a pathology coloring function
-
-    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: going global
-    sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
-
-    sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
-    create_plot_legend(filename, cell_coloring_function);
-
+    // standard outout
     display_citations();
+    display_simulation_status(std::cout);  // output00000000
 
     // set the performance timers
-
     BioFVM::RUNTIME_TIC();
     BioFVM::TIC();
-
-    //std::ofstream report_file;  // bue 20240130: going global
-    if (PhysiCell_settings.enable_legacy_saves == true) {
-        sprintf(filename, "%s/simulation_report.txt", PhysiCell_settings.folder.c_str());
-        report_file.open(filename);  // create the data log file
-        report_file << "simulated time\tnum cells\tnum division\tnum death\twall time" << std::endl;
-    }
 
     // going home
     return PyLong_FromLong(0);
@@ -235,7 +145,6 @@ static PyObject* physicell_restart(PyObject *self, PyObject *args) {
 
 
 // extended python3 C++ function step
-bool action = false;
 static PyObject* physicell_step(PyObject *self, PyObject *args) {
     // main loop
 
@@ -248,42 +157,17 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
         // achtung : end physigym specific implementation!
         double phenotype_countdown = phenotype_dt;
         double mechanics_countdown = mechanics_dt;
+        double mcds_countdown = PhysiCell_settings.full_save_interval;
+        double svg_countdown = PhysiCell_settings.SVG_save_interval;
 
         // run diffusion time step paced main loop
+        bool action = true;
         bool step = true;
         while (step) {
 
             // max time reached?
             if (PhysiCell_globals.current_time > (PhysiCell_settings.max_time + parameters.doubles("dt_gym"))) {
                 step = false;
-            }
-
-            // save data if it's time.
-            if (fabs(PhysiCell_globals.current_time - PhysiCell_globals.next_full_save_time) < 0.01 * diffusion_dt) {
-                display_simulation_status(std::cout);
-                if (PhysiCell_settings.enable_legacy_saves == true) {
-                    log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
-                }
-
-                if (PhysiCell_settings.enable_full_saves == true ) {
-                    sprintf(filename, "%s/output%08u", PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index);
-                    save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
-                }
-
-                PhysiCell_globals.full_output_index++;
-                PhysiCell_globals.next_full_save_time += PhysiCell_settings.full_save_interval;
-            }
-
-            // save SVG plot if it's time
-            if (fabs(PhysiCell_globals.current_time - PhysiCell_globals.next_SVG_save_time) < 0.01 * diffusion_dt) {
-                if (PhysiCell_settings.enable_SVG_saves == true) {
-                    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: going global
-                    sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
-                    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
-
-                    PhysiCell_globals.SVG_output_index++;
-                    PhysiCell_globals.next_SVG_save_time += PhysiCell_settings.SVG_save_interval;
-                }
             }
 
             // do action
@@ -317,15 +201,16 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //    } else {
                 //        char error[64];
                 //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
-                //        PyErr_SetString(PyExc_ValueError, error);
+                //        PyErr_SetString(PyExc_KeyError, error);
                 //        return NULL;
                 //    }
                 //}
-            }
+
+	    }
 
             // do observation
             // on dt_gym time step
-            if (custom_countdown <= 0) {
+            if (custom_countdown < diffusion_dt / 3) {
 
                 // achtung : begin physigym specific implementation!
                 custom_countdown += parameters.doubles("dt_gym");  // [min]
@@ -358,14 +243,14 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //    } else {
                 //        char error[64];
                 //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
-                //        PyErr_SetString(PyExc_ValueError, error);
+                //        PyErr_SetString(PyExc_KeyError, error);
                 //        return NULL;
                 //    }
                 //}
             }
 
             // on phenotype time step
-            if (phenotype_countdown <= 0) {
+            if (phenotype_countdown < diffusion_dt / 3) {
                 phenotype_countdown += phenotype_dt;
 
                 // Put phenotype time scale code here!
@@ -374,7 +259,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
             }
 
             // on mechanics time step
-            if (mechanics_countdown <= 0) {
+            if (mechanics_countdown < diffusion_dt / 3) {
                 mechanics_countdown += mechanics_dt;
 
                 // Put mechanics time scale code here!
@@ -398,9 +283,39 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
             custom_countdown -= diffusion_dt;
             phenotype_countdown -= diffusion_dt;
             mechanics_countdown -= diffusion_dt;
+            mcds_countdown -= diffusion_dt;
+            svg_countdown -= diffusion_dt;
             PhysiCell_globals.current_time += diffusion_dt;
+
+            // save data if it's time.
+            if (mcds_countdown < diffusion_dt / 3) {
+                mcds_countdown += PhysiCell_settings.full_save_interval;
+                PhysiCell_globals.full_output_index++;
+
+                display_simulation_status(std::cout);
+
+                if (PhysiCell_settings.enable_legacy_saves == true) {
+                    log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
+                }
+
+                if (PhysiCell_settings.enable_full_saves == true ) {
+                    sprintf(filename, "%s/output%08u", PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index);
+                    save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
+                }
+            }
+
+            // save svg plot if it's time
+            if ((PhysiCell_settings.enable_SVG_saves == true) and (svg_countdown < diffusion_dt / 3)) {
+                svg_countdown += PhysiCell_settings.SVG_save_interval;
+                PhysiCell_globals.SVG_output_index++;
+
+                std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
+                sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
+                SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+            }
         }
 
+        // save legacy simulation report
         if (PhysiCell_settings.enable_legacy_saves == true) {
             log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
             report_file.close();
@@ -419,11 +334,11 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 // extended python3 C++ function stop
 static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
-    // save a final simulation snapshot
+    // save final simulation snapshot
     sprintf(filename, "%s/final", PhysiCell_settings.folder.c_str());
     save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
 
-    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: going global
+    std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
     sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
     SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
 
@@ -438,7 +353,8 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     }
 
     // reset cell ID counter
-    BioFVM::reset_max_basic_agent_ID();
+    // bue 20240608: not strictely necessary!
+    //BioFVM::reset_max_basic_agent_ID();
 
     // reset global variables
     PhysiCell_globals = PhysiCell_Globals();
@@ -496,7 +412,7 @@ static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
                 } else {
                     //error
                     sprintf(error, "Error: unknown parameter! %s", label);
-                    PyErr_SetString(PyExc_ValueError, error);
+                    PyErr_SetString(PyExc_KeyError, error);
                     return NULL;
                 }
             }
@@ -549,7 +465,7 @@ static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
                     //error
                     char error[64];
                     sprintf(error, "Error: unknown parameter! %s", label);
-                    PyErr_SetString(PyExc_ValueError, error);
+                    PyErr_SetString(PyExc_KeyError, error);
                     return NULL;
                 }
             }
@@ -576,7 +492,7 @@ static PyObject* physicell_set_variable(PyObject *self, PyObject *args) {
         } else {
             char error[64];
             sprintf(error, "Error: unknown custom_data variable! %s", label);
-            PyErr_SetString(PyExc_ValueError, error);
+            PyErr_SetString(PyExc_KeyError, error);
             return NULL;
         }
     }
@@ -607,7 +523,7 @@ static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
             Py_XDECREF(pList);
             char error[64];
             sprintf(error, "Error: unknown custom_data variable! %s", label);
-            PyErr_SetString(PyExc_ValueError, error);
+            PyErr_SetString(PyExc_KeyError, error);
             return NULL;
         }
     }
@@ -650,7 +566,7 @@ static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
         } else {
             char error[64];
             sprintf(error, "Error: unknown custom_data vector! %s", label);
-            PyErr_SetString(PyExc_ValueError, error);
+            PyErr_SetString(PyExc_KeyError, error);
             return NULL;
         }
     }
@@ -681,7 +597,7 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
                 Py_XDECREF(pLlist);
                 char error[64];
                 sprintf(error, "Error: unknown custom_data vector! %s", label);
-                PyErr_SetString(PyExc_ValueError, error);
+                PyErr_SetString(PyExc_KeyError, error);
                 return NULL;
             }
         }
@@ -736,7 +652,7 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     if (subsindex < 0) {
         char error[64];
         sprintf(error, "Error: unknown substrate! %s", substrate);
-        PyErr_SetString(PyExc_ValueError, error);
+        PyErr_SetString(PyExc_KeyError, error);
         return NULL;
     }
 
@@ -785,9 +701,6 @@ static struct PyMethodDef ExtendpyMethods[] = {
     },
     {"stop", physicell_stop, METH_VARARGS,
      "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a physicell run."
-    },
-    {"restart", physicell_restart, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.restart()\n\ndescription:\n    function resets all variables to physicell start up condition and intializes a new episode."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
      "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."

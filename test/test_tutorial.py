@@ -33,7 +33,7 @@ print('\nUNITTEST run test ...')
 os.chdir('../PhysiCell')
 os.system('rm timeseries_*_episode*.csv')
 # set variables
-i_cell_target = 128
+i_cell_target = 96
 
 # load PhysiCell Gymnasium environment
 env = gymnasium.make(
@@ -65,11 +65,11 @@ for i_episode in range(4):
         print(f'r_reward: {r_reward}')
         if (i_observation > i_cell_target):
             d_action = {
-                'drug_dose': 1  #- r_reward
+                'drug_dose': 1.0  - r_reward
             }
         else:
             d_action = {
-                'drug_dose': 0
+                'drug_dose': 0.0
             }
 
         #d_action = {'drug_dose': random.random() * 0.1}

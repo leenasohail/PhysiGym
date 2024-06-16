@@ -93,7 +93,7 @@ bool load_PhysiCell_config_file( std::string filename, bool update_variables )
 	physicell_config_root = physicell_config_doc.child("PhysiCell_settings");
 	physicell_config_dom_initialized = true; 
 	
-	PhysiCell_settings.read_from_pugixml( update_variables );
+	PhysiCell_settings.read_from_pugixml();
 	
 	// now read the microenvironment (optional) 
 	
@@ -148,7 +148,7 @@ PhysiCell_Settings::PhysiCell_Settings()
 	return; 
 }
  	
-void PhysiCell_Settings::read_from_pugixml( bool update_parameter )
+void PhysiCell_Settings::read_from_pugixml()
 {
 	pugi::xml_node node; 
 	
@@ -466,6 +466,7 @@ void Parameters<T>::add_parameter( std::string my_name , T my_value , std::strin
 		exit(-1);
 	}
 
+	std::cout << "BUE add_parameter name value unit!" << my_name << std::endl;
 	Parameter<T>* pNew; 
 	pNew = new Parameter<T> ;
 	pNew->name = my_name ; 
@@ -486,6 +487,7 @@ void Parameters<T>::add_parameter( Parameter<T> param )
 	if (exists(param.name))
 	{ exit(-1);}
 
+	std::cout << "BUE add_parameter param!" << param.name << std::endl;
 	int n = parameters.size(); 
 	parameters.push_back( param); 
 	name_to_index_map[ param.name ] = n; 
@@ -508,7 +510,7 @@ bool Parameters<T>::exists( std::string search_name )
 
 // bue 20240610: begin update parameter
 template <class T>
-int Parameters<T>::update_parameter( std::string my_name , T my_value )
+void Parameters<T>::update_parameter( std::string my_name , T my_value )
 {
 	// check if variable already exist
 	int parameter_index = -1;
@@ -516,17 +518,17 @@ int Parameters<T>::update_parameter( std::string my_name , T my_value )
 
 	if (it == name_to_index_map.end()) {
 		// generate new variable
-		Parameters::add_parameter(my_name, my_value);
-	} else {
-		// change value
-		parameter_index = it->second;
-		parameters[parameter_index].value = my_value;
+		return Parameters::add_parameter(my_name, my_value);
 	}
-	return parameter_index;
+	// change value
+	std::cout << "BUE update_parameter name value!" << my_name << std::endl;
+	parameter_index = it->second;
+	parameters[parameter_index].value = my_value;
+	return;
 }
 
 template <class T>
-int Parameters<T>::update_parameter( std::string my_name , T my_value , std::string my_units )
+void Parameters<T>::update_parameter( std::string my_name , T my_value , std::string my_units )
 {
 	// check if variable already exist
 	int parameter_index = -1;
@@ -534,18 +536,18 @@ int Parameters<T>::update_parameter( std::string my_name , T my_value , std::str
 
 	if (it == name_to_index_map.end()) {
 		// generate new variable
-		Parameters::add_parameter(my_name, my_value, my_units);
-	} else {
-		// change value and unit
-		parameter_index = it->second;
-		parameters[parameter_index].value = my_value;
-		parameters[parameter_index].units = my_units;
+		return Parameters::add_parameter(my_name, my_value, my_units);
 	}
-	return parameter_index;
+	// change value and unit
+	std::cout << "BUE update_parameter name value unit!" << my_name << std::endl;
+	parameter_index = it->second;
+	parameters[parameter_index].value = my_value;
+	parameters[parameter_index].units = my_units;
+	return;
 }
 
 template <class T>
-int Parameters<T>::update_parameter( Parameter<T> param )
+void Parameters<T>::update_parameter( Parameter<T> param )
 {
 	// check if variable already exist
 	int parameter_index = -1;
@@ -553,14 +555,14 @@ int Parameters<T>::update_parameter( Parameter<T> param )
 
 	if (it == name_to_index_map.end()) {
 		// generate new variable
-		Parameters::add_parameter(param);
-	} else {
-		// change value and unit
-		parameter_index = it->second;
-		parameters[parameter_index].value = param.value;
-		parameters[parameter_index].units = param.units;
+		return Parameters::add_parameter(param);
 	}
-	return parameter_index;
+	// change value and unit
+	std::cout << "BUE update_parameter param!" << param.name << std::endl;
+	parameter_index = it->second;
+	parameters[parameter_index].value = param.value;
+	parameters[parameter_index].units = param.units;
+	return;
 }
 // bue 20240610: end update parameter
 

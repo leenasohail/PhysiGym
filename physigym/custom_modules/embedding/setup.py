@@ -64,7 +64,7 @@ setup(
                 "modules/PhysiCell_pathology.cpp",
                 #"modules/PhysiCell_POV.cpp",
                 "modules/PhysiCell_pugixml.cpp",
-                "modules/PhysiCell_settings.cpp",  # bue 20240430: modified (parameter exists?)
+                "modules/PhysiCell_settings.cpp",  # bue 20240430: modified (parameter exists? and more.)
                 "modules/PhysiCell_SVG.cpp",
                 "modules/PhysiCell_various_outputs.cpp",
 

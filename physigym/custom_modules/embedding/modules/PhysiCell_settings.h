@@ -135,7 +135,7 @@ class PhysiCell_Settings
 	
 	PhysiCell_Settings();
 	
-	void read_from_pugixml( bool update_parameter = false );
+	void read_from_pugixml();
 };
 
 class PhysiCell_Globals
@@ -191,13 +191,12 @@ class Parameters
 	void add_parameter( std::string my_name , T my_value , std::string my_units ); 
 	void add_parameter( Parameter<T> param );
 
-	int update_parameter( std::string my_name , T my_value ); 
-	int update_parameter( std::string my_name , T my_value , std::string my_units ); 
-	int update_parameter( Parameter<T> param );
+	void update_parameter( std::string my_name , T my_value );
+	void update_parameter( std::string my_name , T my_value , std::string my_units );
+	void update_parameter( Parameter<T> param );
 
-	bool exists( std::string search_name ); 
-	
-	int find_index( std::string search_name ); 
+	bool exists( std::string search_name );
+	int find_index( std::string search_name );
 	
 	// these access the values 
 	T& operator()( int i );

@@ -476,6 +476,7 @@ void Microenvironment::add_density( void )
 {
 	// fix in PhysiCell preview November 2017 
 	// default_microenvironment_options.use_oxygen_as_first_field = false; 
+	std::cout << "BUE add_density: new unnamed density!" << name << std::endl;
 	return add_density( "unnamed" , "none" );
 }
 
@@ -483,6 +484,7 @@ void Microenvironment::add_density( std::string name , std::string units )
 {
 	// fix in PhysiCell preview November 2017 
 	// default_microenvironment_options.use_oxygen_as_first_field = false; 
+	std::cout << "BUE add_density: new name unit density!" << name << std::endl;
 	return add_density( name , units , 0.0 , 0.0 );
 }
 
@@ -494,6 +496,7 @@ void Microenvironment::add_density( std::string name , std::string units, double
 		std::cout << "Error: density named " << name << " already exists. You probably want your substrates all have unique names!" << std::endl;
 		exit(-1); 
 	}
+	std::cout << "BUE add_density: new name unit diffusion_constant decay_rate density!" << name << std::endl;
 	
 	// update 1, 0 
 	zero.push_back( 0.0 ); 
@@ -562,41 +565,37 @@ void Microenvironment::add_density( std::string name , std::string units, double
 // bue 20240610: end bergmann
 
 // bue 20240610: begin update density
-int Microenvironment::update_density( std::string name , std::string units )
+void Microenvironment::update_density( std::string name , std::string units )
 {
 	// fix in PhysiCell preview November 2017
         int density_index = find_density_index( name );
 	if ( density_index == -1 )
 	{
-		std::cout << "BUE: new density!" << std::endl;
-		Microenvironment::add_density( name , units );
+		std::cout << "BUE update_density: new density!" << name << std::endl;
+		return Microenvironment::add_density( name , units );
 	}
-
-	std::cout << "BUE: update density!" << std::endl;
+	std::cout << "BUE update_density: update density!" << name << std::endl;
 	// update units
 	density_units[density_index] = units;
-
-	return density_index;
+	return;
 }
 
-int Microenvironment::update_density( std::string name , std::string units, double diffusion_constant, double decay_rate )
+void Microenvironment::update_density( std::string name , std::string units, double diffusion_constant, double decay_rate )
 {
 	// fix in PhysiCell preview November 2017
         int density_index = find_density_index( name );
 	if ( density_index == -1 )
 	{
-		std::cout << "BUE: new density!" << std::endl;
-		Microenvironment::add_density( name , units, diffusion_constant, decay_rate );
+		std::cout << "BUE update_density: new density!" << name << std::endl;
+		return Microenvironment::add_density( name , units, diffusion_constant, decay_rate );
 	}
-
-	std::cout << "BUE: update density!" << std::endl;
+	std::cout << "BUE update_density: update density!" << name << std::endl;
 	// update units
 	density_units[density_index] = units;
 	// update coefficients
 	diffusion_coefficients[density_index] = diffusion_constant;
 	decay_rates[density_index] = decay_rate;
-
-	return density_index;
+	return;
 }
 // bue 20240610: end update density
 
@@ -613,6 +612,7 @@ int Microenvironment::find_density_index( std::string name )
 
 void Microenvironment::set_density( int index , std::string name , std::string units )
 {
+	std::cout << "BUE set_density: name unit!" << name << std::endl;
 	// fix in PhysiCell preview November 2017 
 	if( index == 0 )
 	{ default_microenvironment_options.use_oxygen_as_first_field = false; }
@@ -624,6 +624,7 @@ void Microenvironment::set_density( int index , std::string name , std::string u
 
 void Microenvironment::set_density( int index , std::string name , std::string units , double diffusion_constant , double decay_rate )
 {
+	std::cout << "BUE set_density: name unit diffusion_constant decay_rate!" << name << std::endl;
 	// fix in PhysiCell preview November 2017 
 	if( index == 0 )
 	{ default_microenvironment_options.use_oxygen_as_first_field = false; }

@@ -29,8 +29,9 @@ void random_seed(void) {
     return;
 }
 
-
-void create_cell_types(void) {
+bool episode_zero = true;
+Cell_Definition cell_defaults_copy;
+void create_cell_types(bool update_definition) {
     /*
        Put any modifications to default cell definition here if you
        want to have "inherited" by other cell types.
@@ -38,6 +39,23 @@ void create_cell_types(void) {
        This is a good place to set default functions.
     */
 
+    // bue 2024-06-13: begin reset cell definition for each episode
+    if (episode_zero) {
+        cell_defaults_copy = cell_defaults;
+        episode_zero = false;
+    } else {
+        cell_defaults = cell_defaults_copy;
+        cell_definitions_by_index.clear();
+        cell_definitions_by_index.push_back(&cell_defaults);
+    }
+    //cell_definitions_by_name_constructed = false;
+    cell_definition_indices_by_name.clear();
+    cell_definition_indices_by_type.clear();
+    cell_definitions_by_name.clear();
+    cell_definitions_by_type.clear();
+    // bue 2024-06-13: end reset cell definition for each episode
+   
+    // run the usual code
     initialize_default_cell_definition();
     cell_defaults.phenotype.secretion.sync_to_microenvironment(&microenvironment);
 
@@ -62,6 +80,7 @@ void create_cell_types(void) {
        This builds the map of cell definitions and summarizes the setup.
     */
 
+    // bue 20240612: this should not be necessay because it is done with the initialize_cell_definitions_from_pugixml step after each node!
     build_cell_definitions_maps();
 
     /*

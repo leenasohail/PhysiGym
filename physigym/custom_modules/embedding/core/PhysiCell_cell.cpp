@@ -175,7 +175,7 @@ Cell_Definition::Cell_Definition()
 	phenotype.cell_transformations.sync_to_cell_definitions(); 
 	phenotype.motility.sync_to_current_microenvironment(); 
 	phenotype.mechanics.sync_to_cell_definitions(); 
-	
+
 	cell_definitions_by_index.push_back( this ); 
 
 	return; 
@@ -1587,6 +1587,7 @@ void Cell::lyse_cell( void )
 
 bool cell_definitions_by_name_constructed = false; 
 
+// bue 20240612: reset cell definition vector and maps
 void prebuild_cell_definition_index_maps( void )
 {
 	// look in config file 
@@ -1602,6 +1603,17 @@ void prebuild_cell_definition_index_maps( void )
 	// of all cell definitions, so we can appropriately size 
 	// Cell_Interactions and Cell_Transformations in the phenotype 
 	// when we set up the cell definitions. 
+
+//	cell_definitions_by_index.clear();
+//	for (unsigned int i=0; i < cell_definitions_by_index.size(); i++)
+//	{ if (i > 0) { cell_definitions_by_index.pop_back(); } }
+	cell_definitions_by_name_constructed = false;
+
+//	cell_definitions_by_name.clear();
+//	cell_definitions_by_type.clear();
+
+//	cell_definition_indices_by_name.clear();
+//	cell_definition_indices_by_type.clear();
 	
 	int n = 0; 
 	while( node )
@@ -1624,10 +1636,14 @@ void prebuild_cell_definition_index_maps( void )
 	return; 
 }
 
+// bue 20240612: reset cell definition maps
 void build_cell_definitions_maps( void )
 {
-//	cell_definitions_by_name.
-//	cell_definitions_by_index
+//	cell_definitions_by_name.clear();
+//	cell_definitions_by_type.clear();
+
+//!err	cell_definition_indices_by_name.clear();
+//!err	cell_definition_indices_by_type.clear();
 
 	for( int n=0; n < cell_definitions_by_index.size() ; n++ )
 	{
@@ -1896,25 +1912,18 @@ Cell_Definition& get_cell_definition( int search_type )
 	return cell_defaults; 	
 }
 
+// bue 20240611: add update_definition
 Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node )
 {
 	Cell_Definition* pCD;
 
-        // bue 20240610: begin cell definition exists?
-	// if this is not "default" or not already exist then create a new one
-	//if( std::strcmp( cd_node.attribute( "ID" ).value() , "0" ) == 0
-        //    || std::strcmp( cd_node.attribute( "name" ).value() , "default" ) == 0 )
-	if( std::strcmp( cd_node.attribute( "ID" ).value() , "0" ) == 0 )
-	{ pCD = &cell_defaults; }
-	else if( find_cell_definition( cd_node.attribute( "name" ).value() ) != NULL )
-	{
-		// bue 20240610: will have to handle error case too
-		pCD = &get_cell_definition( cd_node.attribute( "name" ).value() );
-	}
-        else
+	// if this is not "default" then create a new one
+	if( std::strcmp( cd_node.attribute( "name" ).value() , "default" ) != 0
+	    && std::strcmp( cd_node.attribute( "ID" ).value() , "0" ) != 0 )
 	{ pCD = new Cell_Definition; }
-        // bue 20240610: end cell definition exists?
-	
+	else
+	{ pCD = &cell_defaults; }
+
 	// set the name 
 	pCD->name = cd_node.attribute("name").value();
 	
@@ -3089,6 +3098,7 @@ Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node
 	return pCD;
 }
 
+// bue 20240611: add update_definition
 void initialize_cell_definitions_from_pugixml( pugi::xml_node root )
 {
 	pugi::xml_node node_options; 
@@ -3117,7 +3127,7 @@ void initialize_cell_definitions_from_pugixml( pugi::xml_node root )
 	{
 		std::cout << "Processing " << node.attribute( "name" ).value() << " ... " << std::endl; 
 		
-		initialize_cell_definition_from_pugixml( node );	
+		initialize_cell_definition_from_pugixml( node );
 		build_cell_definitions_maps(); 
 		
 		node = node.next_sibling( "cell_definition" ); 
@@ -3136,6 +3146,7 @@ void initialize_cell_definitions_from_pugixml( pugi::xml_node root )
 	return; 
 }	
 
+// bue 20240611: add update_definition
 void initialize_cell_definitions_from_pugixml( void )
 {
 	initialize_cell_definitions_from_pugixml( physicell_config_root );

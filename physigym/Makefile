@@ -40,8 +40,8 @@ endif
 # compile the project
 
 all: main.cpp
-	pip install --upgrade --force-reinstall custom_modules/embedding
-	pip install --upgrade --force-reinstall --editable custom_modules/physigym
+	pip install --force-reinstall custom_modules/embedding
+	pip install --force-reinstall --editable custom_modules/physigym
 	make python-instruction
 
 python-instruction:
