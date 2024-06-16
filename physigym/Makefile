@@ -40,8 +40,8 @@ endif
 # compile the project
 
 all: main.cpp
-	pip install --upgrade --force-reinstall custom_modules/embedding
-	pip install --upgrade --force-reinstall --editable custom_modules/physigym
+	pip install --force-reinstall custom_modules/embedding
+	pip install --force-reinstall --editable custom_modules/physigym
 	make python-instruction
 
 python-instruction:
@@ -218,11 +218,9 @@ reset:
 	rm -fr ./custom_modules/*
 	touch ./custom_modules/empty.txt
 	touch ALL_CITATIONS.txt
-	touch ./core/PhysiCell_cell.cpp
 	rm ALL_CITATIONS.txt
-	cp ./config/PhysiCell_settings-backup.xml ./config/PhysiCell_settings.xml
-	touch ./config/empty.csv
-	rm -f ./config/*.csv
+	rm -fr ./config/*
+	cp ./sample_projects/PhysiCell_settings.xml-default ./config/PhysiCell_settings.xml
 
 clean:
 	pip uninstall -y embedding
@@ -246,7 +244,7 @@ data-cleanup:
 # archival
 
 checkpoint:
-	zip -r $$(date +%b_%d_%Y_%H%M).zip Makefile *.cpp *.h config/*.xml custom_modules/*
+	zip -r $$(date +%b_%d_%Y_%H%M).zip Makefile *.cpp *.h config/* custom_modules/*
 
 zip:
 	zip -r latest.zip Makefile* *.cpp *.h BioFVM/* config/* core/* custom_modules/* matlab/* modules/* sample_projects/*
@@ -335,7 +333,7 @@ save:
 	cp Makefile ./user_projects/$(PROJ)
 	sed -i "0,/PROJ := /{s/PROJ := .*/PROJ := $(PROJ)/}" ./user_projects/$(PROJ)/Makefile
 	cp VERSION.txt ./user_projects/$(PROJ)
-	cp ./config/* ./user_projects/$(PROJ)/config
+	cp -r ./config/* ./user_projects/$(PROJ)/config
 	rm -fr ./custom_modules/embedding/BioFVM
 	rm -fr ./custom_modules/embedding/build
 	rm -fr ./custom_modules/embedding/core
@@ -348,7 +346,7 @@ load:
 	echo "Loading project from $(PROJ) ... "
 	cp ./user_projects/$(PROJ)/main.cpp .
 	cp ./user_projects/$(PROJ)/Makefile .
-	cp ./user_projects/$(PROJ)/config/* ./config/
+	cp -r ./user_projects/$(PROJ)/config/* ./config/
 	cp -r ./user_projects/$(PROJ)/custom_modules/* ./custom_modules/
 
 pack:

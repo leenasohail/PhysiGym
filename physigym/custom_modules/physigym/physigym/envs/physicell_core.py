@@ -290,10 +290,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f'physigym: declare PhysiCell model instance.')
         os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
-        if (self.episode <= 0):
-            physicell.start()
-        else:
-            physicell.restart()
+        physicell.start(self.settingxml)
 
         # observe domain
         if self.verbose:
@@ -408,22 +405,22 @@ class CorePhysiCellEnv(gymnasium.Env):
         for s_action, o_value in action.items():
             # python/physicell api
 
-            if (type(o_value) in {np.ndarray}):
+            if (type(o_value) in {np.ndarray, np.array, list, tuple}):
                 # try custom_vector
                 try:
                     physicell.set_vector(s_action, o_value)
-                except:
+                except KeyError:
                     if (o_value.shape == (1,)):
                         o_value = o_value[0]
                     else:
                         # error
-                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable variable type detected! {s_action} {type(o_value)} {o_value}.")
+                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable variable type in array detected! {s_action} {type(o_value)} {o_value}.")
 
-            if  not (type(o_value) in {np.ndarray}):
+            if  not (type(o_value) in {np.ndarray, np.array, list, tuple}):
                 try:
                     # try custom_variable
                     physicell.set_variable(s_action, o_value)
-                except:
+                except KeyError:
                     # try parameter
                     try:
                         physicell.set_parameter(s_action, o_value)

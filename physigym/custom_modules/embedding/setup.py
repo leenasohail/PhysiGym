@@ -38,7 +38,7 @@ setup(
                 "BioFVM/BioFVM_basic_agent.cpp",  # bue 20240501: modified (reset_max_basic_agent_ID)
                 "BioFVM/BioFVM_matlab.cpp",
                 "BioFVM/BioFVM_mesh.cpp",
-                "BioFVM/BioFVM_microenvironment.cpp",  # bue 20240501: modified (density exists?)
+                "BioFVM/BioFVM_microenvironment.cpp",  # bue 20240501: modified (density exists?) [pull requested 20240616]
                 "BioFVM/BioFVM_MultiCellDS.cpp",  # bue 20240509: modified (save mesh0.mat)
                 "BioFVM/BioFVM_solvers.cpp",
                 "BioFVM/BioFVM_utilities.cpp",
@@ -48,14 +48,14 @@ setup(
                 # PhysiCell_core_OBJECTS and components
                 "core/PhysiCell_basic_signaling.cpp",
                 "core/PhysiCell_cell_container.cpp",
-                "core/PhysiCell_cell.cpp",  # bue 20240523: death_model_already_exists
+                "core/PhysiCell_cell.cpp",  # bue 20240610: and header file modified (cell_definition exists?) [pull requested 20240616]
                 "core/PhysiCell_constants.cpp",
                 "core/PhysiCell_custom.cpp",
                 #"core/PhysiCell_digital_cell_line.cpp",
                 "core/PhysiCell_phenotype.cpp",
                 "core/PhysiCell_rules.cpp",
                 "core/PhysiCell_signal_behavior.cpp",
-                "core/PhysiCell_standard_models.cpp",  # bue 20240523: implement (death_model_already_exists)
+                "core/PhysiCell_standard_models.cpp",
                 "core/PhysiCell_utilities.cpp",
 
                 # PhysiCell_module_OBJECTS and components
@@ -64,7 +64,7 @@ setup(
                 "modules/PhysiCell_pathology.cpp",
                 #"modules/PhysiCell_POV.cpp",
                 "modules/PhysiCell_pugixml.cpp",
-                "modules/PhysiCell_settings.cpp",  # bue 20240430: modified (parameter exists?)
+                "modules/PhysiCell_settings.cpp",  # bue 20240430: modified (parameter exists? and more.) [pull requested 20240616]
                 "modules/PhysiCell_SVG.cpp",
                 "modules/PhysiCell_various_outputs.cpp",
 

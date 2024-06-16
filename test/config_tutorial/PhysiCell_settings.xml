@@ -227,7 +227,7 @@
         <my_int type="int" units="none" description="">0</my_int>
         <my_bool type="bool" units="none" description="">false</my_bool>
         <my_str type="string" units="none" description="">abc</my_str>
-        <drug_dose type="double" units="[fraction]" description="">0.0</drug_dose>
+        <drug_dose type="double" units="fraction" description="">0.0</drug_dose>
         <cell_count type="int" units="dimensionless" description="">0</cell_count>
     </user_parameters>
 </PhysiCell_settings>
