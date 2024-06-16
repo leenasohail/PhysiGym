@@ -261,6 +261,7 @@ void save_all_cells_to_matlab( std::string filename );
 //function to check if a neighbor voxel contains any cell that can interact with me
 bool is_neighbor_voxel(Cell* pCell, std::vector<double> myVoxelCenter, std::vector<double> otherVoxelCenter, int otherVoxelIndex);  
 
+extern bool cell_definitions_by_name_constructed;
 
 extern std::unordered_map<std::string,Cell_Definition*> cell_definitions_by_name; 
 extern std::unordered_map<int,Cell_Definition*> cell_definitions_by_type; 
@@ -282,8 +283,8 @@ int find_cell_definition_index( int search_type );  // done
 Cell_Definition& get_cell_definition( std::string search_string ); // done 
 Cell_Definition& get_cell_definition( int search_type );  
 
-Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node );
-void initialize_cell_definitions_from_pugixml( pugi::xml_node root );
+Cell_Definition* initialize_cell_definition_from_pugixml( pugi::xml_node cd_node ); 
+void initialize_cell_definitions_from_pugixml( pugi::xml_node root ); 
 void initialize_cell_definitions_from_pugixml( void );
 
 extern std::vector<double> (*cell_division_orientation)(void);

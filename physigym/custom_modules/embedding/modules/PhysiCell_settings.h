@@ -135,7 +135,7 @@ class PhysiCell_Settings
 	
 	PhysiCell_Settings();
 	
-	void read_from_pugixml();
+	void read_from_pugixml( void );
 };
 
 class PhysiCell_Globals
@@ -221,7 +221,7 @@ class User_Parameters
 	Parameters<double> doubles; 
 	Parameters<std::string> strings; 
 	
-	void read_from_pugixml( pugi::xml_node parent_node, bool update_parameter = false);
+	void read_from_pugixml( pugi::xml_node parent_node, bool update_parameter = false );
 }; 
 
 extern PhysiCell_Globals PhysiCell_globals; 
@@ -232,7 +232,7 @@ extern User_Parameters parameters;
 
 // bue 20240611: add update_density parameter
 bool setup_microenvironment_from_XML( pugi::xml_node root_node, bool update_density = false );
-bool setup_microenvironment_from_XML( bool update_density=false );
+bool setup_microenvironment_from_XML( bool update_density = false );
 
 }
 

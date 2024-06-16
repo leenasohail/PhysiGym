@@ -148,7 +148,7 @@ PhysiCell_Settings::PhysiCell_Settings()
 	return; 
 }
  	
-void PhysiCell_Settings::read_from_pugixml()
+void PhysiCell_Settings::read_from_pugixml( void )
 {
 	pugi::xml_node node; 
 	
