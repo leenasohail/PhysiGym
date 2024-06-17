@@ -5,7 +5,7 @@ This is the technical description of the machinery and how to operate it.
 
 ## physigym module
 
-References are maintained in each module's [docstring](https://en.wikipedia.org/wiki/Docstring).\
+References are maintained in each custom module's [docstring](https://en.wikipedia.org/wiki/Docstring).\
 You can access them through the [source code](https://github.com/Dante-Berth/PhysiGym/tree/main/physigym/custom_modules/physigym/physigym/envs)
 or by first loading the physigym module and environment,
 
@@ -63,6 +63,5 @@ help(physigym.envs.CorePhysiCellEnv.get_truncated)
 
 **internal control**
 + help(physicell.start)
-+ help(physicell.restart)
 + help(physicell.step)
 + help(physicell.stop)
