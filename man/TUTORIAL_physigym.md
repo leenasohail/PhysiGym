@@ -24,7 +24,7 @@ env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
 
 env.reset()  # initialize PhysiCell run
 env.step(action={})  # do one gymnasium time step (similar to a mcds timestep)
-env.close()  # finalize PhysiCell run
+env.close()  # drop the PhysiCell gymnasium enviroment
 ```
 
 And kill the python runtime.

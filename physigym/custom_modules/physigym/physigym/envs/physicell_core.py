@@ -37,7 +37,6 @@ class CorePhysiCellEnv(gymnasium.Env):
     output:
         physigym.CorePhysiCellEnv
 
-
     run:
         offspring: physigym.ModelPhysiCellEnv
 
@@ -131,7 +130,15 @@ class CorePhysiCellEnv(gymnasium.Env):
             import physigym
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True)
+
+            env = gymnasium.make(
+                'physigym/ModelPhysiCellEnv',
+                settingxml = 'config/PhysiCell_settings.xml',
+                figsize = (8, 6),
+                render_mode = None,
+                render_fps = 10,
+                verbose = True
+            )
 
         description:
             function to initialize the PhysiCell Gymnasium environment.
@@ -394,7 +401,8 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         description:
             function does a dt_gym simulation step:
-            observe, retrieve reward, apply action, increment step counters.
+            apply action, increment the step counters, observes, retrieve reward,
+            and finalizes a physicell episode, if episode is terminate or truncated.
         """
         if self.verbose :
             print(f'physigym: taking a dt_gym time step ...')
@@ -483,17 +491,17 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.stop()
+            env.close()
 
         description:
-            function to finsih up the episode.
+            function to drop shutdown physigym enviroment.
         """
         if self.verbose :
-            print(f'physigym: episode closure ...')
+            print(f'physigym: environment closure ...')
 
         # processing
         if self.verbose:
-            print(f'physigym: Gymnasium PhysiCell model enviroment is shutting down.')
+            print(f'physigym: Gymnasium PhysiCell model enviroment is going down.')
         if not (self.render_mode is None):
             plt.close(self.fig)
 
@@ -514,13 +522,12 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.verbose_true()
+            env.unwrapped.verbose_true()
 
         description:
-            run env.unwrapped.verbose_true()
             to set verbosity true after initialization.
 
-            please not, only little from the standard output is coming
+            please note, only little from the standard output is coming
             actually from physigym. most of the output comes straight
             from PhysiCell and this setting has no influence over that output.
         """
@@ -540,13 +547,12 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.verbose_false()
+            env.unwrapped.verbose_true()
 
         description:
-            run env.unwrapped.verbose_true()
             to set verbosity false after initialization.
 
-            please not, only little from the standard output is coming
+            please note, only little from the standard output is coming
             actually from physigym. most of the output comes straight
             from PhysiCell and this setting has no influence over that output.
         """
