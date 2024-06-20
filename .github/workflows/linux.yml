@@ -10,11 +10,11 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11"]
-        #python-version: ["3.9", "3.10", "3.11", "3.12"]
+    #strategy:
+    #  fail-fast: false
+    #  matrix:
+    #    python-version: ["3.11"]
+    #    #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - name: install physicell
@@ -22,16 +22,16 @@ jobs:
         sudo apt install ffmpeg imagemagick
         git clone git@github.com:MathCancer/PhysiCell.git
 
-    - name: check out physigym repo
-      uses: actions/checkout@v4
+    #- name: check out physigym repo
+    #  uses: actions/checkout@v4
 
-    - name: install python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        pythin-version: ${{ matrix.python-version }}
+    #- name: install python ${{ matrix.python-version }}
+    #  uses: actions/setup-python@v5
+    #  with:
+    #    pythin-version: ${{ matrix.python-version }}
 
-    - name: install python modules
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8 gymnasium lxml matplotlib numpy pandas
+    #- name: install python modules
+    #  run: |
+    #    python -m pip install --upgrade pip
+    #    python -m pip install flake8 gymnasium lxml matplotlib numpy pandas
 
