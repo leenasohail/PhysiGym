@@ -20,8 +20,10 @@ jobs:
     - name: install physicell
       run: |
         sudo apt install ffmpeg imagemagick
+        cd /home/runner/work/PhysiGym/
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
         pwd -P
+        ls -l
 
     - name: check out physigym repo
       uses: actions/checkout@v4
@@ -38,6 +40,6 @@ jobs:
 
     - name: run test tutorial
       run: |
-        cd /home/runner/work/PhysiGym
+        cd /home/runner/work/PhysiGym/PhysiGym/
         python3 test/all_tutorial.py
 
