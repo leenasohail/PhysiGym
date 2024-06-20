@@ -191,7 +191,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             a_img: numpy array or None
                 if self.render_mode is
                 None: the function will return None.
-                rgb_array or huamn: the function will return a numpy array,
+                rgb_array or human: the function will return a numpy array,
                     8bit, shape (4,y,x) with red, green, blue, and alpha channel.
         run:
             import gymnasium
@@ -361,7 +361,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 object compatible with the defined action space struct.
                 the dictionary keys have to match the parameter,
                 custom variable, or custom vector label. the values are
-                eithr single or numpy arrays of bool, integer, float,
+                either single or numpy arrays of bool, integer, float,
                 or string values.
 
         output:
@@ -401,7 +401,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         description:
             function does a dt_gym simulation step:
             apply action, increment the step counters, observes, retrieve reward,
-            and finalizes a physicell episode, if episode is terminate or truncated.
+            and finalizes a physicell episode, if episode is terminated or truncated.
         """
         if self.verbose :
             print(f'physigym: taking a dt_gym time step ...')

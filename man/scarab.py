@@ -113,7 +113,7 @@ docstring_md(
     ls_doc = physigym.envs.ModelPhysiCellEnv.__doc__.split('\n'),
 )
 
-# to run epochs
+# to run episodes
 docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.__init__',
     ls_doc = physigym.envs.CorePhysiCellEnv.__init__.__doc__.split('\n'),

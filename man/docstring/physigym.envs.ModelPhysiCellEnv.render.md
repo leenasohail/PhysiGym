@@ -12,7 +12,7 @@
             a_img: numpy array or None
                 if self.render_mode is
                 None: the function will return None.
-                rgb_array or huamn: the function will return a numpy array,
+                rgb_array or human: the function will return a numpy array,
                     8bit, shape (4,y,x) with red, green, blue, and alpha channel.
 ```
 

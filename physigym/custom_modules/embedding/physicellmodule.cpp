@@ -696,7 +696,7 @@ static struct PyMethodDef ExtendpyMethods[] = {
      "input:\n    none.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
     },
     {"stop", physicell_stop, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a physicell episode, delets all the cells, and resets the global variables."
+     "input:\n    none.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a physicell episode, deletes all the cells, and resets the global variables."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
      "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."

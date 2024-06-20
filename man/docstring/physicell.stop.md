@@ -21,5 +21,5 @@
 
 ## description:
 ```
-    function finalizes a physicell episode, delets all the cells, and resets the global variables.
+    function finalizes a physicell episode, deletes all the cells, and resets the global variables.
 ```

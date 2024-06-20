@@ -25,6 +25,6 @@
             + physicell.get_parameter('my_parameter')
             + physicell.get_variable('my_variable')
             + physicell.get_vector('my_vector')
-            however, there are no limts.
+            however, there are no limits.
         
 ```

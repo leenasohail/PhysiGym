@@ -26,7 +26,7 @@ Then, for each physicell module, getting on-the-fly reference information with t
 ### About the ModulePhysiCell class
 + [help(physigym.envs.ModelPhysiCellEnv)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.md)
 
-### Class functions to run epochs:
+### Class functions to run episodes:
 + [help(physigym.envs.ModelPhysiCellEnv.__init__)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.__init__.md)  # initialize environment
 + [help(physigym.envs.ModelPhysiCellEnv.render)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.render.md)  # render environment output
 + [help(physigym.envs.ModelPhysiCellEnv.reset)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.reset.md)  # reset environment

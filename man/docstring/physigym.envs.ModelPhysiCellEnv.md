@@ -34,6 +34,6 @@
 
         fresh from the PhysiGym repo this is only a template class!
         you will have to edit this class, to specify the model specific
-        reniforcement learning environment.
+        reinforcement learning environment.
     
 ```
