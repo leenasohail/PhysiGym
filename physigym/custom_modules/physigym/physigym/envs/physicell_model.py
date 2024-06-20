@@ -23,7 +23,6 @@ from gymnasium import spaces
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import colors
-import numpy as np
 import pandas as pd
 from physigym.envs.physicell_core import CorePhysiCellEnv
 

@@ -5,8 +5,8 @@
 
 + Language: C++11 and Python [>= 3.8](https://devguide.python.org/versions/)
 + Software dependencies: PhysiCell v1.13.1
-+ Phython library dependencies: gymnasium, lxml, matplotlib, numpy, pandas, (ipython, PyQt6)
-+ Author: Alexandre Bertin, Elmar Bucher
++ Python library dependencies: gymnasium, lxml, matplotlib, numpy, pandas, (ipython, PyQt6)
++ Author: Alexander Bertin, Elmar Bucher
 + Date: 2024-spring
 + Doi:
 + License: [BSD-3-Clause](https://en.wikipedia.org/wiki/BSD_licenses)
@@ -59,7 +59,7 @@ Within the PhysiGym library, we tried to stick to the documentation policy laid 
 
 # Contributions:
 
-+ Concept and implementation: Alexandre Bertin, Elmar Bucher
++ Concept and implementation: Alexander Bertin, Elmar Bucher
 + Involved: Emmanuel Rachelson, Heber Lima da Rocha, Marcelo Hurtado, Paul Macklin, Randy Heiland, Vera Pancaldi, Vincent François
 
 
