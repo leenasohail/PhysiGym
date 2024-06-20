@@ -59,15 +59,11 @@ class CorePhysiCellEnv(gymnasium.Env):
         sys.exit('get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def get_img(self):
-        sys.exit('get_img function to be implemented in physigym.ModelPhysiCellEnv!')
-
-
     def get_observation(self):
         sys.exit('get_observation function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def set_info(self):
+    def get_info(self):
         sys.exit('get_info function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
@@ -78,6 +74,9 @@ class CorePhysiCellEnv(gymnasium.Env):
     def get_reward(self):
         sys.exit('get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
+
+    def get_img(self):
+        sys.exit('get_img function to be implemented in physigym.ModelPhysiCellEnv!')
 
     ### end dummy functions ###
 

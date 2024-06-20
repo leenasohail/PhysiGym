@@ -119,12 +119,12 @@ docstring_md(
     ls_doc = physigym.envs.CorePhysiCellEnv.__init__.__doc__.split('\n'),
 )
 docstring_md(
-    s_function = 'physigym.envs.ModelPhysiCellEnv.reset',
-    ls_doc = physigym.envs.ModelPhysiCellEnv.reset.__doc__.split('\n'),
-)
-docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.render',
     ls_doc = physigym.envs.ModelPhysiCellEnv.render.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physigym.envs.ModelPhysiCellEnv.reset',
+    ls_doc = physigym.envs.ModelPhysiCellEnv.reset.__doc__.split('\n'),
 )
 docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.step',
@@ -153,10 +153,6 @@ docstring_md(
     ls_doc = physigym.envs.ModelPhysiCellEnv.get_observation_space.__doc__.split('\n'),
 )
 docstring_md(
-    s_function = 'physigym.envs.ModelPhysiCellEnv.get_img',
-    ls_doc = physigym.envs.ModelPhysiCellEnv.get_img.__doc__.split('\n'),
-)
-docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.get_observation',
     ls_doc = physigym.envs.ModelPhysiCellEnv.get_observation.__doc__.split('\n'),
 )
@@ -171,6 +167,10 @@ docstring_md(
 docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.get_reward',
     ls_doc = physigym.envs.ModelPhysiCellEnv.get_reward.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physigym.envs.ModelPhysiCellEnv.get_img',
+    ls_doc = physigym.envs.ModelPhysiCellEnv.get_img.__doc__.split('\n'),
 )
 
 # pure internal functions
