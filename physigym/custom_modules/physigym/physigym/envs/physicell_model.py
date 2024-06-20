@@ -47,13 +47,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         env.close()
 
     description:
-        this is the model physigym enviroment class, built on top of the
+        this is the model physigym environment class, built on top of the
         physigym.CorePhysiCellEnv class, which is built on top of the
         gymnasium.Env class.
 
         fresh from the PhysiGym repo this is only a template class!
         you will have to edit this class, to specify the model specific
-        reniforcement learning enviroment.
+        reniforcement learning environment.
     """
     def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True):
         super(ModelPhysiCellEnv, self).__init__(settingxml=settingxml, figsize=figsize, render_mode=render_mode, render_fps=render_fps, verbose=verbose)

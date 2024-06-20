@@ -96,7 +96,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 the file will be loaded with lxml and stored at self.x_root.
                 therefor all data from the setting.xml file is later on accessible
                 via the self.x_root.xpath('//xpath/string/') xpath construct.
-                study this source code class for explicite examples.
+                study this source code class for explicit examples.
                 for more information about xpath study the following links:
                 + https://en.wikipedia.org/wiki/XPath
                 + https://www.w3schools.com/xml/xpath_intro.asp
@@ -122,7 +122,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 from PhysiCell and this setting has no influence over that output.
 
         output:
-            initialized PhysiCell Gymnasium enviroment.
+            initialized PhysiCell Gymnasium environment.
 
         run:
             import gymnasium
@@ -493,14 +493,14 @@ class CorePhysiCellEnv(gymnasium.Env):
             env.close()
 
         description:
-            function to drop shutdown physigym enviroment.
+            function to drop shutdown physigym environment.
         """
         if self.verbose :
             print(f'physigym: environment closure ...')
 
         # processing
         if self.verbose:
-            print(f'physigym: Gymnasium PhysiCell model enviroment is going down.')
+            print(f'physigym: Gymnasium PhysiCell model environment is going down.')
         if not (self.render_mode is None):
             plt.close(self.fig)
 
