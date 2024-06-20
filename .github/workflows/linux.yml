@@ -10,10 +10,10 @@ on:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
-    #strategy:
-    #  fail-fast: false
-    #  matrix:
-    #    python-version: ["3.11"]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
     #    #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
@@ -22,8 +22,8 @@ jobs:
         sudo apt install ffmpeg imagemagick
         git clone https://github.com/MathCancer/PhysiCell.git
 
-    #- name: check out physigym repo
-    #  uses: actions/checkout@v4
+    - name: check out physigym repo
+      uses: actions/checkout@v4
 
     #- name: install python ${{ matrix.python-version }}
     #  uses: actions/setup-python@v5
