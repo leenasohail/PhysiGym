@@ -2,7 +2,7 @@
 
 1. cd into the PhysiCell folder and uninstall the compiled modules.
 ```bash
-cd PhysiCell
+cd path/to/PhysiCell
 make clean
 make reset  # optional
 make data-cleanup  # optional

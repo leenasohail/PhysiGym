@@ -48,13 +48,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         env.close()
 
     description:
-        this is the model physigym enviroment class, built on top of the
+        this is the model physigym environment class, built on top of the
         physigym.CorePhysiCellEnv class, which is built on top of the
         gymnasium.Env class.
 
         fresh from the PhysiGym repo this is only a template class!
         you will have to edit this class, to specify the model specific
-        reniforcement learning enviroment.
+        reinforcement learning environment.
     """
     def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True):
         super(ModelPhysiCellEnv, self).__init__(settingxml=settingxml, figsize=figsize, render_mode=render_mode, render_fps=render_fps, verbose=verbose)
@@ -68,13 +68,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             d_action_space: dictionary composition space
                 the dictionary keys have to match the parameter,
                 custom variable, or custom vector label.
-                the value have to be defind as gymnasium space object.
+                the value has to be defined as gymnasium space object.
                 + https://gymnasium.farama.org/main/api/spaces/
         run:
             internal function, user defined.
 
         description:
-            dictionary structur built out of gymnasium.spaces elements.
+            dictionary structure built out of gymnasium.spaces elements.
             this struct has to specify type and range for each
             action parameter, action custom variable, and action custom vector.
         """
@@ -101,7 +101,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         input:
 
         output:
-            o_observation_space structur.
+            o_observation_space structure.
                 the struct have to be built out of gymnasium.spaces elements.
                 there are no other limits.
                 + https://gymnasium.farama.org/main/api/spaces/
@@ -110,7 +110,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             internal function, user defined.
 
         description:
-            data structur built out of gymnasium.spaces elements.
+            data structure built out of gymnasium.spaces elements.
             this struct has to specify type and range
             for each observed variable.
         """
@@ -149,7 +149,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             + physicell.get_parameter('my_parameter')
             + physicell.get_variable('my_variable')
             + physicell.get_vector('my_vector')
-            however, there are no limts.
+            however, there are no limits.
         """
         # model dependent observation processing logic goes here!
         o_observation = True
@@ -192,11 +192,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             internal function, user defined.
 
         description:
-            function to determ, if the epoch is terminated.
+            function to determine if the episode is terminated.
             for example, if we do reinforcement learning on a
-            jump and run game, if ouer character died.
+            jump and run game, if our character died.
             please notice, that this ending is different form
-            truncated (the epoch reached the max time limit).
+            truncated (the episode reached the max time limit).
         """
         # model dependent terminated processing logic goes here!
         b_terminated = False
@@ -212,7 +212,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         output:
             r_reward: float between or equal to 0.0 and 1.0.
                 there are no other limits to the algorithm implementation enforced.
-                however, the algorithm is usually based on data as well retrived
+                however, the algorithm is usually based on data retrieved
                 by the get_observation function (o_observation, d_info),
                 and possibly by the render function (a_img).
 
@@ -241,12 +241,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             internal function, user defined.
 
         description:
-            templare code to generate a matplotlib figure from the data.
+            template code to generate a matplotlib figure from the data.
             for example from:
             + physicell.get_microenv('my_substrate')
             + physicell.get_cell()
             + physicell.get_variable('my_variable')
-            however, there are no limts.
+            however, there are no limits.
         """
         # model dependent img processing logic goes here!
         self.fig.clf()

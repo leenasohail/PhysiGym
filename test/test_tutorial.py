@@ -11,7 +11,7 @@
 #
 # description:
 #     unit test code for the physigym project
-#     note: pytest and physigym enviroment are incompatible.
+#     note: pytest and physigym environment are incompatible.
 #####
 
 

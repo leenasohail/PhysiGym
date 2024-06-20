@@ -37,7 +37,6 @@ class CorePhysiCellEnv(gymnasium.Env):
     output:
         physigym.CorePhysiCellEnv
 
-
     run:
         offspring: physigym.ModelPhysiCellEnv
 
@@ -60,15 +59,11 @@ class CorePhysiCellEnv(gymnasium.Env):
         sys.exit('get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def get_img(self):
-        sys.exit('get_img function to be implemented in physigym.ModelPhysiCellEnv!')
-
-
     def get_observation(self):
         sys.exit('get_observation function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
-    def set_info(self):
+    def get_info(self):
         sys.exit('get_info function to be implemented in physigym.ModelPhysiCellEnv!')
 
 
@@ -79,6 +74,9 @@ class CorePhysiCellEnv(gymnasium.Env):
     def get_reward(self):
         sys.exit('get_terminated function to be implemented in physigym.ModelPhysiCellEnv!')
 
+
+    def get_img(self):
+        sys.exit('get_img function to be implemented in physigym.ModelPhysiCellEnv!')
 
     ### end dummy functions ###
 
@@ -98,7 +96,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 the file will be loaded with lxml and stored at self.x_root.
                 therefor all data from the setting.xml file is later on accessible
                 via the self.x_root.xpath('//xpath/string/') xpath construct.
-                study this source code class for explicite examples.
+                study this source code class for explicit examples.
                 for more information about xpath study the following links:
                 + https://en.wikipedia.org/wiki/XPath
                 + https://www.w3schools.com/xml/xpath_intro.asp
@@ -124,14 +122,22 @@ class CorePhysiCellEnv(gymnasium.Env):
                 from PhysiCell and this setting has no influence over that output.
 
         output:
-            initialized PhysiCell Gymnasium enviroment.
+            initialized PhysiCell Gymnasium environment.
 
         run:
             import gymnasium
             import physigym
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True)
+
+            env = gymnasium.make(
+                'physigym/ModelPhysiCellEnv',
+                settingxml = 'config/PhysiCell_settings.xml',
+                figsize = (8, 6),
+                render_mode = None,
+                render_fps = 10,
+                verbose = True
+            )
 
         description:
             function to initialize the PhysiCell Gymnasium environment.
@@ -185,7 +191,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             a_img: numpy array or None
                 if self.render_mode is
                 None: the function will return None.
-                rgb_array or huamn: the function will return a numpy array,
+                rgb_array or human: the function will return a numpy array,
                     8bit, shape (4,y,x) with red, green, blue, and alpha channel.
         run:
             import gymnasium
@@ -355,7 +361,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 object compatible with the defined action space struct.
                 the dictionary keys have to match the parameter,
                 custom variable, or custom vector label. the values are
-                eithr single or numpy arrays of bool, integer, float,
+                either single or numpy arrays of bool, integer, float,
                 or string values.
 
         output:
@@ -394,7 +400,8 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         description:
             function does a dt_gym simulation step:
-            observe, retrieve reward, apply action, increment step counters.
+            apply action, increment the step counters, observes, retrieve reward,
+            and finalizes a physicell episode, if episode is terminated or truncated.
         """
         if self.verbose :
             print(f'physigym: taking a dt_gym time step ...')
@@ -483,17 +490,17 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.stop()
+            env.close()
 
         description:
-            function to finsih up the episode.
+            function to drop shutdown physigym environment.
         """
         if self.verbose :
-            print(f'physigym: episode closure ...')
+            print(f'physigym: environment closure ...')
 
         # processing
         if self.verbose:
-            print(f'physigym: Gymnasium PhysiCell model enviroment is shutting down.')
+            print(f'physigym: Gymnasium PhysiCell model environment is going down.')
         if not (self.render_mode is None):
             plt.close(self.fig)
 
@@ -514,13 +521,12 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.verbose_true()
+            env.unwrapped.verbose_true()
 
         description:
-            run env.unwrapped.verbose_true()
             to set verbosity true after initialization.
 
-            please not, only little from the standard output is coming
+            please note, only little from the standard output is coming
             actually from physigym. most of the output comes straight
             from PhysiCell and this setting has no influence over that output.
         """
@@ -540,13 +546,12 @@ class CorePhysiCellEnv(gymnasium.Env):
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.verbose_false()
+            env.unwrapped.verbose_true()
 
         description:
-            run env.unwrapped.verbose_true()
             to set verbosity false after initialization.
 
-            please not, only little from the standard output is coming
+            please note, only little from the standard output is coming
             actually from physigym. most of the output comes straight
             from PhysiCell and this setting has no influence over that output.
         """

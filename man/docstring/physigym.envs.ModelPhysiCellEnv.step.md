@@ -14,7 +14,7 @@
                 object compatible with the defined action space struct.
                 the dictionary keys have to match the parameter,
                 custom variable, or custom vector label. the values are
-                eithr single or numpy arrays of bool, integer, float,
+                either single or numpy arrays of bool, integer, float,
                 or string values.
 
 ```
@@ -62,6 +62,7 @@
 ## description:
 ```
             function does a dt_gym simulation step:
-            observe, retrieve reward, apply action, increment step counters.
+            apply action, increment the step counters, observes, retrieve reward,
+            and finalizes a physicell episode, if episode is terminated or truncated.
         
 ```

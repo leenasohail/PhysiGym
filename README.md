@@ -5,7 +5,7 @@
 
 + Language: C++11 and Python [>= 3.8](https://devguide.python.org/versions/)
 + Software dependencies: PhysiCell v1.13.1
-+ Phython library dependencies: gymnasium, lxml, matplotlib, numpy, pandas, (ipython, PyQt6)
++ Python library dependencies: gymnasium, lxml, matplotlib, numpy, pandas, (ipython, PyQt6)
 + Author: Alexandre Bertin, Elmar Bucher
 + Date: 2024-spring
 + Doi:
@@ -21,19 +21,19 @@ More precisely, [PhysiCell](https://github.com/MathCancer/PhysiCell) is an agent
 
 [Gymnasium](https://gymnasium.farama.org/main/) is the API standard for reinforcement learning, written in [Python3](https://en.wikipedia.org/wiki/Python_(programming_language)).
 
-The Python3-based physigym module presented here was written on top of the py3pc_embed [embedding](https://github.com/elmbeech/physicellembedding) module, which makes it possible to interact with PhysiCell models in the Python3 language.
+The Python3-based physigym module presented here was written on top of the python_with_physicell [embedding](https://github.com/elmbeech/physicellembedding) module, which makes it possible to interact with PhysiCell models in the Python3 language.
 
 Both, physigym and embedding, are PhysiCell custom_modules.
 
 Walking through the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md), you will gain the understanding needed to tackle more complex PhysiCell-based reinforcement learning projects.
-You will set up a very basic template model that can figure as a starting;point for your own project.
+You will set up a very basic template model that can figure as a starting point for your own project.
 
 May the force be with you!
 
 
 # HowTo Guide:
 
-+ [install and troubleshoot physigym user_project](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_physigym.md)
++ [install and troubleshoot the physigym user_project](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_physigym.md)
 + [uninstall the physigym user_project](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_purge.md)
 
 
@@ -60,7 +60,7 @@ Within the PhysiGym library, we tried to stick to the documentation policy laid 
 # Contributions:
 
 + Concept and implementation: Alexandre Bertin, Elmar Bucher
-+ Involved: Emmanuel Rachelson, Heber Lima da Rocha, Marcelo Hurtado, Paul Macklin, Vera Pancaldi, Vincent François
++ Involved: Emmanuel Rachelson, Heber Lima da Rocha, Marcelo Hurtado, Paul Macklin, Randy Heiland, Vera Pancaldi, Vincent François
 
 
 # Cite:
@@ -75,5 +75,6 @@ To be BibTeX.
 
 # Release Notes:
 
-+ 0.0.0 (2024-04-24): the basic physigym implementation works.
++ 0.0.1 (2024-06-20): the basic physigym implementation works.
++ 0.0.0 (2024-04-15): physigym rises from the ashes.
 

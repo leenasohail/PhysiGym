@@ -5,7 +5,7 @@
 // language: C/C++
 // date: 2015-2024
 // license: BSD-3-Clause
-// author: Alexander Bertin, Elmar Bucher, Paul Macklin
+// author: Alexandre Bertin, Elmar Bucher, Paul Macklin
 // original source code: https://github.com/MathCancer/PhysiCell
 // modified source code: https://github.com/elmbeech/physicellembedding
 // modified source code: https://github.com/Dante-Berth/PhysiGym
@@ -690,13 +690,13 @@ static PyObject* physicell_system(PyObject *self, PyObject *args) {
 // method table lists method name and address
 static struct PyMethodDef ExtendpyMethods[] = {
     {"start", physicell_start, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.start()\n\ndescription:\n    function initializes physicell as specified in the settings.xml, cells.csv, and cell_rules.csv files and initializes the first episode."
+     "input:\n    args 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes physicell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output. if run for re-initialization, it is assumed that start will not be called before stop has been called."
     },
     {"step", physicell_step, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
+     "input:\n    none.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
     },
     {"stop", physicell_stop, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a physicell run."
+     "input:\n    none.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a physicell episode, deletes all the cells, and resets the global variables."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
      "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."

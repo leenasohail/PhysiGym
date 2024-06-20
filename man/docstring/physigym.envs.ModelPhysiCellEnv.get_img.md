@@ -21,11 +21,11 @@
 
 ## description:
 ```
-            templare code to generate a matplotlib figure from the data.
+            template code to generate a matplotlib figure from the data.
             for example from:
             + physicell.get_microenv('my_substrate')
             + physicell.get_cell()
             + physicell.get_variable('my_variable')
-            however, there are no limts.
+            however, there are no limits.
         
 ```
