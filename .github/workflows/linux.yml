@@ -25,7 +25,8 @@ jobs:
 
     - name: check out physigym repo
       uses: actions/checkout@v4
-      pwd -P
+      run: |
+        pwd -P
 
     - name: install python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
