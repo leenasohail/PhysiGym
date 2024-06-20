@@ -3,9 +3,9 @@ run-name: ${{ github.actor }} is testing the physigym library on the linux os, a
 
 on:
   push:
-    branches: ["master"]
+    branches: ["main"]
   pull_request:
-    branches: ["master"]
+    branches: ["main"]
 
 jobs:
   build-linux:
