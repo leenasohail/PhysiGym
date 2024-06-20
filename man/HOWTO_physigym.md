@@ -45,7 +45,7 @@ exit()
 
 ## How to fetch the latest version from this PhysiCell user project into this source code repository
 
-1. Save the project in the PhysiCell foler:
+1. Save the project in the PhysiCell folder:
 ```bash
 cd path/to/PhysiCell
 make save PROJ=physigym

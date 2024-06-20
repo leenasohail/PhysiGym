@@ -5,7 +5,7 @@
 // language: C/C++
 // date: 2015-2024
 // license: BSD-3-Clause
-// author: Alexander Bertin, Elmar Bucher, Paul Macklin
+// author: Alexandre Bertin, Elmar Bucher, Paul Macklin
 // original source code: https://github.com/MathCancer/PhysiCell
 // modified source code: https://github.com/elmbeech/physicellembedding
 // modified source code: https://github.com/Dante-Berth/PhysiGym

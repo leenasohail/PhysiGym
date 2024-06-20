@@ -24,7 +24,7 @@ env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
 
 env.reset()  # initialize PhysiCell run
 env.step(action={})  # do one gymnasium time step (similar to a mcds timestep)
-env.close()  # drop the PhysiCell gymnasium enviroment
+env.close()  # drop the PhysiCell gymnasium environment
 ```
 
 And kill the python runtime.
@@ -225,7 +225,7 @@ o_observation = np.array(physicell.get_parameter('cell_count'), dtype=np.uint16)
 
 3.1.4 get_info
 
-We could provide additional information important for controlling the action of the policy.
+We could provide additional information essential for controlling the action of the policy.
 For example, if we do reinforcement learning on a [jump and run game](https://c64online.com/c64-games/the-great-giana-sisters/), the number of hearts (lives left) from our character.
 
 In our simple model, we don't have such information.
@@ -411,7 +411,7 @@ For more information about the Gymnasium interface, please study the official do
 + https://gymnasium.farama.org/main/
 
 
-5. The PhysiCell dataloader for data analysis (Python3 and Bash)
+5. The PhysiCell data loader for data analysis (Python3 and Bash)
 
 We can do similar plotting and even more in-depth data analysis with the [pcdl](https://github.com/elmbeech/physicelldataloader) library on the dumped data.
 
