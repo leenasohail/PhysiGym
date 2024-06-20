@@ -62,6 +62,7 @@
 ## description:
 ```
             function does a dt_gym simulation step:
-            observe, retrieve reward, apply action, increment step counters.
+            apply action, increment the step counters, observes, retrieve reward,
+            and finalizes a physicell episode, if episode is terminate or truncated.
         
 ```

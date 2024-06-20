@@ -8,7 +8,7 @@
 
 ## output:
 ```
-    physicell processing.
+    physicell processing. 0 for success.
 
 ```
 
@@ -21,5 +21,5 @@
 
 ## description:
 ```
-    function finalizes a physicell run.
+    function finalizes a physicell episode, delets all the cells, and resets the global variables.
 ```

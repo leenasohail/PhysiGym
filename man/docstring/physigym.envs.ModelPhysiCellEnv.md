@@ -28,12 +28,12 @@
 
 ## description:
 ```
-        this is the model physigym enviroment class, built on top of the
+        this is the model physigym environment class, built on top of the
         physigym.CorePhysiCellEnv class, which is built on top of the
         gymnasium.Env class.
 
         fresh from the PhysiGym repo this is only a template class!
         you will have to edit this class, to specify the model specific
-        reniforcement learning enviroment.
+        reniforcement learning environment.
     
 ```

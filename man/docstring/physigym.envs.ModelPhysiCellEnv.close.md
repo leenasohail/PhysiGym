@@ -18,12 +18,12 @@
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.stop()
+            env.close()
 
 ```
 
 ## description:
 ```
-            function to finsih up the episode.
+            function to drop shutdown physigym environment.
         
 ```

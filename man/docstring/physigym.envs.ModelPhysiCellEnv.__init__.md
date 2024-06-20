@@ -8,7 +8,7 @@
                 the file will be loaded with lxml and stored at self.x_root.
                 therefor all data from the setting.xml file is later on accessible
                 via the self.x_root.xpath('//xpath/string/') xpath construct.
-                study this source code class for explicite examples.
+                study this source code class for explicit examples.
                 for more information about xpath study the following links:
                 + https://en.wikipedia.org/wiki/XPath
                 + https://www.w3schools.com/xml/xpath_intro.asp
@@ -37,7 +37,7 @@
 
 ## output:
 ```
-            initialized PhysiCell Gymnasium enviroment.
+            initialized PhysiCell Gymnasium environment.
 
 ```
 
@@ -47,7 +47,15 @@
             import physigym
 
             env = gymnasium.make('physigym/ModelPhysiCellEnv')
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True)
+
+            env = gymnasium.make(
+                'physigym/ModelPhysiCellEnv',
+                settingxml = 'config/PhysiCell_settings.xml',
+                figsize = (8, 6),
+                render_mode = None,
+                render_fps = 10,
+                verbose = True
+            )
 
 ```
 
