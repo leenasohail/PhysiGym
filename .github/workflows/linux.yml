@@ -20,7 +20,7 @@ jobs:
     - name: install physicell
       run: |
         sudo apt install ffmpeg imagemagick
-        git clone git@github.com:MathCancer/PhysiCell.git
+        git clone https://github.com/MathCancer/PhysiCell.git
 
     #- name: check out physigym repo
     #  uses: actions/checkout@v4
