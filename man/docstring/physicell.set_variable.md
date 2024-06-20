@@ -2,24 +2,24 @@
 
 ## input:
 ```
-    variable name (string).
+    variable name (string), variable value (float or integer).
 
 ```
 
 ## output:
 ```
-    values (list of floats).
+    0 for success and -1 for failure.
 
 ```
 
 ## run:
 ```python
     from embedding import physicell
-    physicell.get_variable('my_variable')
+    physicell.set_variable('my_variable', value)
 
 ```
 
 ## description:
 ```
-    function to recall a custom variable.
+    function to store a custom variable value.
 ```

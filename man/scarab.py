@@ -202,7 +202,7 @@ docstring_md(
 )
 docstring_md(
     s_function = 'physicell.set_variable',
-    ls_doc = physicell.get_variable.__doc__.split('\n'),
+    ls_doc = physicell.set_variable.__doc__.split('\n'),
 )
 docstring_md(
     s_function = 'physicell.get_variable',
