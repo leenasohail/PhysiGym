@@ -43,6 +43,7 @@ jobs:
         python3 -m pip install anndata flake8 gymnasium lxml matplotlib numpy pandas
 
     - name: install pcdl
+      run: |
         cd /home/runner/work/PhysiGym/
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
 
