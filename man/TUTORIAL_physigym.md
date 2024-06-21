@@ -40,7 +40,7 @@ make data-cleanup
 
 ## A more elaborate example.
 
-In this somewhat more realistic example, we will control the model so that the cell count for the "default" cell type over time stabilizes at about 128 cells.
+In this somewhat more realistic example, we will control the model so that the cell count for the "default" cell type over time stabilizes at about 64 cells.
 For observation, we will use cell counts.
 Reward will be calculated by a simple formula.
 For action, we will use an apoptosis-inducing drug that kills the cells.
@@ -59,15 +59,17 @@ studio -c config/PhysiCell_settings.xml
 
 + Config Basics: Max Time = 10080 [min] which is 7 [days].
 + Microenvironment: rename my_substrate to drug.
-+ Microenvironment: set drug decay rate to 0.001 [1/min].
++ Microenvironment: set drug decay rate to 0.01 [1/min].
 + Cell Types / Death: death rate = 0.0 [1/min].
 + Cell Types / Custom Data: delete variable my_variable.
 + Cell Types / Custom Data: add variable Name: apoptosis_rate; Value 0.0; Units [1/min]
-+ User Params: random_seed to -1, for random random seeding.
++ User Params: set random_seed to -1, for random random seeding.
++ User Params: set number_of_cells to 48.
 + User Params: have a look at the time and dt_gym parameters!
 + User Params: delete parameters my_str, my_bool, my_int, my_float.
-+ User Params: add a parameter drug_dose; Type double; Value 0.0; Units [fraction].
++ User Params: add a parameter cell_count_target; Type int; Value 64; Unit dimensionless.
 + User Params: add a parameter cell_count; Type int; Value 0; Unit dimensionless.
++ User Params: add a parameter drug_dose; Type double; Value 0.0; Units [fraction].
 + Cell Type: default; Rules: drug increases apoptosis; Half-max: 0.5; Saturation value: 1.0; Hill power: 4; apply to dead: False; Add rule; enable: True.
 + File / Save.
 + Studio / Quit.
@@ -220,7 +222,7 @@ The way we provide this information has to be compatible with the observation sp
 Replace the default `o_observation = {'discrete': True}` with:
 
 ```python
-o_observation = np.array(physicell.get_parameter('cell_count'), dtype=np.uint16)
+o_observation = np.array([physicell.get_parameter('cell_count')], dtype=np.uint16)
 ```
 
 3.1.4 get_info
@@ -252,13 +254,14 @@ Delete the default `r_reward = 0.0`.
 Our reward algorithm looks like this:
 
 ```python
+i_cellcount_target = physicell.get_parameter('cell_count_target')
 i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)
-if (i_cellcount == 128):
+if (i_cellcount == i_cellcount_target):
     r_reward == 1
-elif (i_cellcount < 128):
-    r_reward = i_cellcount / 128
-elif (i_cellcount > 128):
-    r_reward = 1 - (i_cellcount - 128) / 128
+elif (i_cellcount < i_cellcount_target):
+    r_reward = i_cellcount / i_cellcount_target
+elif (i_cellcount > i_cellcount_target):
+    r_reward = 1 - (i_cellcount - i_cellcount_target) / i_cellcount_target
 else:
     sys.exit('Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.')
 ```
@@ -312,7 +315,7 @@ df_cell.plot(
     ],
     vmin=0.0, vmax=0.1, cmap='viridis',
     grid=True,
-    title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / 128 [cell]',
+    title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / {physicell.get_parameter("cell_count_target")} [cell]',
     ax=ax,
 )
 ```
@@ -336,23 +339,26 @@ Open a Pyton shell and execute the following code sequence (or write a Python sc
 ```python
 # library
 import gymnasium
+import numpy as np
 import physigym
 
 # load PhysiCell Gymnasium environment
 env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', render_mode='human', render_fps=10)
 
 # reset the environment
-i_observation, d_info = env.reset()
+r_reward = 0.0
+o_observation, d_info = env.reset()
 
 # time step loop
 b_episode_over = False
 while not b_episode_over:
 
-    # policy according to i_observation
-    if (i_observation > 128):
-        d_action = {'drug_dose': [1 - r_reward]}
+    # policy according to o_observation
+    i_observation = o_observation[0]
+    if (i_observation >= physicell.get_parameter('cell_count_target')):
+        d_action = {'drug_dose': np.array([1.0 - r_reward])}
     else:
-        d_action = {'drug_dose': [0]}
+        d_action = {'drug_dose': np.array([0.0])}
 
     # action
     o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
@@ -371,6 +377,7 @@ exit()
 ```python
 # library
 import gymnasium
+import numpy as np
 import physigym
 from tqdm import tqdm
 
@@ -381,17 +388,19 @@ env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', render_mode='human', rende
 for i_episode in tqdm(range(3)):
 
     # reset the environment
-    i_observation, d_info = env.reset()
+    r_reward = 0.0
+    o_observation, d_info = env.reset()
 
     # time step loop
     b_episode_over = False
     while not b_episode_over:
 
-        # policy according to i_observation
-        if (i_observation > 128):
-            d_action = {'drug_dose': [1 - r_reward]}
+        # policy according to o_observation
+        i_observation = o_observation[0]
+        if (i_observation > physicell.get_parameter('cell_count_target')):
+            d_action = {'drug_dose': np.array([1.0 - r_reward])}
         else:
-            d_action = {'drug_dose': [0]}
+            d_action = {'drug_dose': np.array([0.0])}
 
         # action
         o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
