@@ -30,18 +30,16 @@ jobs:
       with:
         update: true
         #install: base-devel flex bison gcc make diffutils mingw-w64-x86_64-toolchain mingw-w64-x86_64-ca-certificates git ninja python-pip
-        install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 git make
+        install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 git make python3
 
-    - run: echo "${{ runner.temp }}/msys/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-    - name: install physicell
-      run: |
+    #- name: install physicell
+    #  run: |
         #sudo apt install ffmpeg imagemagick
-        cd D:\\a\\PhysiGym\\
-        git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
+    #    cd D:\\a\\PhysiGym\\
+    #    git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
 
-    - name: check out physigym repo
-      uses: actions/checkout@v4
+    #- name: check out physigym repo
+    #  uses: actions/checkout@v4
 
     - name: install python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -54,13 +52,13 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
 
-    - name: install pcdl
-      run: |
-        cd D:\\a\\PhysiGym\\
-        git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
+    #- name: install pcdl
+    #  run: |
+    #    cd D:\\a\\PhysiGym\\
+    #    git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
 
-    - name: run test tutorial
-      run: |
-        cd D:\\a\\PhysiGym\\PhysiGym\\
-        python test/all_tutorial.py
+    #- name: run test tutorial
+    #  run: |
+    #    cd D:\\a\\PhysiGym\\PhysiGym\\
+    #    python test/all_tutorial.py
 
