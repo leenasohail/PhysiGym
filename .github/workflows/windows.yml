@@ -47,6 +47,7 @@ jobs:
 
     - name: install python modules
       run: |
+        python -m ensurepip
         python -m pip install --upgrade pip
         python -m pip install anndata flake8 gymnasium lxml matplotlib numpy pandas scipy vtk
 
