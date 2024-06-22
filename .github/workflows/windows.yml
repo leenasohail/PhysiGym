@@ -31,7 +31,7 @@ jobs:
       with:                                                                     
         python-version: ${{ matrix.python-version }}                            
     
-    - name: install pcdl
+    - name: clone pcdl
       run: |
         cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
@@ -41,6 +41,8 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
         python -m pip install D:\a\PhysiGym\physicelldataloader -v
+        which python
+        which pip
 
     - uses: msys2/setup-msys2@v2
       with:
@@ -54,6 +56,11 @@ jobs:
         #sudo apt install ffmpeg imagemagick
         cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
+
+    - name: which python3
+      run: |
+        which python
+        which pip
 
     - name: check out physigym repo
       uses: actions/checkout@v4
