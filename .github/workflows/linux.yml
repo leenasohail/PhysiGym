@@ -1,5 +1,5 @@
 name: physigym_linux_test_pilot
-run-name: ${{ github.actor }} testing physigym on linux os, all python versions, all unit tests.
+run-name: ${{ github.actor }} test physigym on linux os, all python versions, all unit tests.
 
 on:
   push:
