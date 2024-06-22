@@ -40,7 +40,7 @@ jobs:
     - name: check out physigym repo
       uses: actions/checkout@v4
 
-    - name: install python3 ${{ matrix.python-version }}
+    - name: install python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
 
     - name: install python3 modules
@@ -48,7 +48,7 @@ jobs:
         python3 -m ensurepip
         python3 -m pip3 install "pip3<20"
         python3 -m pip3 install ninja
-        python3 -m pip3 install --upgrade pip3
+        python3 -m pip3 install --upgrade pip
         python3 -m pip3 install anndata flake8 gymnasium lxml matplotlib numpy pandas scipy vtk
 
     - name: install pcdl
