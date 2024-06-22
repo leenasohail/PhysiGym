@@ -17,8 +17,8 @@ jobs:
         python-version: ["3.11"]
         #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
-    env:
-      PYTHONPATH: D:\a\PhysiGym\physicelldataloader
+    #env:
+    #  PYTHONPATH: D:\a\PhysiGym\physicelldataloader
 
     steps:
 
@@ -46,6 +46,10 @@ jobs:
       with:
         update: true
         install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2
+
+    - defaults:
+      run:
+        shell: msys2 {0}
 
     - name: install physicell
       run: |
