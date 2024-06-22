@@ -11,6 +11,10 @@ jobs:
   build-windows:
     runs-on: windows-latest
 
+    defaults:
+      run:
+        shell: msys2 {0}
+
     strategy:
       fail-fast: false
       matrix:
@@ -36,6 +40,12 @@ jobs:
         cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
 
+    - name: install msys2
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 python
+
     - name: install python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
@@ -50,13 +60,6 @@ jobs:
         which python
         which pip3
         which pip
-
-    - name: install msys2
-      uses: msys2/setup-msys2@v2
-      with:
-        update: true
-        install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2
-
 
     - name: which python3
       shell: msys2 {0}
