@@ -1,5 +1,5 @@
 name: physigym_linux_test_pilot
-run-name: ${{ github.actor }} is testing the physigym library on the linux os, all supported python versions, all tests available under the test folder.
+run-name: ${{ github.actor }} testing physigym on linux os, all python versions, all unit tests.
 
 on:
   push:
