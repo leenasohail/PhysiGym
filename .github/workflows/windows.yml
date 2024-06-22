@@ -34,7 +34,7 @@ jobs:
     - name: install physicell
       run: |
         #sudo apt install ffmpeg imagemagick
-        #cd D:\a\PhysiGym\
+        cd D:\\a\\
         cd ,
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
 
