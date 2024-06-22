@@ -1,27 +1,27 @@
-name: physigym_linux_test_pilot
-run-name: ${{ github.actor }}::test physigym on linux os, all python versions, all unit tests.
+name: physigym_apple_test_pilot
+run-name: ${{ github.actor }}::test physigym on macosx, all python versions, all unit tests.
 
 on:
   push:
-    branches: ["mainn"]
+    branches: ["main"]
   pull_request:
-    branches: ["mainn"]
+    branches: ["main"]
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.10"]
         #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
 
-    - name: clone physicell
+    - name: install physicell
       run: |
-        #sudo apt install ffmpeg imagemagick
-        cd /home/runner/work/PhysiGym/
+        brew install ffmpeg imagemagick
+        cd /Users/runner/work/PhysiGym/
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
         pwd -P
         ls -l
@@ -32,18 +32,24 @@ jobs:
     - name: install python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        pythin-version: ${{ matrix.python-version }}
 
     - name: install python modules
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install anndata gymnasium lxml matplotlib numpy pandas pcdl scipy vtk
+        python3 -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
         which python3
         which python
         which pip3
         which pip
 
+    - name: install pcdl
+      run: |
+        cd /Users/runner/work/PhysiGym/
+        git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
+
     - name: run test tutorial
       run: |
-        cd /home/runner/work/PhysiGym/PhysiGym/
+        cd /Users/runner/work/PhysiGym/PhysiGym/
         python3 test/all_tutorial.py
+

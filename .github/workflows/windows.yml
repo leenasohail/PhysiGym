@@ -1,11 +1,11 @@
 name: physigym_windows_test_pilot
-run-name: ${{ github.actor }} test physigym on the windows os, the msys2 python3 versions, all unit tests.
+run-name: ${{ github.actor }}::test physigym on the windows os, the msys2 python3 versions, all unit tests.
 
 on:
   push:
-    branches: ["main"]
+    branches: ["mainn"]
   pull_request:
-    branches: ["main"]
+    branches: ["mainn"]
 
 jobs:
   build-windows:
@@ -18,18 +18,15 @@ jobs:
     strategy:
       fail-fast: false
 
-    env:
-      PYTHONPATH: D:\a\PhysiGym\physicelldataloader
-
     steps:
     - name: install msys2
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: 
+        install:
           mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2
           git make
-          mingw-w64-x86_64-python mingw-w64-x86_64-python-pip 
+          mingw-w64-x86_64-python mingw-w64-x86_64-python-pip
           mingw-w64-x86_64-python-matplotlib mingw-w64-x86_64-python-lxml mingw-w64-x86_64-python-numpy mingw-w64-x86_64-python-pandas mingw-w64-x86_64-python-scipy mingw-w64-x86_64-python-h5py
           mingw-w64-x86_64-vtk
 
