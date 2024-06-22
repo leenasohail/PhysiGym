@@ -1,3 +1,8 @@
+<!--
+git tag -a v0.0.0 -m'version 0.0.0'
+git push --tag
+-->
+
 ![physigym logo & title](man/img/physigym_title_v0.0.0.png)
 
 
