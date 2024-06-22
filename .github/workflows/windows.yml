@@ -22,15 +22,24 @@ jobs:
 
     steps:
 
-    - name: install python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
+    - name: clone physicell
+      run: |
+        #sudo apt install ffmpeg imagemagick
+        cd D:\\a\\PhysiGym\\
+        git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
+
+    - name: clone physigym repo
+      uses: actions/checkout@v4
 
     - name: clone pcdl
       run: |
         cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
+
+    - name: install python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
 
     - name: install python3 modules
       run: |
@@ -48,22 +57,14 @@ jobs:
         update: true
         install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2
 
-    - name: clone physicell
-      run: |
-        #sudo apt install ffmpeg imagemagick
-        cd D:\\a\\PhysiGym\\
-        git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
 
     - name: which python3
       shell: msys2 {0}
       run: |
-        which python3
+        #which python
         which python
-        which pip3
+        #which pip
         which pip
-
-    - name: clone physigym repo
-      uses: actions/checkout@v4
 
     - name: run test tutorial
       shell: msys2 {0}
