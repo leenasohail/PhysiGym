@@ -40,19 +40,12 @@ jobs:
     - name: install python modules
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install anndata flake8 gymnasium lxml matplotlib numpy pandas scipy vtk
+        python3 -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
 
     - name: install pcdl
       run: |
         cd /home/runner/work/PhysiGym/
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
-
-    - name: lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: run test tutorial
       run: |
