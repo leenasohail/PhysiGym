@@ -1,4 +1,4 @@
-name: physigym_linux_test_pilot
+name: physigym_windows_test_pilot
 run-name: ${{ github.actor }} is testing the physigym library on the windows os, all supported python versions, all tests available under the test folder.
 
 on:
@@ -8,8 +8,8 @@ on:
     branches: ["main"]
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  build-windows:
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
