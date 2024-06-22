@@ -30,8 +30,9 @@ jobs:
       with:
         update: true
         #install: base-devel flex bison gcc make diffutils mingw-w64-x86_64-toolchain mingw-w64-x86_64-ca-certificates git ninja python-pip
-        #install: pacman -S mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 git make
         install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 git make
+
+    - run: echo "${{ runner.temp }}/msys/msys64/mingw64/bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
     - name: install physicell
       run: |
@@ -51,7 +52,7 @@ jobs:
       run: |
         python -m ensurepip
         python -m pip install --upgrade pip
-        python -m pip install anndata flake8 gymnasium lxml matplotlib numpy pandas scipy vtk
+        python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
 
     - name: install pcdl
       run: |
