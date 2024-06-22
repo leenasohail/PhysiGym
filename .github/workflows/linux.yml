@@ -47,7 +47,7 @@ jobs:
         cd /home/runner/work/PhysiGym/
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
 
-   - name: lint with flake8
+    - name: lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
