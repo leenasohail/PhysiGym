@@ -56,7 +56,7 @@
         <variable name="drug" units="dimensionless" ID="0">
             <physical_parameter_set>
                 <diffusion_coefficient units="micron^2/min">100000.0</diffusion_coefficient>
-                <decay_rate units="1/min">0.001</decay_rate>
+                <decay_rate units="1/min">0.01</decay_rate>
             </physical_parameter_set>
             <initial_condition units="mmHg">0</initial_condition>
             <Dirichlet_boundary_condition units="mmHg" enabled="False">0</Dirichlet_boundary_condition>
@@ -220,14 +220,15 @@
 
     <user_parameters>
         <random_seed type="int" units="dimensionless" description="">-1</random_seed> <!-- bue: -1 0; real seeding is done in env.reset(seed=n) -->
-        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">64</number_of_cells>
+        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">48</number_of_cells>
         <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
         <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60.0</dt_gym>
         <my_float type="double" units="none" description="">0.0</my_float>
         <my_int type="int" units="none" description="">0</my_int>
         <my_bool type="bool" units="none" description="">false</my_bool>
         <my_str type="string" units="none" description="">abc</my_str>
-        <drug_dose type="double" units="fraction" description="">0.0</drug_dose>
+        <cell_count_target type="int" units="dimensionless" description="">64</cell_count_target>
         <cell_count type="int" units="dimensionless" description="">0</cell_count>
+        <drug_dose type="double" units="fraction" description="">0.0</drug_dose>
     </user_parameters>
 </PhysiCell_settings>

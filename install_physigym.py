@@ -28,7 +28,7 @@ import sys
 
 # const
 s_prj = 'physigym'
-s_module = 'physigym'
+#s_module = 'physigym'
 
 
 # function
@@ -66,11 +66,11 @@ def install_pcuserproj(s_root='../PhysiCell/', b_force=False):
 
     # copy files to the user_project's custom_modules folder
     s_path_cmodules = f'{s_path_prj}custom_modules/'
-    s_path_cmodules_module = f'{s_path_prj}custom_modules/{s_module}/'
+    #s_path_cmodules_module = f'{s_path_prj}custom_modules/{s_module}/'
     os.makedirs(s_path_cmodules, exist_ok=True)
     shutil.copy('LICENSE', s_path_cmodules)
     shutil.copy('PHYSICELL', s_path_cmodules)
-    shutil.copy('VERSION.txt', s_path_cmodules_module)
+    #shutil.copy('VERSION.txt', s_path_cmodules_module)
 
     # going home
     print("ok!")

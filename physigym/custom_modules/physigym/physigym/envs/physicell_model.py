@@ -80,11 +80,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # template
         #action_space = spaces.Dict({
-        #    'discrete': spaces.Discrete(2)  # boolean, int
-        #    'discrete': spaces.MultiBinary()  # boolean in a numpy array
-        #    'discrete': spaces.MultiDiscrete()
-        #    'discrete': spaces.Text() # string e.g. DNA letter
-        #    'numeric': spaces.Box()   # ints or floats in a numpy array
+        #    'discrete': spaces.Discrete(2)  # boolean, integer (parameter, custom_variable)
+        #    'discrete': spaces.Text() # string (parameter)
+        #    'discrete': spaces.MultiBinary()  # boolean in a numpy array (parameter, custom_variable, custom_vector)
+        #    'discrete': spaces.MultiDiscrete()  # boolean, integer in a numpy array (parameter, custom_variable, custom_vector)
+        #    'numeric': spaces.Box()   # boolean, integer, float in a numpy array (parameter, custom_variable, custom_vector)
         #})
 
         # model dependent action_space processing logic goes here!
@@ -118,11 +118,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #observation_space =
         #compositione: spaces.Dict({})
         #compositione: spaces.Tuple(())
-        #discrete: spaces.Discrete()  # boolean, int
-        #discrete: spaces.MultiBinary()  # boolean in a numpy array
-        #discrete: spaces.MultiDiscrete()
-        #discrete: spaces.Text()  # string e.g. DNA letters
-        #numeric: spaces.Box()  # int or float in a numpy array
+        #discrete: spaces.Discrete()  # boolean, integer
+        #discrete: spaces.Text()  # string
+        #discrete: spaces.MultiBinary()  # boolean numpy array
+        #discrete: spaces.MultiDiscrete() # boolean, integer numpy array
+        #numeric: spaces.Box()  # boolean, integer, float numpy array
         #niche: spaces.Graph(())
         #niche: spaces.Sequence(())  # set of spaces
 

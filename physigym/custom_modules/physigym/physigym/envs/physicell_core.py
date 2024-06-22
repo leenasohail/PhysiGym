@@ -409,21 +409,14 @@ class CorePhysiCellEnv(gymnasium.Env):
         # do action
         if self.verbose:
             print(f'physigym: action.')
-        for s_action, o_value in action.items():
-            # python/physicell api
+        for s_action, o_value in action.items():  # action is always a gymnasium composite space dict
+            # gymnasium composite space tuple: nop.
+            # gymnasium composite space sequences: nop.
+            # gymnasium composite space graph: nop.
 
-            if (type(o_value) in {np.ndarray, np.array, list, tuple}):
-                # try custom_vector
-                try:
-                    physicell.set_vector(s_action, o_value)
-                except KeyError:
-                    if (o_value.shape == (1,)):
-                        o_value = o_value[0]
-                    else:
-                        # error
-                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable variable type in array detected! {s_action} {type(o_value)} {o_value}.")
-
-            if  not (type(o_value) in {np.ndarray, np.array, list, tuple}):
+            # gymnasium action space discrete (boolean, integer)
+            # python/physicell api parametre, variable
+            if (type(o_value) in {bool, int}):
                 try:
                     # try custom_variable
                     physicell.set_variable(s_action, o_value)
@@ -431,9 +424,49 @@ class CorePhysiCellEnv(gymnasium.Env):
                     # try parameter
                     try:
                         physicell.set_parameter(s_action, o_value)
-                    except:
+                    # error
+                    except KeyError:
+                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium discrete action space value detected! {s_action} {o_value} {type(o_value)}.")
+
+            # gymnasium action space text (string)
+            # python/physicell api parameter, variable
+            elif (type(o_value) in {str}):
+                try:
+                    # try custom_variable
+                    physicell.set_variable(s_action, o_value)
+                except KeyError:
+                    # try parameter
+                    try:
+                        physicell.set_parameter(s_action, o_value)
+                    # error
+                    except KeyError:
+                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium text action space value detected! {s_action} {o_value} {type(o_value)}.")
+
+            # gymnasium action space box (bool, int, float in a numpy array)
+            # gymnasium action space multi binary (boolean in a numpy array)
+            # gymnasium action space multi discrete (boolean, integer in a numpy array)
+            # python/physicell api parameter, variabler, vector
+            elif (type(o_value) in {np.ndarray}):
+                if (len(o_value.shape) > 1):
+                    o_value = o_value[0]
+                try:
+                    # try vector
+                    physicell.set_vector(s_action, list(o_value))
+                except KeyError:
+                    # try custom_variable
+                    try:
+                        physicell.set_variable(s_action, o_value)
+                    # try parameter
+                    except KeyError:
+                        try:
+                            physicell.set_parameter(s_action, o_value)
                         # error
-                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable variable type detected! {s_action} {type(o_value)} {o_value}.")
+                        except KeyError:
+                            sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium box action space value detected! {s_action} {o_value} {type(o_value)}.")
+
+            # error
+            else:
+                sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium action space value detected! {s_action} {o_value} {type(o_value)}.")
 
         # do dt_gym time step
         if self.verbose:

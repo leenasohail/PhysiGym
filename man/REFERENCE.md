@@ -13,7 +13,7 @@ or by first loading the physigym module and environment,
 cd path/to/PhysiCell
 ```
 
-```python3
+```python
 from embedding import physicell
 import gymnasium
 import physigym

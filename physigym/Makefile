@@ -46,7 +46,7 @@ all: main.cpp
 
 python-instruction:
 	@echo ""
-	@echo "open a python3 shell and try:"
+	@echo "open a Python shell and try:"
 	@echo ""
 	@echo "import gymnasium"
 	@echo "import physigym"

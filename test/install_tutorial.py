@@ -19,9 +19,9 @@ import os
 import shutil
 
 
-###############################
-# install install py3pc_embed #
-###############################
+####################
+# install physigym #
+####################
 
 print('\nTUTORIAL: install physigym ...')
 os.chdir('../PhysiCell')
@@ -280,13 +280,14 @@ for s_line in fr:
     elif (s_line.find("r_reward = 0.0") > -1):
         b_jump = True
         fw.writelines([
+        "        i_cellcount_target = physicell.get_parameter('cell_count_target') \n",
         "        i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)\n",
-        "        if (i_cellcount == 128):\n",
+        "        if (i_cellcount == i_cellcount_target):\n",
         "            r_reward = 1\n",
-        "        elif (i_cellcount < 128):\n",
-        "            r_reward = i_cellcount / 128\n",
-        "        elif (i_cellcount > 128):\n",
-        "            r_reward = 1 - (i_cellcount - 128) / 128\n",
+        "        elif (i_cellcount < i_cellcount_target):\n",
+        "            r_reward = i_cellcount / i_cellcount_target\n",
+        "        elif (i_cellcount > i_cellcount_target):\n",
+        "            r_reward = 1 - (i_cellcount - i_cellcount_target) / i_cellcount_target\n",
         "        else:\n",
         "            sys.exit('Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.')\n",
         "\n",
@@ -343,7 +344,7 @@ for s_line in fr:
         "            ],\n",
         "            vmin=0.0, vmax=1.0, cmap='viridis',\n",
         "            grid=True,\n",
-        "            title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / 128 [cell]',\n",
+        "            title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / {physicell.get_parameter(\"cell_count_target\")} [cell]',\n",
         "            ax=ax,\n",
         "        )\n",
         "\n",

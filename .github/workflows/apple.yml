@@ -1,0 +1,42 @@
+name: physigym_apple_test_pilot
+run-name: ${{ github.actor }}::test physigym on macosx, the macosx python3 versions, all unit tests.
+
+on:
+  push:
+    branches: ["mainn"]
+  pull_request:
+    branches: ["mainn"]
+
+jobs:
+  build-macosx:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+
+    - name: install physicell
+      run: |
+        #brew install ffmpeg imagemagick
+        cd /Users/runner/work/PhysiGym/
+        git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
+        pwd -P
+        ls -l
+
+    - name: check out physigym repo
+      uses: actions/checkout@v4
+
+    - name: install python3 modules
+      run: |
+        #brew install pipx
+        pip install anndata gymnasium lxml matplotlib numpy pandas pcdl scipy vtk
+        which python3
+        which python
+        which pip3
+        which pip
+
+    - name: run test tutorial
+      run: |
+        cd /Users/runner/work/PhysiGym/PhysiGym/
+        python3 test/all_tutorial.py
+

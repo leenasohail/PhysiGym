@@ -75,11 +75,9 @@ int main(int argc, char* argv[]) {
     Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
 
     /* Users typically start modifying here. START USERMODS */
-
+    random_seed();
     create_cell_types();
-
     setup_tissue();
-
     /* Users typically stop modifying here. END USERMODS */
 
     // set MultiCellDS save options

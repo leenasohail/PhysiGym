@@ -18,6 +18,7 @@
 # modules
 import gymnasium
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 import pcdl
 import physigym  # import the Gymnasium PhysiCell bridge module
@@ -33,7 +34,7 @@ print('\nUNITTEST run test ...')
 os.chdir('../PhysiCell')
 os.system('rm timeseries_*_episode*.csv')
 # set variables
-i_cell_target = 96
+i_cell_target = 64
 
 # load PhysiCell Gymnasium environment
 env = gymnasium.make(
@@ -55,7 +56,7 @@ for i_episode in range(4):
     random.seed(0)
 
     # reset the environment
-    i_observation, d_info = env.reset(seed=0)
+    o_observation, d_info = env.reset(seed=0)
     r_reward = 0
 
     # episode time step loop
@@ -63,16 +64,15 @@ for i_episode in range(4):
     while not b_episode_over:
         # policy according to i_observation
         print(f'r_reward: {r_reward}')
+        print(f'o_observation: {o_observation}')
+        i_observation = o_observation[0]
         if (i_observation > i_cell_target):
-            d_action = {
-                'drug_dose': 1.0  - r_reward
-            }
+            r_dose = 1.0 - r_reward
         else:
-            d_action = {
-                'drug_dose': 0.0
-            }
-
-        #d_action = {'drug_dose': random.random() * 0.1}
+            r_dose = 0.0
+        #r_dose = random.random() * 0.03
+        print(f'r_dose: {r_dose}')
+        d_action = {'drug_dose': np.array([r_dose])}
 
         # action
         o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
