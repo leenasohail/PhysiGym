@@ -3,9 +3,9 @@ run-name: ${{ github.actor }} test physigym on linux os, all python versions, al
 
 on:
   push:
-    branches: ["main"]
+    branches: ["mainn"]
   pull_request:
-    branches: ["main"]
+    branches: ["mainn"]
 
 jobs:
   build-linux:
