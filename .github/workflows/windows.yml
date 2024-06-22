@@ -1,5 +1,5 @@
 name: physigym_windows_test_pilot
-run-name: ${{ github.actor }} is testing the physigym library on the windows os, all supported python versions, all tests available under the test folder.
+run-name: ${{ github.actor }} is testing the physigym library on the windows os, all supported python3 versions, all tests available under the test folder.
 
 on:
   push:
@@ -40,17 +40,16 @@ jobs:
     - name: check out physigym repo
       uses: actions/checkout@v4
 
-    - name: install python ${{ matrix.python-version }}
+    - name: install python3 ${{ matrix.python-version }}
       uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
 
-    - name: install python modules
+    - name: install python3 modules
       run: |
-        python -m ensurepip
-        #python -m pip install --upgrade pip
-        python -m pip install "pip<20"
-        python -m pip install anndata flake8 gymnasium lxml matplotlib numpy pandas scipy vtk
+        python3 -m ensurepip
+        python3 -m pip3 install "pip3<20"
+        python3 -m pip3 install ninja
+        python3 -m pip3 install --upgrade pip3
+        python3 -m pip3 install anndata flake8 gymnasium lxml matplotlib numpy pandas scipy vtk
 
     - name: install pcdl
       run: |
