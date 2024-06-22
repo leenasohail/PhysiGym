@@ -12,15 +12,12 @@ jobs:
     runs-on: macos-latest
     strategy:
       fail-fast: false
-      #matrix:
-      #  python-version: ["3.10"]
-        #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
 
     - name: install physicell
       run: |
-        brew install ffmpeg imagemagick
+        #brew install ffmpeg imagemagick
         cd /Users/runner/work/PhysiGym/
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
         pwd -P
@@ -29,15 +26,10 @@ jobs:
     - name: check out physigym repo
       uses: actions/checkout@v4
 
-    #- name: install python ${{ matrix.python-version }}
-    #  uses: actions/setup-python@v5
-    #  with:
-    #    pythin-version: ${{ matrix.python-version }}
-
     - name: install python modules
       run: |
-        brew install pipx
-        pipx install anndata gymnasium lxml matplotlib numpy pandas pcdl scipy vtk
+        #brew install pipx
+        pip install anndata gymnasium lxml matplotlib numpy pandas pcdl scipy vtk
         which python3
         which python
         which pip3
