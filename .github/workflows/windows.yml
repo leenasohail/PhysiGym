@@ -10,6 +10,11 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
     strategy:
       fail-fast: false
       matrix:
@@ -21,13 +26,16 @@ jobs:
 
     steps:
 
+    - uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: base-devel flex bison gcc make diffutils mingw-w64-x86_64-toolchain mingw-w64-x86_64-ca-certificates
+
     - name: install physicell
       run: |
         #sudo apt install ffmpeg imagemagick
         cd D:\a\PhysiGym\
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
-        pwd -P
-        ls -l
 
     - name: check out physigym repo
       uses: actions/checkout@v4
