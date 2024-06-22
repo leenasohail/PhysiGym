@@ -1,5 +1,5 @@
 name: physigym_linux_test_pilot
-run-name: ${{ github.actor }} is testing the physigym library on the linux os, all supported python versions, all tests available under the test folder.
+run-name: ${{ github.actor }} is testing the physigym library on the windows os, all supported python versions, all tests available under the test folder.
 
 on:
   push:
@@ -17,14 +17,14 @@ jobs:
         #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     env:
-      PYTHONPATH: /home/runner/work/PhysiGym/physicelldataloader
+      PYTHONPATH: D:\a\PhysiGym\physicelldataloader
 
     steps:
 
     - name: install physicell
       run: |
         #sudo apt install ffmpeg imagemagick
-        cd /home/runner/work/PhysiGym/
+        cd D:\a\PhysiGym\
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
         pwd -P
         ls -l
@@ -44,11 +44,11 @@ jobs:
 
     - name: install pcdl
       run: |
-        cd /home/runner/work/PhysiGym/
+        cd D:\a\PhysiGym\
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
 
     - name: run test tutorial
       run: |
-        cd /home/runner/work/PhysiGym/PhysiGym/
+        cd D:\a\PhysiGym\PhysiGym\
         python3 test/all_tutorial.py
 
