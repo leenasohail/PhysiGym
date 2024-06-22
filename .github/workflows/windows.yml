@@ -33,8 +33,6 @@ jobs:
 
     - name: install python3 modules
       run: |
-        #choco install python3
-        #python -m ensurepip
         python -m pip install --upgrade pip
         python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
 
@@ -56,11 +54,11 @@ jobs:
         cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
 
-    #- name: check out physigym repo
-    #  uses: actions/checkout@v4
+    - name: check out physigym repo
+      uses: actions/checkout@v4
 
-    #- name: run test tutorial
-    #  run: |
-    #    cd D:\\a\\PhysiGym\\PhysiGym\\
-    #    python test/all_tutorial.py
+    - name: run test tutorial
+      run: |
+        cd D:\\a\\PhysiGym\\PhysiGym\\
+        python test/all_tutorial.py
 
