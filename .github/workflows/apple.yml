@@ -1,5 +1,5 @@
 name: physigym_apple_test_pilot
-run-name: ${{ github.actor }}::test physigym on macosx, the macosx python versions, all unit tests.
+run-name: ${{ github.actor }}::test physigym on macosx, the macosx python3 versions, all unit tests.
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
     - name: check out physigym repo
       uses: actions/checkout@v4
 
-    - name: install python modules
+    - name: install python3 modules
       run: |
         #brew install pipx
         pip install anndata gymnasium lxml matplotlib numpy pandas pcdl scipy vtk

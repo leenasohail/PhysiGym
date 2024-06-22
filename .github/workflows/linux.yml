@@ -1,5 +1,5 @@
 name: physigym_linux_test_pilot
-run-name: ${{ github.actor }}::test physigym on linux os, all python versions, all unit tests.
+run-name: ${{ github.actor }}::test physigym on linux os, all python3 versions, all unit tests.
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11"]
+        python-version: ["3.10"]
         #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
