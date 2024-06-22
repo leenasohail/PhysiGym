@@ -11,26 +11,22 @@ jobs:
   build-windows:
     runs-on: windows-latest
 
-    #defaults:
-    #  run:
-    #    shell: msys2 {0}
-
     strategy:
       fail-fast: false
       matrix:
         python-version: ["3.11"]
         #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
-    #env:
-    #  PYTHONPATH: D:\a\PhysiGym\physicelldataloader
+    env:
+      PYTHONPATH: D:\a\PhysiGym\physicelldataloader
 
     steps:
 
     - name: install python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
-      with:                                                                     
-        python-version: ${{ matrix.python-version }}                            
-    
+      with:
+        python-version: ${{ matrix.python-version }}
+
     - name: clone pcdl
       run: |
         cd D:\\a\\PhysiGym\\
@@ -41,14 +37,14 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
         python -m pip install D:\a\PhysiGym\physicelldataloader -v
+        which python3
         which python
+        which pip3
         which pip
 
     - uses: msys2/setup-msys2@v2
       with:
         update: true
-        #install: base-devel flex bison gcc make diffutils mingw-w64-x86_64-toolchain mingw-w64-x86_64-ca-certificates git ninja python-pip
-    #    install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 git make python3 mingw-w64-x86_64-libxml2 mingw-w64-x86_64-libxslt mingw-w64-x86_64-ninja mingw-w64-x86_64-meson mingw-w64-x86_64-freetype
         install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2
 
     - name: install physicell
@@ -59,7 +55,9 @@ jobs:
 
     - name: which python3
       run: |
+        which python3
         which python
+        which pip3
         which pip
 
     - name: check out physigym repo
@@ -69,4 +67,3 @@ jobs:
       run: |
         cd D:\\a\\PhysiGym\\PhysiGym\\
         python test/all_tutorial.py
-
