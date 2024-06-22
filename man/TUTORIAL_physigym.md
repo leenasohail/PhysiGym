@@ -1,9 +1,11 @@
 # physigym : Bridging PhysiCell and Gymnasium
 
-Please install the latest version of the physigym user project, as described in the [HowTo](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md) section.
+Please install the latest version of the physigym user project, as described in the [HowTo](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_physigym.md) section.
 
 
 ## The most basic run.
+
+Open a Python shell.
 
 ```python
 import gymnasium
@@ -27,7 +29,7 @@ env.step(action={})  # do one gymnasium time step (similar to a mcds timestep)
 env.close()  # drop the PhysiCell gymnasium environment
 ```
 
-And kill the python runtime.
+And kill the Python runtime.
 ```python
 exit()
 ```
@@ -94,10 +96,10 @@ mkdir output
 ```
 
 
-1.4 Edit the custom_modules/custom.cpp file.
+1.4 Edit the *custom_modules/custom.cpp* file.
 
 We don't need the custom data vector template.
-At around line 142, delete the custom data vector.
+At around *line 142*, delete the custom data vector.
 
 ```C++
 // add custom data vector
@@ -108,7 +110,7 @@ for (int i = 0 ; i < all_cells->size(); i++) {
 ```
 
 
-1.5 Edit the custom_modules/custom.cpp file.
+1.5 Edit the *custom_modules/custom.cpp* file.
 
 We will need a function that will update the microenvironment with the drug we add.
 At the bottom of the file, add this function to update the microenvironment.
@@ -125,7 +127,7 @@ int set_microenv(std::string s_substrate, double r_dose) {
 ```
 
 
-1.6 Edit the custom_modules/custom.h header file.
+1.6 Edit the *custom_modules/custom.h* header file.
 
 At the bottom of the file, add the fresh implemented function.
 
@@ -137,18 +139,18 @@ int set_microenv(std::string s_substrate, double r_dose);
 
 2. The PhysiCell Python embedding level (C++)
 
-2.1 Edit the custom_modules/embedding/physicellmodule.cpp file.
+2.1 Edit the *custom_modules/embedding/physicellmodule.cpp* file.
 
 Parameters, custom variables, and custom vectors are only the interface.
 We still have to connect them to something meaningful.
 This is done in the custom_modules/embedding/physicellmodule.cpp in the physicell_step function.
 Please have a look at this function.
 
-At line around 170, you will find already prepared, commented out example code, for action and observation, for all possible parameter, variable and vector types.
+At *line around 170*, you will find already prepared, commented out example code, for action and observation, for all possible parameter, variable and vector types.
 
 Let's first focus on the action.
 The only thing left to do is to connect our drug_dose parameter with the already implemented set_microenv function.
-After the commented-out action example code, at line 203, inserts the following line.
+After the commented-out action example code, at *line 203*, inserts the following line.
 
 ```C++
 // add drug
@@ -158,7 +160,7 @@ set_microenv("drug", parameters.doubles("drug_dose"));
 2.2 Edit the custom_modules/embedding/physicellmodule.cpp file.
 
 For observation, we simply have to update our cell_count parameter with the actual cell count.
-After the commented out observation example code, at around line 245, insert the following line.
+After the commented out observation example code, at around *line 245*, insert the following line.
 
 ```C++
 // receive cell count
@@ -174,14 +176,14 @@ for (Cell* pCell : (*all_cells)) {
 ```
 
 
-3. The PhysiCell Gymnasium level (Python3)
+3. The PhysiCell Gymnasium level (Python)
 
-Finally, let's update the Gymnasium ModelPhysiCellEnv class, found in the custom_modules/physigym/physigym/envs/physicell_model.py.
+Finally, let's update the Gymnasium ModelPhysiCellEnv class, found in the *custom_modules/physigym/physigym/envs/physicell_model.py*.
 
 
-3.1 Edit the custom_modules/physigym/physigym/envs/physicell_model.py file.
+3.1 Edit the *custom_modules/physigym/physigym/envs/physicell_model.py* file.
 
-3.1.1 get_action_space function
+3.1.1 *get_action_space* function
 
 Let's declare the action space.
 In the studio, we specified the unit of the drug_dose parameter as a fraction.
@@ -203,7 +205,7 @@ d_action_space = spaces.Dict({
 ```
 
 
-3.1.2 get_observation_space function
+3.1.2 *get_observation_space* function
 
 We do a similar thing for the observation space.
 Based on our classic run we do not expect to have more than 2^14 cells.
@@ -214,7 +216,7 @@ o_observation_space = spaces.Box(low=0, high=(2**16 - 1), shape=(1,), dtype=np.u
 ```
 
 
-3.1.3 get_observation
+3.1.3 *get_observation* function
 
 In our model, the only thing we have to observe is the cell count.
 The way we provide this information has to be compatible with the observation space we defined above, in our case, a single integer number.
@@ -225,7 +227,7 @@ Replace the default `o_observation = {'discrete': True}` with:
 o_observation = np.array([physicell.get_parameter('cell_count')], dtype=np.uint16)
 ```
 
-3.1.4 get_info
+3.1.4 *get_info* function
 
 We could provide additional information essential for controlling the action of the policy.
 For example, if we do reinforcement learning on a [jump and run game](https://c64online.com/c64-games/the-great-giana-sisters/), the number of hearts (lives left) from our character.
@@ -235,7 +237,7 @@ In our simple model, we don't have such information.
 So, just leave the default, the empty dictionary.
 
 
-3.1.5 get_terminated
+3.1.5 *get_terminated* function
 
 In our model, the run (episode) will be terminated if all cells are dead and the species has died out.
 Note that it is a huge difference, if the model is terminated (all cells are dead) or is truncated (simply runs out of max time).
@@ -247,7 +249,7 @@ b_terminated = physicell.get_parameter('cell_count') <= 0
 ```
 
 
-3.1.6 get_reward
+3.1.6 *get_reward* function
 
 The reward has to be a float number between or equal to 0.0 and 1.0.
 Delete the default `r_reward = 0.0`.
@@ -257,7 +259,7 @@ Our reward algorithm looks like this:
 i_cellcount_target = physicell.get_parameter('cell_count_target')
 i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=256)
 if (i_cellcount == i_cellcount_target):
-    r_reward == 1
+    r_reward = 1
 elif (i_cellcount < i_cellcount_target):
     r_reward = i_cellcount / i_cellcount_target
 elif (i_cellcount > i_cellcount_target):
@@ -267,7 +269,7 @@ else:
 ```
 
 
-3.1.7 get_img function
+3.1.7 *get_img* function
 
 We will now implement a plot, to display drug concentration in the domain, as well as all cells, colored by the apoptosis rate.
 
@@ -321,12 +323,12 @@ df_cell.plot(
 ```
 
 
-4. Running the model (Python3 and Bash)
+4. Running the model (Python and Bash)
 
 4.1 Compile the model.
 
 This is necessary, because of all the changes we did in the PhysiCell custom.cpp code and the embedding module.
-And even the physigym python module is ultimately installed in editable mode (have a look at the pip install command in the Make file), the module has still to be built and installed once.
+And even the physigym Python module is ultimately installed in editable mode (have a look at the pip install command in the Make file), the module has still to be built and installed once.
 ```bash
 make
 ```
@@ -338,6 +340,7 @@ Open a Pyton shell and execute the following code sequence (or write a Python sc
 
 ```python
 # library
+from embedding import physicell
 import gymnasium
 import numpy as np
 import physigym
@@ -376,16 +379,16 @@ exit()
 
 ```python
 # library
+from embedding import physicell
 import gymnasium
 import numpy as np
 import physigym
-from tqdm import tqdm
 
 # load PhysiCell Gymnasium environment
 env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', render_mode='human', render_fps=10)
 
 # episode loop
-for i_episode in tqdm(range(3)):
+for i_episode in range(3):
 
     # reset the environment
     r_reward = 0.0
@@ -420,7 +423,7 @@ For more information about the Gymnasium interface, please study the official do
 + https://gymnasium.farama.org/main/
 
 
-5. The PhysiCell data loader for data analysis (Python3 and Bash)
+5. The PhysiCell data loader for data analysis (Python and Bash)
 
 We can do similar plotting and even more in-depth data analysis with the [pcdl](https://github.com/elmbeech/physicelldataloader) library on the dumped data.
 
@@ -430,7 +433,7 @@ Install the [pcdl](https://github.com/elmbeech/physicelldataloader) library.
 pip3 install -U pcdl
 ```
 
-Open a Python3 shell and use the [pcdl](https://github.com/elmbeech/physicelldataloader) library to do a time series plot.
+Open a Python shell and use the [pcdl](https://github.com/elmbeech/physicelldataloader) library to do a time series plot.
 
 ```python
 # library
