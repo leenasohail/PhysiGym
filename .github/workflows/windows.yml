@@ -1,5 +1,5 @@
 name: physigym_windows_test_pilot
-run-name: ${{ github.actor }} test physigym on the windows os, all python3 versions, all unit tests.
+run-name: ${{ github.actor }} test physigym on the windows os, the msys2 python3 versions, all unit tests.
 
 on:
   push:
@@ -17,9 +17,6 @@ jobs:
 
     strategy:
       fail-fast: false
-      matrix:
-        python-version: ["3.10"]
-        #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     #env:
     #  PYTHONPATH: D:\a\PhysiGym\physicelldataloader
@@ -29,7 +26,13 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2 git mingw-w64-x86_64-python mingw-w64-x86_64-python-pip
+        install: 
+          mingw-w64-x86_64-binutils mingw-w64-x86_64-gcc mingw-w64-x86_64-headers-git mingw-w64-x86_64-gcc-libs mingw-w64-x86_64-libwinpthread-git mingw-w64-x86_64-winpthreads-git mingw-w64-x86_64-lapack mingw-w64-x86_64-openblas mingw-w64-x86_64-libxml2 mingw-w64-x86_64-bzip2
+          git 
+          mingw-w64-x86_64-python mingw-w64-x86_64-python-pip 
+          mingw-x86_64-w64-python-matplotlib mingw-w64-x86_64-python-lxml mingw-w64-x86_64-python-numpy mingw-w64-x86_64-python-pandas mingw-w64-x86_64-python-scipy
+          #mingw-w64-x86_64-ninja
+          #mingw-w64-x86_64-vtk
 
     - name: clone physicell
       run: |
@@ -45,15 +48,11 @@ jobs:
         cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
 
-    - name: install python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
     - name: install python3 modules
       run: |
         python -m pip install --upgrade pip
-        python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
+        #python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
+        python -m pip install anndata gymnasium vtk
         python -m pip install D:\a\PhysiGym\physicelldataloader -v
         which python3
         which python
