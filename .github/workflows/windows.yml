@@ -34,8 +34,7 @@ jobs:
     - name: install physicell
       run: |
         #sudo apt install ffmpeg imagemagick
-        cd D:\\a\\
-        cd ,
+        cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
 
     - name: check out physigym repo
@@ -53,11 +52,11 @@ jobs:
 
     - name: install pcdl
       run: |
-        cd D:\a\PhysiGym\
+        cd D:\\a\\PhysiGym\\
         git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
 
     - name: run test tutorial
       run: |
-        cd D:\a\PhysiGym\PhysiGym\
+        cd D:\\a\\PhysiGym\\PhysiGym\\
         python3 test/all_tutorial.py
 
