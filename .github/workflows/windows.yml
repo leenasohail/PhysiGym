@@ -18,8 +18,8 @@ jobs:
     strategy:
       fail-fast: false
 
-    #env:
-    #  PYTHONPATH: D:\a\PhysiGym\physicelldataloader
+    env:
+      PYTHONPATH: D:\a\PhysiGym\physicelldataloader
 
     steps:
     - name: install msys2
@@ -32,7 +32,6 @@ jobs:
           mingw-w64-x86_64-python mingw-w64-x86_64-python-pip 
           mingw-w64-x86_64-python-matplotlib mingw-w64-x86_64-python-lxml mingw-w64-x86_64-python-numpy mingw-w64-x86_64-python-pandas mingw-w64-x86_64-python-scipy mingw-w64-x86_64-python-h5py
           mingw-w64-x86_64-vtk
-          #mingw-w64-x86_64-ninja
 
     - name: clone physicell
       run: |
@@ -43,29 +42,15 @@ jobs:
     - name: clone physigym repo
       uses: actions/checkout@v4
 
-    - name: clone pcdl
-      run: |
-        cd D:\\a\\PhysiGym\\
-        git clone --depth 1 https://github.com/elmbeech/physicelldataloader.git
-
     - name: install python3 modules
       run: |
         python -m pip install --upgrade pip
-        #python -m pip install anndata gymnasium lxml matplotlib numpy pandas scipy vtk
-        #python -m pip install anndata gymnasium vtk
-        python -m pip install anndata gymnasium
-        python -m pip install D:\a\PhysiGym\physicelldataloader -v
+        #python -m pip install anndata gymnasium lxml matplotlib numpy pandas pcdl scipy vtk
+        #python -m pip install anndata gymnasium pcdl vtk
+        python -m pip install anndata gymnasium pcdl
         which python3
         which python
         which pip3
-        which pip
-
-    - name: which python3
-      shell: msys2 {0}
-      run: |
-        #which python
-        which python
-        #which pip
         which pip
 
     - name: run test tutorial
