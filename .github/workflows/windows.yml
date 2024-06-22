@@ -49,7 +49,7 @@ jobs:
       run: |
         python -m ensurepip
         #python -m pip install --upgrade pip
-        python -m pip install pip<20
+        python -m pip install "pip<20"
         python -m pip install anndata flake8 gymnasium lxml matplotlib numpy pandas scipy vtk
 
     - name: install pcdl
