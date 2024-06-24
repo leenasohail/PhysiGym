@@ -30,13 +30,22 @@ void random_seed(void) {
 }
 
 
-void create_cell_types(void) {
+void generate_cell_types(void) {
 
     // Put any modifications to default cell definition here if you
     // want to have "inherited" by other cell types.
     // This is a good place to set default functions.
 
-    // reset cell definition for each episode (core/PhysiCell_cell.cpp).
+    // delete cells
+    for (Cell* pCell: (*all_cells)) {
+        pCell->die();
+    }
+
+    // reset cell ID counter (BioFVM/BioFVM_basic_agent.cpp)
+    // bue 20240608: not strictely necessary!
+    BioFVM::reset_max_basic_agent_ID();
+
+    // reset cell definitions (core/PhysiCell_cell.cpp)
     cell_defaults = PhysiCell::Cell_Definition();
     PhysiCell::cell_definitions_by_index.clear();
     PhysiCell::cell_definitions_by_index.push_back(&cell_defaults);

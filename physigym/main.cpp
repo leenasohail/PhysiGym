@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
 
     /* Users typically start modifying here. START USERMODS */
     random_seed();
-    create_cell_types();
+    generate_cell_types();
     setup_tissue();
     /* Users typically stop modifying here. END USERMODS */
 
