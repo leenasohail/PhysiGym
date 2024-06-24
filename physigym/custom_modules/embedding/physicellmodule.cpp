@@ -64,6 +64,9 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     // copy seeding file
     // nop
 
+    // reset global variables
+    PhysiCell_globals = PhysiCell_Globals();
+
     // OpenMP setup
     omp_set_num_threads(PhysiCell_settings.omp_num_threads);
 
@@ -81,7 +84,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // Users typically start modifying here.
     random_seed();
-    create_cell_types();  // (re)load cell definitions; display_cell_definitions; generates rules.csv v1 file
+    generate_cell_types();  // delete cells; reload cell definitions; display_cell_definitions; generates rules.csv v1 file
     setup_tissue();
     // Users typically stop modifying here.
 
@@ -342,18 +345,6 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     std::cout << "Total simulation runtime: " << std::endl;
     BioFVM::display_stopwatch_value(std::cout, BioFVM::runtime_stopwatch_value());
     std::cout << std::endl;
-
-    // delete cells
-    for (Cell* pCell: (*all_cells)) {
-        pCell->die();
-    }
-
-    // reset cell ID counter
-    // bue 20240608: not strictely necessary!
-    //BioFVM::reset_max_basic_agent_ID();
-
-    // reset global variables
-    PhysiCell_globals = PhysiCell_Globals();
 
     // go home
     return PyLong_FromLong(0);
