@@ -58,7 +58,7 @@ std::vector<Basic_Agent*> all_basic_agents(0);
 static int max_basic_agent_ID = 0;
 
 // bue 20240509: added
-void reset_max_basic_agent_ID()
+void reset_max_basic_agent_ID( void )
 {
     max_basic_agent_ID = 0;
 }

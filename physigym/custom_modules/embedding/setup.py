@@ -48,7 +48,7 @@ setup(
                 # PhysiCell_core_OBJECTS and components
                 "core/PhysiCell_basic_signaling.cpp",
                 "core/PhysiCell_cell_container.cpp",
-                "core/PhysiCell_cell.cpp",  # bue 20240610: and header file modified (cell_definition exists?) [pull requested 20240616]
+                "core/PhysiCell_cell.cpp",  # bue 20240610: cpp and header file modified (cell_definition exists?) [pull requested 20240616]
                 "core/PhysiCell_constants.cpp",
                 "core/PhysiCell_custom.cpp",
                 #"core/PhysiCell_digital_cell_line.cpp",
@@ -64,7 +64,7 @@ setup(
                 "modules/PhysiCell_pathology.cpp",
                 #"modules/PhysiCell_POV.cpp",
                 "modules/PhysiCell_pugixml.cpp",
-                "modules/PhysiCell_settings.cpp",  # bue 20240430: modified (parameter exists? and more.) [pull requested 20240616]
+                "modules/PhysiCell_settings.cpp",  # bue 20240430: modified (parameter exists? and more density exist and parameter exist related.) [pull requested 20240616]
                 "modules/PhysiCell_SVG.cpp",
                 "modules/PhysiCell_various_outputs.cpp",
 

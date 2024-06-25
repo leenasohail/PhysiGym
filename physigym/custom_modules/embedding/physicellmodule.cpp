@@ -97,6 +97,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     // save data initial simulation snapshot
     //char filename[1024];  // bue 20240130: going global
     sprintf(filename, "%s/initial", PhysiCell_settings.folder.c_str());
+    BioFVM::reset_BioFVM_substrates_initialized_in_dom();  // reset mesh0
     save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
 
     // save data output00000000 simulation snapshot
