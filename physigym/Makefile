@@ -321,7 +321,8 @@ upgrade: $(SOURCE)
 # user projects
 
 # use: make command PROJ=your_project_name
-PROJ := physigym
+# bue 20240625: don't change default to keep up with physicell standard.
+PROJ := my_project
 
 save:
 	echo "Saving project as $(PROJ) ... "
@@ -330,7 +331,6 @@ save:
 	mkdir -p ./user_projects/$(PROJ)/custom_modules
 	mkdir -p ./user_projects/$(PROJ)/config
 	cp main.cpp ./user_projects/$(PROJ)
-	awk -i inplace '{gsub("^PROJ :=.*$$", "PROJ := $(PROJ)", $$0); print $$0}' Makefile
 	cp Makefile ./user_projects/$(PROJ)
 	cp VERSION.txt ./user_projects/$(PROJ)
 	cp -r ./config/* ./user_projects/$(PROJ)/config
