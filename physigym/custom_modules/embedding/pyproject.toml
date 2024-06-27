@@ -21,7 +21,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "embedding"  # as it would appear on PyPI
 dynamic = ["version"]
-description = "Embed physicell into python."
+description = "Embed PhysiCell into Python."
 #readme = "README.md"
 requires-python = ">=3.8, <4"
 license = {text="BSD-3-Clause"}

@@ -43,14 +43,14 @@ def install_pcuserproj(s_root='../PhysiCell/', b_force=False):
         check out argparse in __main__ .
     """
 
-    # check for physicell root folder
+    # check for PhysiCell root folder
     s_root = s_root.replace('\\','/')
     if not s_root.endswith('/'):
         s_root = s_root + '/'
     if not (os.path.isdir(s_root)):
         sys.exit(f"Error @ install_pcuserproj : no PhysiCell root directory found at '{s_root}'.")
 
-    # check for physicell user_projects project folder
+    # check for PhysiCell user_projects project folder
     s_path_prj = f'{s_root}user_projects/{s_prj}/'
     if ((not b_force) and os.path.exists(s_path_prj)):
         sys.exit(f"Error @ install_pcuserproj : {s_path_prj} already exists!\nUse the command line -f or --force argument to overwrite the existing project with this {s_prj} template project.")

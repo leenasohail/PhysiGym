@@ -321,7 +321,7 @@ upgrade: $(SOURCE)
 # user projects
 
 # use: make command PROJ=your_project_name
-# bue 20240625: don't change default to keep up with physicell standard.
+# bue 20240625: don't change default to keep up with PhysiCell standard.
 PROJ := my_project
 
 save:

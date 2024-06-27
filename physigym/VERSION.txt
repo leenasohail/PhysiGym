@@ -1,2 +1,2 @@
-# physicell version
+# PhysiCell version
 1.13.1

@@ -12,21 +12,21 @@ import gymnasium
 import physigym  # import the Gymnasium PhysiCell bridge module
 ```
 
-List the registered gymnasium classes.
-In this listing you should find below the core classes, that ship with the basic installation, the just installed and imported physigym/ModelPhysiCellEnv-v\* gymnasium environment class.
+List the registered Gymnasium classes.
+In this listing you should find below the core classes, that ship with the basic installation, the just installed and imported physigym/ModelPhysiCellEnv-v\* Gymnasium environment class.
 
 ```python
 gymnasium.envs.pprint_registry()
 ```
 
-Let's make an instance of the ModelPhysiCellEnv class and do a manual physicell run.
+Let's make an instance of the ModelPhysiCellEnv class and do a manual PhysiCell run.
 The output should look familiar to PhysiCell users.
 ```python
 env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
 
 env.reset()  # initialize PhysiCell run
-env.step(action={})  # do one gymnasium time step (similar to a mcds timestep)
-env.close()  # drop the PhysiCell gymnasium environment
+env.step(action={})  # do one Gymnasium time step (similar to a mcds timestep)
+env.close()  # drop the PhysiCell Gymnasium environment
 ```
 
 And kill the Python runtime.
@@ -89,7 +89,7 @@ make classic
 ./project
 ```
 
-Let's make a clean slate for the next physicell run.
+Let's make a clean slate for the next PhysiCell run.
 ```bash
 rm -r output
 mkdir output

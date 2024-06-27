@@ -11,7 +11,7 @@
 // modified source code: https://github.com/Dante-Berth/PhysiGym
 //
 // description:
-//   for the physicell python embedding the content of this regular main.cpp
+//   for the PhysiCell Python embedding the content of this regular main.cpp
 //   was ported to the physicellmodule.cpp file.
 //   this main.cpp was kept, to be still able to run the model the classic way,
 //   although slightly adapted to be compatible with physicellmodule.cpp.
@@ -27,7 +27,7 @@
 #include <iostream>
 #include <omp.h>
 
-// loade physicell library
+// loade PhysiCell library
 #include "./core/PhysiCell.h"
 #include "./modules/PhysiCell_standard_modules.h"
 #include "./custom_modules/custom.h"
