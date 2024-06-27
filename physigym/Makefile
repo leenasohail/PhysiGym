@@ -67,7 +67,7 @@ python-instruction:
 
 
 ### BEGIN make classic related compiler infromation
-### ACHTUNG: for py3pc embedding this content was ported to custom_modules/setup.py!
+### ACHTUNG: for python_with_physicell embedding this content was ported to custom_modules/setup.py!
 
 COMPILE_COMMAND := $(CC) $(CFLAGS)
 
@@ -193,7 +193,7 @@ PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
 custom.o: ./custom_modules/custom.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
 
-### ACHTUNG: for py3pc embedding this content was ported to custom_modules/setup.py!
+### ACHTUNG: for python_with_physicell embedding this content was ported to custom_modules/setup.py!
 ### END: make classic related compiler infromation
 
 

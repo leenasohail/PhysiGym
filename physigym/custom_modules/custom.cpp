@@ -99,8 +99,8 @@ void generate_cell_types(void) {
 void setup_microenvironment(void) {
     // set domain parameters
 
-    // Put any custom code here,
-    // to set non-homogeneous initial conditions or extra Dirichlet nodes.
+    // Put any custom code to set non-homogeneous initial conditions or
+    // extra Dirichlet nodes here.
 
     // initialize BioFVM
     initialize_microenvironment();
