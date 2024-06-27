@@ -7,7 +7,7 @@
 # author: Elmar Bucher
 #
 # description:
-#   Building a setuptools based python3 C++ extension module.
+#   Building a setuptools based python C++ extension module.
 # https://setuptools.pypa.io/en/latest/userguide/ext_modules.html
 # https://elmjag.github.io/setuptools.html
 #####

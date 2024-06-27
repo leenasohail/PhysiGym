@@ -18,7 +18,7 @@
 ////////
 
 
-// load standard libraries
+// load standard library
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -27,12 +27,12 @@
 #include <iostream>
 #include <omp.h>
 
-// loade physicell libraries
+// loade physicell library
 #include "./core/PhysiCell.h"
 #include "./modules/PhysiCell_standard_modules.h"
 #include "./custom_modules/custom.h"
 
-// load namespaces
+// load namespace
 using namespace BioFVM;
 using namespace PhysiCell;
 

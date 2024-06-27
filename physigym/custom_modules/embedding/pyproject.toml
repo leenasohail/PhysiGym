@@ -21,7 +21,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "embedding"  # as it would appear on PyPI
 dynamic = ["version"]
-description = "Embed physicell into python3."
+description = "Embed physicell into python."
 #readme = "README.md"
 requires-python = ">=3.8, <4"
 license = {text="BSD-3-Clause"}
@@ -29,7 +29,7 @@ authors = [{name="Elmar Bucher", email="epbucher@iu.edu"}]
 maintainers = [{name="Elmar Bucher", email="epbucher@iu.edu"}]
 keywords = [
     "physicell",
-    "python3",
+    "python",
     "c++",
     "embedding",
 ]

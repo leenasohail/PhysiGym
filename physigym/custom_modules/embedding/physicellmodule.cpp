@@ -22,7 +22,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-// load standard libraries
+// load standard library
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -31,24 +31,24 @@
 #include <iostream>
 #include <omp.h>
 
-// loade physicell libraries
+// loade physicell library
 #include "core/PhysiCell.h"
 #include "modules/PhysiCell_standard_modules.h"
 #include "../../custom_modules/custom.h"
 
-// load namespaces
+// load namespace
 using namespace BioFVM;
 using namespace PhysiCell;
 
-// global variables
+// global variable
 char filename[1024];
 std::ofstream report_file;
 //std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;
 
 
-// functions
+// function
 
-// extended python3 C++ function start
+// extended python C++ function start
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // extract args take default if no args
@@ -150,7 +150,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function step
+// extended python C++ function step
 static PyObject* physicell_step(PyObject *self, PyObject *args) {
     // main loop
 
@@ -333,7 +333,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function stop
+// extended python C++ function stop
 static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
     // save final data simulation snapshot
@@ -361,7 +361,7 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 }
 
 
-// extend python3 C++ function set_parameter
+// extend python C++ function set_parameter
 static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
     // extract input
     const char *label;
@@ -370,7 +370,7 @@ static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ into python3 variable
+    // recall from C++ into python variable
     int parindex;
     char error[64];
 
@@ -420,7 +420,7 @@ static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
 }
 
 
-// extend python3 C++ function get_parameter
+// extend python C++ function get_parameter
 static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
     // extract variable label
     const char *label;
@@ -428,7 +428,7 @@ static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ into python3 variable
+    // recall from C++ into python variable
     int parindex;
 
     // bool
@@ -471,7 +471,7 @@ static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function set_variable
+// extended python C++ function set_variable
 static PyObject* physicell_set_variable(PyObject *self, PyObject *args) {
     // extract variable label and value
     const char *label;
@@ -499,7 +499,7 @@ static PyObject* physicell_set_variable(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_variable
+// extended python C++ function get_variable
 static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
     // extract variable label
     const char *label;
@@ -507,7 +507,7 @@ static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ intp python3 list
+    // recall from C++ intp python list
     int cell_count = all_cells->size();
     PyObject *pList = PyList_New(cell_count);
     for (int i=0; i < cell_count; i++) {
@@ -530,7 +530,7 @@ static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function set_vector
+// extended python C++ function set_vector
 static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
     // https://stackoverflow.com/questions/22458298/extending-python-with-c-pass-a-list-to-pyarg-parsetuple
     // https://docs.python.org/3/c-api/arg.html
@@ -573,7 +573,7 @@ static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_vector
+// extended python C++ function get_vector
 static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
     // extract variable label
     const char *label;
@@ -581,7 +581,7 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ into python3 list of list
+    // recall from C++ into python list of list
     bool first = true;
     int cell_count = all_cells->size();
     PyObject *pLlist = PyList_New(cell_count);
@@ -613,10 +613,10 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_cell
+// extended python C++ function get_cell
 static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 
-    // recall from C++ into python3 list of list
+    // recall from C++ into python list of list
     int cell_count = all_cells->size();
     PyObject *pLlist = PyList_New(cell_count);
 
@@ -636,7 +636,7 @@ static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_microenv
+// extended python C++ function get_microenv
 static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     // extract variable label
     const char *substrate;
@@ -653,7 +653,7 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ into python3 list of list
+    // recall from C++ into python list of list
     int voxel_count = microenvironment.number_of_voxels();
     PyObject *pLlist = PyList_New(voxel_count);
 
@@ -671,7 +671,7 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function system
+// extended python C++ function system
 static PyObject* physicell_system(PyObject *self, PyObject *args) {
     // variables
     const char *command;
