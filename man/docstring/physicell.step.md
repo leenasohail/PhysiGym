@@ -8,7 +8,7 @@
 
 ## output:
 ```
-    physicell processing. 0 for success.
+    PhysiCell processing. 0 for success.
 
 ```
 

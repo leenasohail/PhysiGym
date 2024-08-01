@@ -80,6 +80,6 @@ To be BibTeX.
 
 # Release Notes:
 
-+ 0.0.1 (2024-06-20): the basic physigym implementation works.
++ 0.1.0 (2024-06-20): the basic physigym implementation works.
 + 0.0.0 (2024-04-15): physigym rises from the ashes.
 

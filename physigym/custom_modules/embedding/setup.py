@@ -80,6 +80,7 @@ setup(
                 "-fopenmp",  # CFLAG
                 "-m64",  # CFLAG
                 "-std=c++11",  # CFLAG
+                #"-g",  # gdb
             ],
 
             extra_link_args=[  # needed for openmp
