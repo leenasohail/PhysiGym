@@ -8,7 +8,7 @@
 
 ## output:
 ```
-    physicell processing. 0 for success.
+    PhysiCell processing. 0 for success.
 
 ```
 
@@ -21,5 +21,5 @@
 
 ## description:
 ```
-    function (re)initializes physicell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output. if run for re-initialization, it is assumed that start will not be called before stop has been called.
+    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output.
 ```

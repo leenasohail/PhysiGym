@@ -10,7 +10,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     gymnasium enviroemnt for physicell embedding
+#     Gymnasium enviroemnt for PhysiCell embedding
 # + https://gymnasium.farama.org/main/
 # + https://gymnasium.farama.org/main/introduction/create_custom_env/
 # + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/environment_creation/
@@ -68,7 +68,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             d_action_space: dictionary composition space
                 the dictionary keys have to match the parameter,
                 custom variable, or custom vector label.
-                the value has to be defined as gymnasium space object.
+                the value has to be defined as gymnasium.spaces object.
                 + https://gymnasium.farama.org/main/api/spaces/
         run:
             internal function, user defined.

@@ -39,7 +39,7 @@ def recall_pcuserproj(s_root='../PhysiCell/'):
     description:
         check out argparse in __main__ .
     """
-    # check for physicell root folder
+    # check for PhysiCell root folder
     s_root = s_root.replace('\\','/')
     if not s_root.endswith('/'):
         s_root = s_root + '/'

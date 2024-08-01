@@ -10,15 +10,19 @@
 // modified source code: https://github.com/elmbeech/physicellembedding
 // modified source code: https://github.com/Dante-Berth/PhysiGym
 // input: https://docs.python.org/3/extending/extending.html
+//
+// description:
+//   for the PhysiCell Python embedding the content of the regular main.cpp
+//   was ported to this physicellmodule.cpp file.
 ////////
 
 
-// pull in the python API
+// load Python API
 // since Python may define some pre-processor definitions which affect the standard headers on some systems, you must include Python.h before any standard headers are included.
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-// load standard libraries
+// load standard library
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -27,7 +31,7 @@
 #include <iostream>
 #include <omp.h>
 
-// loade physicell libraries
+// loade PhysiCell library
 #include "core/PhysiCell.h"
 #include "modules/PhysiCell_standard_modules.h"
 #include "../../custom_modules/custom.h"
@@ -36,15 +40,15 @@
 using namespace BioFVM;
 using namespace PhysiCell;
 
-// global variables
+// global variable
 char filename[1024];
 std::ofstream report_file;
 //std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;
 
 
-// functions
+// function
 
-// extended python3 C++ function start
+// extended Python C++ function start
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // extract args take default if no args
@@ -65,7 +69,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     // nop
 
     // reset global variables
-    PhysiCell_globals = PhysiCell_Globals();
+    PhysiCell_globals = PhysiCell_Globals();  // bue 20240624: reset
 
     // OpenMP setup
     omp_set_num_threads(PhysiCell_settings.omp_num_threads);
@@ -74,7 +78,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     std::string time_units = "min";
 
     // Microenvironment setup //
-    setup_microenvironment(); // modify this in the custom code
+    setup_microenvironment();  // modify this in the custom code
 
     // PhysiCell setup ///
 
@@ -84,7 +88,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // Users typically start modifying here.
     random_seed();
-    generate_cell_types();  // delete cells; reload cell definitions; display_cell_definitions; generates rules.csv v1 file
+    generate_cell_types();  // bue 20240624: delete cells; (re)load cell definitions;
     setup_tissue();
     // Users typically stop modifying here.
 
@@ -94,19 +98,22 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     set_save_biofvm_cell_data(true);
     set_save_biofvm_cell_data_as_custom_matlab(true);
 
-    // save data initial simulation snapshot
+    // bue 20240624: reset mesh0
+    BioFVM::reset_BioFVM_substrates_initialized_in_dom();
+
+    // save initial data simulation snapshot
     //char filename[1024];  // bue 20240130: going global
     sprintf(filename, "%s/initial", PhysiCell_settings.folder.c_str());
     save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
 
-    // save data output00000000 simulation snapshot
-    if (PhysiCell_settings.enable_full_saves == true ) {
+    // save data simulation snapshot output00000000
+    if (PhysiCell_settings.enable_full_saves == true) {
         sprintf(filename, "%s/output%08u", PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index);
         save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
     }
 
-    // save legend.svg and initial.svg cross section through z = 0
-    PhysiCell_SVG_options.length_bar = 200;  // after setting cross section length bar to 200 microns
+    // save initial svg cross section through z = 0 and legend
+    PhysiCell_SVG_options.length_bar = 200;  // set cross section length bar to 200 microns
     std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // set pathology coloring function // bue 20240130: not going global
 
     sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
@@ -115,22 +122,22 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
     SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
 
-    // save snapshot00000000.svg cross section through z = 0
+    // save svg cross section snapshot00000000
     if (PhysiCell_settings.enable_SVG_saves == true) {
         sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
         SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
     }
 
-    // save legacy simulation_report
+    // save legacy simulation report
     //std::ofstream report_file;  // bue 20240130: going global
     if (PhysiCell_settings.enable_legacy_saves == true) {
         sprintf(filename, "%s/simulation_report.txt", PhysiCell_settings.folder.c_str());
         report_file.open(filename);  // create the data log file
         report_file << "simulated time\tnum cells\tnum division\tnum death\twall time" << std::endl;
-        log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
+        log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);  // output00000000
     }
 
-    // standard outout
+    // standard output
     display_citations();
     display_simulation_status(std::cout);  // output00000000
 
@@ -143,7 +150,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function step
+// extended Python C++ function step
 static PyObject* physicell_step(PyObject *self, PyObject *args) {
     // main loop
 
@@ -165,7 +172,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
         while (step) {
 
             // max time reached?
-            if (PhysiCell_globals.current_time > (PhysiCell_settings.max_time + parameters.doubles("dt_gym"))) {
+            if (PhysiCell_globals.current_time > PhysiCell_settings.max_time) {
                 step = false;
             }
 
@@ -198,14 +205,14 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //    if (vectindex > -1) {
                 //        my_function( pCell->custom_data.vector_variables[vectindex].value );
                 //    } else {
-                //        char error[64];
+                //        char error[256];
                 //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
                 //        PyErr_SetString(PyExc_KeyError, error);
                 //        return NULL;
                 //    }
                 //}
 
-	    }
+            }
 
             // do observation
             // on dt_gym time step
@@ -240,7 +247,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //    if (vectindex > -1) {
                 //        pCell->custom_data.vector_variables[vectindex].value = value;
                 //    } else {
-                //        char error[64];
+                //        char error[256];
                 //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
                 //        PyErr_SetString(PyExc_KeyError, error);
                 //        return NULL;
@@ -293,13 +300,15 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 
                 display_simulation_status(std::cout);
 
-                if (PhysiCell_settings.enable_legacy_saves == true) {
-                    log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
-                }
-
+                // save data simulation snapshot
                 if (PhysiCell_settings.enable_full_saves == true ) {
                     sprintf(filename, "%s/output%08u", PhysiCell_settings.folder.c_str(),  PhysiCell_globals.full_output_index);
                     save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
+                }
+
+                // save legacy simulation report
+                if (PhysiCell_settings.enable_legacy_saves == true) {
+                    log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
                 }
             }
 
@@ -308,21 +317,15 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 svg_countdown += PhysiCell_settings.SVG_save_interval;
                 PhysiCell_globals.SVG_output_index++;
 
+                // save ssvg cross section
                 std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
                 sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
                 SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
             }
         }
 
-        // save legacy simulation report
-        if (PhysiCell_settings.enable_legacy_saves == true) {
-            log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
-            report_file.close();
-        }
-
-    //} catch (const std::exception& e) {
-        // reference to the base of a polymorphic object
-    //    std::cout << e.what(); // information from length_error printed
+    //} catch (const std::exception& e) {  // reference to the base of a polymorphic object
+    //    std::cout << e.what();  // information from length_error printed
     //}
 
     // go home
@@ -330,13 +333,14 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function stop
+// extended Python C++ function stop
 static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
-    // save final simulation snapshot
+    // save final data simulation snapshot
     sprintf(filename, "%s/final", PhysiCell_settings.folder.c_str());
     save_PhysiCell_to_MultiCellDS_v2(filename, microenvironment, PhysiCell_globals.current_time);
 
+    // save final svg cross section
     std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
     sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
     SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
@@ -346,12 +350,18 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     BioFVM::display_stopwatch_value(std::cout, BioFVM::runtime_stopwatch_value());
     std::cout << std::endl;
 
+    // save legacy simulation report
+    if (PhysiCell_settings.enable_legacy_saves == true) {
+        log_output(PhysiCell_globals.current_time, PhysiCell_globals.full_output_index, microenvironment, report_file);
+        report_file.close();
+    }
+
     // go home
     return PyLong_FromLong(0);
 }
 
 
-// extend python3 C++ function set_parameter
+// extend Python C++ function set_parameter
 static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
     // extract input
     const char *label;
@@ -360,9 +370,9 @@ static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ into python3 variable
+    // recall from C++ into Python variable
     int parindex;
-    char error[64];
+    char error[256];
 
     // boole
     parindex = parameters.bools.find_index(label);
@@ -410,7 +420,7 @@ static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
 }
 
 
-// extend python3 C++ function get_parameter
+// extend Python C++ function get_parameter
 static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
     // extract variable label
     const char *label;
@@ -418,7 +428,7 @@ static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ into python3 variable
+    // recall from C++ into Python variable
     int parindex;
 
     // bool
@@ -450,7 +460,7 @@ static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
 
                 } else {
                     //error
-                    char error[64];
+                    char error[256];
                     sprintf(error, "Error: unknown parameter! %s", label);
                     PyErr_SetString(PyExc_KeyError, error);
                     return NULL;
@@ -461,7 +471,7 @@ static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function set_variable
+// extended Python C++ function set_variable
 static PyObject* physicell_set_variable(PyObject *self, PyObject *args) {
     // extract variable label and value
     const char *label;
@@ -477,7 +487,7 @@ static PyObject* physicell_set_variable(PyObject *self, PyObject *args) {
         if (varindex > -1) {
             pCell->custom_data[label] = value;
         } else {
-            char error[64];
+            char error[256];
             sprintf(error, "Error: unknown custom_data variable! %s", label);
             PyErr_SetString(PyExc_KeyError, error);
             return NULL;
@@ -489,7 +499,7 @@ static PyObject* physicell_set_variable(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_variable
+// extended Python C++ function get_variable
 static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
     // extract variable label
     const char *label;
@@ -497,7 +507,7 @@ static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ intp python3 list
+    // recall from C++ intp Python list
     int cell_count = all_cells->size();
     PyObject *pList = PyList_New(cell_count);
     for (int i=0; i < cell_count; i++) {
@@ -508,7 +518,7 @@ static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
             PyList_SetItem(pList, i, PyFloat_FromDouble(value));
         } else {
             Py_XDECREF(pList);
-            char error[64];
+            char error[256];
             sprintf(error, "Error: unknown custom_data variable! %s", label);
             PyErr_SetString(PyExc_KeyError, error);
             return NULL;
@@ -520,7 +530,7 @@ static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function set_vector
+// extended Python C++ function set_vector
 static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
     // https://stackoverflow.com/questions/22458298/extending-python-with-c-pass-a-list-to-pyarg-parsetuple
     // https://docs.python.org/3/c-api/arg.html
@@ -533,7 +543,7 @@ static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // transfrom python list of numbers to C++ vector of doubles
+    // transfrom Python list of numbers to C++ vector of doubles
     PyObject *pItem;
     for (int i=0; i < PyList_Size(pList); i++) {
         pItem = PyList_GetItem(pList, i);
@@ -551,7 +561,7 @@ static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
         if (vectindex > -1) {
             pCell->custom_data.vector_variables[vectindex].value = value;
         } else {
-            char error[64];
+            char error[256];
             sprintf(error, "Error: unknown custom_data vector! %s", label);
             PyErr_SetString(PyExc_KeyError, error);
             return NULL;
@@ -563,7 +573,7 @@ static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_vector
+// extended Python C++ function get_vector
 static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
     // extract variable label
     const char *label;
@@ -571,7 +581,7 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // recall from C++ into python3 list of list
+    // recall from C++ into Python list of list
     bool first = true;
     int cell_count = all_cells->size();
     PyObject *pLlist = PyList_New(cell_count);
@@ -582,7 +592,7 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
             first = false;
             if (vectindex < 0) {
                 Py_XDECREF(pLlist);
-                char error[64];
+                char error[256];
                 sprintf(error, "Error: unknown custom_data vector! %s", label);
                 PyErr_SetString(PyExc_KeyError, error);
                 return NULL;
@@ -603,10 +613,10 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_cell
+// extended Python C++ function get_cell
 static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 
-    // recall from C++ into python3 list of list
+    // recall from C++ into Python list of list
     int cell_count = all_cells->size();
     PyObject *pLlist = PyList_New(cell_count);
 
@@ -626,7 +636,7 @@ static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function get_microenv
+// extended Python C++ function get_microenv
 static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     // extract variable label
     const char *substrate;
@@ -637,13 +647,13 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     // extract substrate index
     int subsindex = microenvironment.find_density_index(substrate);
     if (subsindex < 0) {
-        char error[64];
+        char error[256];
         sprintf(error, "Error: unknown substrate! %s", substrate);
         PyErr_SetString(PyExc_KeyError, error);
         return NULL;
     }
 
-    // recall from C++ into python3 list of list
+    // recall from C++ into Python list of list
     int voxel_count = microenvironment.number_of_voxels();
     PyObject *pLlist = PyList_New(voxel_count);
 
@@ -661,7 +671,7 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
 }
 
 
-// extended python3 C++ function system
+// extended Python C++ function system
 static PyObject* physicell_system(PyObject *self, PyObject *args) {
     // variables
     const char *command;
@@ -681,13 +691,13 @@ static PyObject* physicell_system(PyObject *self, PyObject *args) {
 // method table lists method name and address
 static struct PyMethodDef ExtendpyMethods[] = {
     {"start", physicell_start, METH_VARARGS,
-     "input:\n    args 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes physicell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output. if run for re-initialization, it is assumed that start will not be called before stop has been called."
+     "input:\n    args 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
     },
     {"step", physicell_step, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
+     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
     },
     {"stop", physicell_stop, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    physicell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a physicell episode, deletes all the cells, and resets the global variables."
+     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a PhysiCell episode."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
      "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."
@@ -728,7 +738,7 @@ static struct PyModuleDef physicellmodule = {
 };
 
 
-// pass module structure to the python interpreter initializatin function
+// pass module structure to the Python interpreter initializatin function
 PyMODINIT_FUNC PyInit_physicell(void) {
     return PyModule_Create(&physicellmodule);
 }
@@ -749,10 +759,10 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // pass argv[0] to the python interpreter
+    // pass argv[0] to the Python interpreter
     Py_SetProgramName(program);
 
-    // initialize the python interpreter. required. if this step fails, it will be a fatal error
+    // initialize the Python interpreter. required. if this step fails, it will be a fatal error
     Py_Initialize();
 
     // optional import the module.

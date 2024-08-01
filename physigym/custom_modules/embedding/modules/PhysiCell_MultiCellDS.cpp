@@ -822,7 +822,8 @@ void save_PhysiCell_to_MultiCellDS_v2( std::string filename_base , Microenvironm
 	add_MultiCellDS_main_structure_to_open_xml_pugi( BioFVM::biofvm_doc ); 
 		// save metadata 
 	BioFVM_metadata.add_to_open_xml_pugi( current_simulation_time , BioFVM::biofvm_doc ); 
-		// save diffusing substrates 
+		// save diffusing substrates
+	std::cout << "BUE mesh0 step1 (modules/PhysiCell_MultiCellDS.cpp save_PhysiCell_to_MultiCellDS_v2)!" << std::endl;
 	add_BioFVM_substrates_to_open_xml_pugi( BioFVM::biofvm_doc , filename_base, M  ); 
 
 		// add_BioFVM_agents_to_open_xml_pugi( xml_dom , filename_base, M); 

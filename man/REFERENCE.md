@@ -21,7 +21,7 @@ import physigym
 env = gymnasium.make('physigym/ModelPhysiCellEnv')
 ```
 
-Then, for each physicell module, getting on-the-fly reference information with the [help](https://en.wikipedia.org/wiki/Help!) command.
+Then, for each physicell module function, getting on-the-fly reference information with the [help](https://en.wikipedia.org/wiki/Help!) command.
 
 ### About the ModulePhysiCell class
 + [help(physigym.envs.ModelPhysiCellEnv)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.md)

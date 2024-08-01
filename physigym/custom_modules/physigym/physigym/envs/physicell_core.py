@@ -10,7 +10,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     gymnasium environment for physicell embedding
+#     Gymnasium environment for PhysiCell embedding
 # + https://gymnasium.farama.org/main/
 # + https://gymnasium.farama.org/main/introduction/create_custom_env/
 # + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/environment_creation/
@@ -154,7 +154,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.step_episode = None
         self.step_env = 0
 
-        # load physicell settings.xml file
+        # load PhysiCell settings.xml file
         self.settingxml = settingxml
         self.x_tree = etree.parse(self.settingxml)
         if self.verbose:
@@ -275,7 +275,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             i_seed = int(self.x_root.xpath('//random_seed')[0].text)
             if (i_seed < 0):
                 i_seed = None
-        # handle gymnasium based seeding
+        # handle Gymnasium based seeding
         else: # seed >= 0
             i_seed = seed
             self.x_root.xpath('//random_seed')[0].text = str(i_seed)
@@ -401,7 +401,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         description:
             function does a dt_gym simulation step:
             apply action, increment the step counters, observes, retrieve reward,
-            and finalizes a physicell episode, if episode is terminated or truncated.
+            and finalizes a PhysiCell episode, if episode is terminated or truncated.
         """
         if self.verbose :
             print(f'physigym: taking a dt_gym time step ...')
@@ -426,7 +426,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                         physicell.set_parameter(s_action, o_value)
                     # error
                     except KeyError:
-                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium discrete action space value detected! {s_action} {o_value} {type(o_value)}.")
+                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium discrete action space value detected! {s_action} {o_value} {type(o_value)}.")
 
             # gymnasium action space text (string)
             # python/physicell api parameter, variable
@@ -440,7 +440,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                         physicell.set_parameter(s_action, o_value)
                     # error
                     except KeyError:
-                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium text action space value detected! {s_action} {o_value} {type(o_value)}.")
+                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium text action space value detected! {s_action} {o_value} {type(o_value)}.")
 
             # gymnasium action space box (bool, int, float in a numpy array)
             # gymnasium action space multi binary (boolean in a numpy array)
@@ -462,11 +462,11 @@ class CorePhysiCellEnv(gymnasium.Env):
                             physicell.set_parameter(s_action, o_value)
                         # error
                         except KeyError:
-                            sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium box action space value detected! {s_action} {o_value} {type(o_value)}.")
+                            sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium box action space value detected! {s_action} {o_value} {type(o_value)}.")
 
             # error
             else:
-                sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable gymnasium action space value detected! {s_action} {o_value} {type(o_value)}.")
+                sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium action space value detected! {s_action} {o_value} {type(o_value)}.")
 
         # do dt_gym time step
         if self.verbose:

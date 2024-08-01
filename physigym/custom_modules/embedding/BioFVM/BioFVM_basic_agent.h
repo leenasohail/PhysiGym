@@ -56,7 +56,7 @@
 
 namespace BioFVM{
 
-void reset_max_basic_agent_ID();  // bue 20240509: added
+void reset_max_basic_agent_ID( void );  // bue 20240509: added
 
 class Basic_Agent
 {

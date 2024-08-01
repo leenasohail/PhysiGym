@@ -515,18 +515,29 @@ void set_save_biofvm_cell_data_as_custom_matlab( bool newvalue )
 
 /* writing parts of BioFVM to a MultiCellDS file */ 
 
+// bue 20240624: moved out from add_BioFVM_substrates_to_open_xml_pugi
+static bool BioFVM_substrates_initialized_in_dom = false;
+
+// bue 20240624: added
+void reset_BioFVM_substrates_initialized_in_dom( void )
+{
+	BioFVM_substrates_initialized_in_dom = false;
+}
+
 void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::string filename_base, Microenvironment& M )
 {
 	add_MultiCellDS_main_structure_to_open_xml_pugi( xml_dom ); 
 	
 	pugi::xml_node root = biofvm_doc.child( "MultiCellDS" );
 	pugi::xml_node node = root.child( "microenvironment" ); 
-	
-	static bool BioFVM_substrates_initialized_in_dom = false; 
+
+	//bue 20240624: moved out from add_BioFVM_substrates_to_open_xml_pugi
+	//static bool BioFVM_substrates_initialized_in_dom = false;
 	
 	// if the TME has not yet been initialized in the DOM, create all the 
 	// right data elements, and populate the meshes. 
         
+	std::cout << "BUE mesh0 step2 (BioFVM/BioFVM_MultiCellDS.cpp add_BioFVM_substrates_to_open_xml_pugi)!" << std::endl;
 	if( !BioFVM_substrates_initialized_in_dom )
 	{
 		char* buffer; 
@@ -597,6 +608,7 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 			node = node.parent(); 
 		}
 		// write out the voxels -- minimal data, even if redundant for cartesian 
+		std::cout << "BUE mesh0 step3 (BioFVM/BioFVM_MultiCellDS.cpp add_BioFVM_substrates_to_open_xml_pugi)!" << std::endl;
 		if( save_mesh_as_matlab == false )
 		{
 			node = node.append_child( "voxels" ); 
@@ -633,7 +645,8 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 			node = node.append_child( "voxels" ); 
 			attrib = node.append_attribute("type");
 			attrib.set_value( "matlab"); 
-	
+
+			std::cout << "BUE mesh0 step4 (BioFVM/BioFVM_MultiCellDS.cpp add_BioFVM_substrates_to_open_xml_pugi)!" << std::endl;
 			char filename [1024]; 
 			sprintf( filename , "%s_mesh%d.mat" , filename_base.c_str() , 0 ); 
 			M.mesh.write_to_matlab( filename ); 
@@ -759,15 +772,15 @@ void add_BioFVM_substrates_to_open_xml_pugi( pugi::xml_document& xml_dom , std::
 	}
 
 	// bue 20240509: added to save mesh every episode, possibly even more.
-	else
-	{
-		if( save_mesh_as_matlab == true)
-		{
-			char filename [1024];
-			sprintf( filename , "%s_mesh%d.mat" , filename_base.c_str() , 0 );
-			M.mesh.write_to_matlab( filename );
-		}
-	}
+	//else
+	//{
+	//	if( save_mesh_as_matlab == true)
+	//	{
+	//		char filename [1024];
+	//		sprintf( filename , "%s_mesh%d.mat" , filename_base.c_str() , 0 );
+	//		M.mesh.write_to_matlab( filename );
+	//	}
+	//}
 
 	// populate the data values 
 	

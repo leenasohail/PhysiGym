@@ -20,9 +20,9 @@ import os
 import shutil
 
 
-###############################
-# install install py3pc_embed #
-###############################
+####################
+# install physigym #
+####################
 
 print('\nUNITTEST: install physigym ...')
 os.chdir('../PhysiCell')

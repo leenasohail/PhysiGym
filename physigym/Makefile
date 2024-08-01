@@ -67,7 +67,7 @@ python-instruction:
 
 
 ### BEGIN make classic related compiler infromation
-### ACHTUNG: for py3pc embedding this content was ported to custom_modules/setup.py!
+### ACHTUNG: for python_with_physicell embedding this content was ported to custom_modules/setup.py!
 
 COMPILE_COMMAND := $(CC) $(CFLAGS)
 
@@ -193,7 +193,7 @@ PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
 custom.o: ./custom_modules/custom.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
 
-### ACHTUNG: for py3pc embedding this content was ported to custom_modules/setup.py!
+### ACHTUNG: for python_with_physicell embedding this content was ported to custom_modules/setup.py!
 ### END: make classic related compiler infromation
 
 
@@ -321,7 +321,8 @@ upgrade: $(SOURCE)
 # user projects
 
 # use: make command PROJ=your_project_name
-PROJ := physigym
+# bue 20240625: don't change default to keep up with PhysiCell standard.
+PROJ := my_project
 
 save:
 	echo "Saving project as $(PROJ) ... "
@@ -330,7 +331,6 @@ save:
 	mkdir -p ./user_projects/$(PROJ)/custom_modules
 	mkdir -p ./user_projects/$(PROJ)/config
 	cp main.cpp ./user_projects/$(PROJ)
-	awk -i inplace '{gsub("^PROJ :=.*$$", "PROJ := $(PROJ)", $$0); print $$0}' Makefile
 	cp Makefile ./user_projects/$(PROJ)
 	cp VERSION.txt ./user_projects/$(PROJ)
 	cp -r ./config/* ./user_projects/$(PROJ)/config
