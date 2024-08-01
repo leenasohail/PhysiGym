@@ -38,6 +38,7 @@ May the force be with you!
 
 # HowTo Guide:
 
++ [install PhysiCell](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_physicell.md)
 + [install and troubleshoot the physigym user_project](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_physigym.md)
 + [uninstall the physigym user_project](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_purge.md)
 
