@@ -616,18 +616,18 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
 // extended Python C++ function get_cell
 static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 
-    // recall from C++ into Python list of list
+    // recall from C++ into python3 list of list
     int cell_count = all_cells->size();
     PyObject *pLlist = PyList_New(cell_count);
 
     for (int i=0; i < cell_count; i++) {
         Cell* pCell = (*all_cells)[i];
-
-        PyObject *pList = PyList_New(4);  // id, x, y, z
+        PyObject *pList = PyList_New(5); 
         PyList_SetItem(pList, 0, PyLong_FromLong(pCell->ID)); // id
         PyList_SetItem(pList, 1, PyFloat_FromDouble(pCell->position[0])); // x
         PyList_SetItem(pList, 2, PyFloat_FromDouble(pCell->position[1])); // y
         PyList_SetItem(pList, 3, PyFloat_FromDouble(pCell->position[2])); // z
+        PyList_SetItem(pList, 4, PyFloat_FromDouble(pCell->phenotype.death.dead));
         PyList_SetItem(pLlist, i, pList);
     }
 
