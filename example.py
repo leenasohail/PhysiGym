@@ -90,7 +90,7 @@ class Args:
     """the id of the environment"""
     wrapper: bool = True
     """use wrapper"""
-    total_timesteps: int = 1000000
+    total_timesteps: int = int(1e7)
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
@@ -281,8 +281,9 @@ if __name__ == "__main__":
 
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
-        if global_step < args.learning_starts:
+        if global_step <= args.learning_starts:
             actions = np.array(env.action_space.sample())
+        else:
             with torch.no_grad():
                 actions = actor(torch.Tensor([obs]).to(device))
                 actions += torch.normal(0, actor.action_scale * args.exploration_noise)
@@ -291,41 +292,19 @@ if __name__ == "__main__":
                     .numpy()
                     .clip(env.action_space.low, env.action_space.high)
                 )
-
+        print(f"Action:{actions}")
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, infos = env.step(actions)
+        done = terminations or truncations
 
-        # TRY NOT TO MODIFY: record rewards for plotting purposes
-        if "final_info" in infos:
-            for info in infos["final_info"]:
-                print(
-                    f"global_step={global_step}, episodic_return={info['episode']['r']}"
-                )
-                writer.add_scalar(
-                    "charts/episodic_return", info["episode"]["r"], global_step
-                )
-                writer.add_scalar(
-                    "charts/episodic_length", info["episode"]["l"], global_step
-                )
-                break
-
-        # TRY NOT TO MODIFY: save data to reply buffer; handle `final_observation`
-        real_next_obs = next_obs.copy()
-        try:
-            for idx, trunc in enumerate(truncations):
-                if trunc:
-                    real_next_obs[idx] = infos["final_observation"][idx]
-        except:
-            if truncations:
-                real_next_obs = infos["final_observation"]
-        rb.add(obs, real_next_obs, actions, rewards, terminations)
+        rb.add(obs, actions, rewards, next_obs, done)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs
 
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
-            data = rb.sample(args.batch_size)
+            data = rb.sample()
             with torch.no_grad():
                 clipped_noise = (
                     torch.randn_like(data["action"], device=device) * args.policy_noise
@@ -377,24 +356,11 @@ if __name__ == "__main__":
                     target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
+            writer.add_scalar("env/reward_value", rewards, global_step)
+            writer.add_scalar("env/number_of_cells", physicell.get_cell(), global_step)
+            writer.add_scalar("env/drug_dose", actions, global_step)
 
-            if global_step % 100 == 0:
-                writer.add_scalar(
-                    "losses/qf1_values", qf1_a_values.mean().item(), global_step
-                )
-                writer.add_scalar(
-                    "losses/qf2_values", qf2_a_values.mean().item(), global_step
-                )
-                writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
-                writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
-                writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
-                writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
-                print("SPS:", int(global_step / (time.time() - start_time)))
-                writer.add_scalar(
-                    "charts/SPS",
-                    int(global_step / (time.time() - start_time)),
-                    global_step,
-                )
-
+        if done:
+            obs, _ = env.reset(seed=args.seed)
     env.close()
     writer.close()
