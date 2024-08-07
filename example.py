@@ -94,7 +94,7 @@ class Args:
     """total timesteps of the experiments"""
     learning_rate: float = 3e-4
     """the learning rate of the optimizer"""
-    buffer_size: int = int(1e6)
+    buffer_size: int = int(1e5)
     """the replay memory buffer size"""
     gamma: float = 0.99
     """the discount factor gamma"""
@@ -106,7 +106,7 @@ class Args:
     """the scale of policy noise"""
     exploration_noise: float = 0.1
     """the scale of exploration noise"""
-    learning_starts: int = 25e3
+    learning_starts: int = 1e3
     """timestep to start learning"""
     policy_frequency: int = 2
     """the frequency of training policy (delayed)"""
@@ -292,7 +292,6 @@ if __name__ == "__main__":
                     .numpy()
                     .clip(env.action_space.low, env.action_space.high)
                 )
-        print(f"Action:{actions}")
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, infos = env.step(actions)
         done = terminations or truncations
@@ -356,9 +355,9 @@ if __name__ == "__main__":
                     target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
-            writer.add_scalar("env/reward_value", rewards, global_step)
-            writer.add_scalar("env/number_of_cells", physicell.get_cell(), global_step)
-            writer.add_scalar("env/drug_dose", actions, global_step)
+        writer.add_scalar("env/reward_value", rewards, global_step)
+        writer.add_scalar("env/number_of_cells", len(physicell.get_cell()), global_step)
+        writer.add_scalar("env/drug_dose", actions, global_step)
 
         if done:
             obs, _ = env.reset(seed=args.seed)
