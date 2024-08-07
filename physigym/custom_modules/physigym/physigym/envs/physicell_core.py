@@ -343,7 +343,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # processing
         b_truncated = False
         r_time_current = physicell.get_parameter('time')  # achtung: time has to be declared as parameter of type float in the settings.xml file!
-        b_truncated = r_time_current >= self.r_time_max
+        b_truncated = r_time_current > self.r_time_max
 
         # output
         return b_truncated
