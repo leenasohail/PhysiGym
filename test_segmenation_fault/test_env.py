@@ -5,10 +5,11 @@ from embedding import physicell
 import shutil
 import physigym
 import pandas as pd
+
 #############################
 # copy tutorial model files #
 #############################
-
+os.chdir("../PhysiGym")
 print("\nTUTORIAL: copy tutorial config files ...")
 shutil.copyfile(
     "test_segmenation/config/PhysiCell_settings.xml",
