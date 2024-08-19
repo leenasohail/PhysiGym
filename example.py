@@ -21,7 +21,7 @@ i_cell_target = 64
 # load PhysiCell Gymnasium environment
 env = gym.make(
     "physigym/ModelPhysiCellEnv-v0",
-    # settingxml='config/PhysiCell_settings.xml',
+    settingxml="config/PhysiCell_settings.xml",
     # render_mode='rgb_array',
     # render_fps=10
 )
