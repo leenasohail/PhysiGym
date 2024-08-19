@@ -1,12 +1,10 @@
-import torch.nn as nn
 import numpy as np
-import torch
-import torch.nn.functional as F
-import os, sys
+import os
 import gymnasium as gym
 from embedding import physicell
 import shutil
-
+import physigym
+import pandas as pd
 #############################
 # copy tutorial model files #
 #############################
@@ -27,16 +25,13 @@ shutil.copyfile(
 
 os.chdir("../PhysiCell")
 
-
-import physigym
-
 env = gym.make(
     "physigym/ModelPhysiCellEnv-v0",
     # settingxml='config/PhysiCell_settings.xml',
     # render_mode='rgb_array',
     # render_fps=10
 )
-import pandas as pd
+
 
 """
 import plotly.graph_objs as go
