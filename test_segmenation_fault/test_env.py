@@ -9,18 +9,17 @@ import pandas as pd
 #############################
 # copy tutorial model files #
 #############################
-os.chdir("../PhysiGym")
 print("\nTUTORIAL: copy tutorial config files ...")
 shutil.copyfile(
-    "test_segmenation/config/PhysiCell_settings.xml",
+    "test_segmenation_fault/config/PhysiCell_settings.xml",
     "../PhysiCell/config/PhysiCell_settings.xml",
 )
 shutil.copyfile(
-    "test_segmenation/config/cell_rules.csv",
+    "test_segmenation_fault/config/cell_rules.csv",
     "../PhysiCell/config/cell_rules.csv",
 )
 shutil.copyfile(
-    "test_segmenation/config/cells.csv",
+    "test_segmenation_fault/config/cells.csv",
     "../PhysiCell/config/cells.csv",
 )
 
