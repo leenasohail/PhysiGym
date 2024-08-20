@@ -32,14 +32,13 @@ env = gym.make(
     # render_fps=10
 )
 
-
 """
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
 fig = go.Figure()
 """
-maximum = 100000
+maximum = 10000
 for i in range(1, maximum):
     list_nb_cells = []
     list_drug_dose = []
