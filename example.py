@@ -232,6 +232,7 @@ if __name__ == "__main__":
     run_name = f"{args.env_id}__{args.exp_name}__{args.seed}__{int(time.time())}"
 
     writer = SummaryWriter(f"runs/{run_name}")
+    print("Log_dir:", os.getcwd() + f"runs/{run_name}")
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s"
@@ -356,7 +357,7 @@ if __name__ == "__main__":
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
         writer.add_scalar("env/reward_value", rewards, global_step)
-        writer.add_scalar("env/number_of_cells", len(physicell.get_cell()), global_step)
+        # TO CHANGE #writer.add_scalar("env/number_of_cells", len(physicell.get_cell()), global_step)
         writer.add_scalar("env/drug_dose", actions, global_step)
 
         if done:
