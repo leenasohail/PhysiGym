@@ -40,7 +40,12 @@ class DummyModelWrapper(gym.Wrapper):
 
     def reset(self, seed=None, options={}):
         o_observation, d_info = self.env.reset(seed=seed, options=options)
-        o_observation = o_observation.astype(float) / self.cell_count_target
+        # o_observation = o_observation.astype(float) / self.cell_count_target
+        d_action = {self.variable_name: np.array([0])}
+        o_observation, r_reward, b_terminated, b_truncated, d_info = self.env.step(
+            d_action
+        )
+        o_observation = o_observation.astype(float)
         return o_observation[0], d_info
 
     def step(self, r_dose: float):
@@ -71,6 +76,7 @@ import torch.optim as optim
 import tyro
 from torch.utils.tensorboard import SummaryWriter
 from tensordict import TensorDict
+import pandas as pd
 
 
 @dataclass
@@ -100,13 +106,13 @@ class Args:
     """the discount factor gamma"""
     tau: float = 0.005
     """target smoothing coefficient (default: 0.005)"""
-    batch_size: int = 256
+    batch_size: int = 2
     """the batch size of sample from the reply memory"""
     policy_noise: float = 0.2
     """the scale of policy noise"""
     exploration_noise: float = 0.1
     """the scale of exploration noise"""
-    learning_starts: int = 1e3
+    learning_starts: int = 5
     """timestep to start learning"""
     policy_frequency: int = 2
     """the frequency of training policy (delayed)"""
@@ -357,6 +363,11 @@ if __name__ == "__main__":
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
         writer.add_scalar("env/reward_value", rewards, global_step)
+        df_cell = pd.DataFrame(
+            physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "cell_type"]
+        )
+        i_cellcount = (1 - df_cell["dead"]).sum()
+        writer.add_scalar("env/i_cellcount", i_cellcount, global_step)
         # TO CHANGE #writer.add_scalar("env/number_of_cells", len(physicell.get_cell()), global_step)
         writer.add_scalar("env/drug_dose", actions, global_step)
 
