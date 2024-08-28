@@ -9,6 +9,7 @@ import pandas as pd
 #############################
 # copy tutorial model files #
 #############################
+"""
 print("\nTUTORIAL: copy tutorial config files ...")
 shutil.copyfile(
     "test_segmenation_fault/config/PhysiCell_settings.xml",
@@ -22,7 +23,7 @@ shutil.copyfile(
     "test_segmenation_fault/config/cells.csv",
     "../PhysiCell/config/cells.csv",
 )
-
+"""
 os.chdir("../PhysiCell")
 
 env = gym.make(
@@ -51,9 +52,10 @@ for i in range(1, maximum):
     drug_dose = {"drug_dose": np.array([dose])}
     env.step(drug_dose)
     df_cell = pd.DataFrame(
-        physicell.get_cell(), columns=["ID", "x", "y", "z", "death.dead"]
+        physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "cell_type"]
     )
-    list_nb_cells.append(len(df_cell[df_cell["death.dead"] == 0]))
+
+    list_nb_cells.append((1 - df_cell["dead"]).sum())
 
     dose = i / maximum
     # First 30 steps with a constant dose
@@ -62,10 +64,10 @@ for i in range(1, maximum):
         drug_dose = {"drug_dose": np.array([dose])}
         env.step(drug_dose)
         df_cell = pd.DataFrame(
-            physicell.get_cell(), columns=["ID", "x", "y", "z", "death.dead"]
+            physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "cell_type"]
         )
 
-        list_nb_cells.append(len(df_cell[df_cell["death.dead"] == 0]))
+        list_nb_cells.append(df_cell["dead"].sum())
 """
     # Add a 3D trace to the plot for this particular dose
     fig.add_trace(
