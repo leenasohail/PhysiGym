@@ -128,6 +128,7 @@ std::vector<double> operator-( const std::vector<double>& v1 , double d  )
 
 void operator+=( std::vector<double>& v1, const std::vector<double>& v2 )
 {
+	
  for( unsigned int i=0; i < v1.size() ; i++ )
  { v1[i] += v2[i]; }
  return; 

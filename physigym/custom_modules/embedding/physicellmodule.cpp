@@ -622,12 +622,13 @@ static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 
     for (int i=0; i < cell_count; i++) {
         Cell* pCell = (*all_cells)[i];
-        PyObject *pList = PyList_New(5); 
+        PyObject *pList = PyList_New(6);  // id, x, y, z, if dead, type
         PyList_SetItem(pList, 0, PyLong_FromLong(pCell->ID)); // id
         PyList_SetItem(pList, 1, PyFloat_FromDouble(pCell->position[0])); // x
         PyList_SetItem(pList, 2, PyFloat_FromDouble(pCell->position[1])); // y
         PyList_SetItem(pList, 3, PyFloat_FromDouble(pCell->position[2])); // z
-        PyList_SetItem(pList, 4, PyFloat_FromDouble(pCell->phenotype.death.dead));
+        PyList_SetItem(pList, 4, PyFloat_FromDouble(pCell->phenotype.death.dead)); // dead
+        PyList_SetItem(pList, 5, PyUnicode_FromString((pCell->type_name).c_str())); // cell_type
         PyList_SetItem(pLlist, i, pList);
     }
 
