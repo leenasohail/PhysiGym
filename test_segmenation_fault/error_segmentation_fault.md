@@ -153,3 +153,40 @@ The loop or operation involving v1 might be trying to access an element beyond t
 Memory Corruption:
 
 There could be memory corruption elsewhere in the program that affected the memory area where v1 is stored.
+
+# Another problem with VALGRIND
+flags :
+```
+extra_compile_args=[  # straight outta PhysiCell Makefile
+                "-march=native",  # ARCH
+                # "-O3",  # CFLAG
+                "-fomit-frame-pointer",  # CFLAG
+                "-mfpmath=both",  # CFLAG
+                "-fopenmp",  # CFLAG
+                "-m64",  # CFLAG
+                "-std=c++11",  # CFLAG
+                "-g",  # gdb
+                # "-O0",
+            ],
+            extra_link_args=[  # needed for openmp
+                "-lgomp",
+            ]
+```
+
+## Install Valgrind and use it (only Linux i have a  xenophobia towards Apple and Windows coder, you are heretics)
+```
+sudo apt-get install valgrind
+```
+Then you have to be in PhysiGym and then you can:
+```
+valgrind --tool=memcheck --leak-check=full --track-origins=yes --log-file=valgrind_output.log python3 test_segmenation_fault/test_env.py
+```
+I shared the [output](https://github.com/Dante-Berth/PhysiGym/blob/main/test_segmenation_fault/valgrind_output.log)
+
+## The error:
+```
+physigym: declare PhysiCell model instance.
+Using config file config/PhysiCell_settings.xml ... 
+Error loading config/PhysiCell_settings.xml!
+```
+The error had occured just at the beginning of the iteration 138, the error should not happen.

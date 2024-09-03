@@ -255,7 +255,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         elif i_cellcount < i_cellcount_target:
             r_reward = i_cellcount / i_cellcount_target
         elif i_cellcount > i_cellcount_target:
-            r_reward = 1 - (i_cellcount - i_cellcount_target) / i_cellcount_target
+            r_reward = i_cellcount_target / i_cellcount
         else:
             sys.exit(
                 "Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}."
