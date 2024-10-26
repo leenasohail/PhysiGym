@@ -32,8 +32,8 @@
 #include <omp.h>
 
 // loade PhysiCell library
-#include "core/PhysiCell.h"
-#include "modules/PhysiCell_standard_modules.h"
+#include "../../core/PhysiCell.h"
+#include "../../modules/PhysiCell_standard_modules.h"
 #include "../../custom_modules/custom.h"
 
 // load namespace
