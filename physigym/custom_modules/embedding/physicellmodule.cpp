@@ -44,6 +44,7 @@ using namespace PhysiCell;
 char filename[1024];
 std::ofstream report_file;
 //std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;
+//std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 
 
 // function
@@ -87,7 +88,6 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
 
     // Users typically start modifying here.
-    random_seed();
     generate_cell_types();  // bue 20240624: delete cells; (re)load cell definitions;
     setup_tissue();
     // Users typically stop modifying here.
@@ -115,17 +115,18 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     // save initial svg cross section through z = 0 and legend
     PhysiCell_SVG_options.length_bar = 200;  // set cross section length bar to 200 microns
     std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // set pathology coloring function // bue 20240130: not going global
+    std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;   // bue 20241026: not going global
 
     sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
     create_plot_legend(filename, cell_coloring_function);
 
     sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
 
     // save svg cross section snapshot00000000
     if (PhysiCell_settings.enable_SVG_saves == true) {
         sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
-        SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+        SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
     }
 
     // save legacy simulation report
@@ -319,8 +320,9 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 
                 // save ssvg cross section
                 std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
+                std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;  // bue 20241026: not going global
                 sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
-                SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+                SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
             }
         }
 
@@ -342,8 +344,9 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
     // save final svg cross section
     std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
+    std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;  // bue 20241026: not going global
     sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
 
     // timer
     std::cout << "Total simulation runtime: " << std::endl;

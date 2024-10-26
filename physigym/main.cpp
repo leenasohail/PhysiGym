@@ -76,7 +76,6 @@ int main(int argc, char* argv[]) {
     Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
 
     /* Users typically start modifying here. START USERMODS */
-    random_seed();
     generate_cell_types();  // bue 20240624: delete cells; (re)load cell definitions
     setup_tissue();
     /* Users typically stop modifying here. END USERMODS */
@@ -101,17 +100,18 @@ int main(int argc, char* argv[]) {
     // save initial svg cross section through z = 0 and legend
     PhysiCell_SVG_options.length_bar = 200;  // set cross section length bar to 200 microns
     std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // set a pathology coloring function
+    std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 
     sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
     create_plot_legend(filename, cell_coloring_function);
 
     sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
 
     // save svg cross section snapshot00000000
     if (PhysiCell_settings.enable_SVG_saves == true) {
         sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
-        SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+        SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
     }
 
     // save legacy simulation report
@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
 
                 // save final svg cross section
                 sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
-                SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+                SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
             }
         }
 
@@ -243,7 +243,7 @@ int main(int argc, char* argv[]) {
 
     // save final svg cross section
     sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
 
     // timer
     std::cout << std::endl << "Total simulation runtime: " << std::endl;

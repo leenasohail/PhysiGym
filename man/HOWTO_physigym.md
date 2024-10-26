@@ -15,14 +15,10 @@ python3 install_physigym.py
 
 4. cd into the PhysiCell folder, reset PhysiCell, load, and compile the physigym project.
 This will install two Python modules, the first one named `embedding`, the second one named `physigym`.
-
-Notice: the `sed` command below is needed in PhysiCell <= 1.13\* because the load command in these Makefiles does not allow custom modules packed in a folder structure, like the Python modules are.
-This step will no longer be needed with the coming PhysiCell release.
 ```bash
 cd ../PhysiCell
 make clean data-cleanup reset
 make list-user-projects
-sed -i 's/cp .\/user_projects\/$(PROJ)\/custom_modules\//cp -r .\/user_projects\/$(PROJ)\/custom_modules\//' ./Makefile
 make load PROJ=physigym
 make
 ```

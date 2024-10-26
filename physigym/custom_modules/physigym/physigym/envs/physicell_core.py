@@ -232,9 +232,9 @@ class CorePhysiCellEnv(gymnasium.Env):
             self.get_img()
 
             seed: integer or None; default is None
-                seed = None: generate a random seed. seed with this value python and PhyiCell (via the setting.xml file).
+                seed = None: generate random seeds for python and PhyiCell (via the setting.xml file).
                 seed < 0: take seed from setting.xml
-                seed >= 0: the seed from this value and seed python and PhysiCell (via the setting.xml file).
+                seed >= 0: seed python and PhysiCell (via the setting.xml file) with this value.
 
             options: dictionary or None
                 reserved for possible future use.
@@ -268,13 +268,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle random seeding
         if (seed is None):
             i_seed = seed
-            self.x_root.xpath('//random_seed')[0].text = str(-1)
+            self.x_root.xpath('//random_seed')[0].text = 'system_clock'
             self.x_tree.write(self.settingxml, pretty_print=True)
         # handle setting.xml based seeding
         elif (seed < 0):
-            i_seed = int(self.x_root.xpath('//random_seed')[0].text)
-            if (i_seed < 0):
+            s_seed = self.x_root.xpath('//random_seed')[0].text.strip()
+            if (s_seed == 'system_clock'):
                 i_seed = None
+            else:
+                i_seed = int(s_seed)
         # handle Gymnasium based seeding
         else: # seed >= 0
             i_seed = seed

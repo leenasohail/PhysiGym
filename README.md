@@ -9,7 +9,7 @@ git push --tag
 # Header:
 
 + Language: C++11 and Python [>= 3.8](https://devguide.python.org/versions/)
-+ Software dependencies: PhysiCell v1.13.1
++ Software dependencies: PhysiCell v1.14.n
 + Python library dependencies: gymnasium, lxml, matplotlib, numpy, pandas, (ipython, PyQt6)
 + Author: Alexandre Bertin, Elmar Bucher
 + Date: 2024-spring
@@ -81,6 +81,7 @@ To be BibTeX.
 
 # Release Notes:
 
++ 0.2.0 (2024-10-31): physigym PhysiCell v1.13.1 to v1.14.n adaption.
 + 0.1.0 (2024-06-20): the basic physigym implementation works.
 + 0.0.0 (2024-04-15): physigym rises from the ashes.
 

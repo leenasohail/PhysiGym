@@ -8,9 +8,9 @@
             self.get_img()
 
             seed: integer or None; default is None
-                seed = None: generate a random seed. seed with this value python and PhyiCell (via the setting.xml file).
+                seed = None: generate random seeds for python and PhyiCell (via the setting.xml file).
                 seed < 0: take seed from setting.xml
-                seed >= 0: the seed from this value and seed python and PhysiCell (via the setting.xml file).
+                seed >= 0: seed python and PhysiCell (via the setting.xml file) with this value.
 
             options: dictionary or None
                 reserved for possible future use.
