@@ -53,17 +53,18 @@ std::ofstream report_file;
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // extract args take default if no args
-    char *argument = "config/PhysiCell_settings.xml";
-    if (!PyArg_ParseTuple(args, "s", &argument)) { PyErr_Clear(); }
+    char *settingxml = "config/PhysiCell_settings.xml";
+    int update_variables = false;
+    if (!PyArg_ParseTuple(args, "|sp", &settingxml, &update_variables)) { return NULL; }
 
     // load and parse settings file (modules/PhysiCell_settings.cpp).
     bool XML_status = false;
-    XML_status = load_PhysiCell_config_file(argument, true);  // (over)load parameter and density definitions
+    XML_status = load_PhysiCell_config_file(settingxml, update_variables);  // (over)load parameter and density definitions
     if (!XML_status) { exit(-1); }
 
     // copy config file to output directory
     char copy_command [1024];
-    sprintf(copy_command, "cp %s %s", argument, PhysiCell_settings.folder.c_str());
+    sprintf(copy_command, "cp %s %s", settingxml, PhysiCell_settings.folder.c_str());
     system(copy_command);
 
     // copy seeding file

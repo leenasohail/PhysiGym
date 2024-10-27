@@ -34,14 +34,14 @@ void generate_cell_types(void) {
     BioFVM::reset_max_basic_agent_ID();
 
     // reset cell definitions (core/PhysiCell_cell.cpp)
-    cell_defaults = PhysiCell::Cell_Definition();
-    PhysiCell::cell_definitions_by_index.clear();
-    PhysiCell::cell_definitions_by_index.push_back(&cell_defaults);
-    PhysiCell::cell_definitions_by_name_constructed = false;
-    PhysiCell::cell_definition_indices_by_name.clear();
-    PhysiCell::cell_definition_indices_by_type.clear();
-    PhysiCell::cell_definitions_by_name.clear();
-    PhysiCell::cell_definitions_by_type.clear();
+    //cell_defaults = PhysiCell::Cell_Definition();
+    //PhysiCell::cell_definitions_by_index.clear();
+    //PhysiCell::cell_definitions_by_index.push_back(&cell_defaults);
+    //PhysiCell::cell_definitions_by_name_constructed = false;
+    //PhysiCell::cell_definition_indices_by_name.clear();
+    //PhysiCell::cell_definition_indices_by_type.clear();
+    //PhysiCell::cell_definitions_by_name.clear();
+    //PhysiCell::cell_definitions_by_type.clear();
 
     // cell_default initial definition
     initialize_default_cell_definition();

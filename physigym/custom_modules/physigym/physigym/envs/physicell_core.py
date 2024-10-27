@@ -298,7 +298,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f'physigym: declare PhysiCell model instance.')
         os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
-        physicell.start(self.settingxml)
+        physicell.start(self.settingxml, self.episode)
 
         # observe domain
         if self.verbose:
