@@ -76,12 +76,13 @@ To be BibTeX.
 
 # Road Map:
 
-+ nop
++ physicell.get_cell column header output implementation.
++ physicell.init function implementation.
 
 
 # Release Notes:
 
-+ 0.2.0 (2024-10-31): physigym PhysiCell v1.13.1 to v1.14.n adaption.
++ 0.2.0 (2024-10-27): physigym PhysiCell v1.13.1 to v1.14.n adaption.
 + 0.1.0 (2024-06-20): the basic physigym implementation works.
 + 0.0.0 (2024-04-15): physigym rises from the ashes.
 
