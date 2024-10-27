@@ -1,4 +1,4 @@
-name: physigym_linux_test_pilot
+name: physigym_linux_test_segmentation_fault
 run-name: ${{ github.actor }}::test physigym on linux os, all python3 versions, all unit tests.
 
 on:
@@ -46,4 +46,6 @@ jobs:
     - name: run test tutorial
       run: |
         cd /home/runner/work/PhysiGym/PhysiGym/
-        python3 test/all_tutorial.py
+        python3 test/install_tutorial.py
+        python3 test_segmenation_fault/test_env.py
+        

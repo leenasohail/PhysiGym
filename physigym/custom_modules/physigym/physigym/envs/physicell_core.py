@@ -177,6 +177,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.action_space = self.get_action_space()
         self.observation_space = self.get_observation_space()
 
+        self.r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text) - float(
+            self.x_root.xpath("//user_parameters/dt_gym")[0].text
+        )
         # output
         if self.verbose:
             print(f'physigym: ok!')
@@ -341,9 +344,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         # processing
         b_truncated = False
-        r_time_max = float(self.x_root.xpath('//overall/max_time')[0].text)
         r_time_current = physicell.get_parameter('time')  # achtung: time has to be declared as parameter of type float in the settings.xml file!
-        b_truncated = r_time_current >= r_time_max
+        b_truncated = r_time_current > self.r_time_max
 
         # output
         return b_truncated

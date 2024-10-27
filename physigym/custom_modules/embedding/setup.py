@@ -16,23 +16,20 @@
 from setuptools import Extension, setup
 
 # extract the version number from the VERSION.txt file
-exec(open('./VERSION.txt').read())
+exec(open("./VERSION.txt").read())
 
 setup(
     # version
     version=__version__,
-
     # compiler and linker ditrectives
-    ext_modules = [
+    ext_modules=[
         Extension(
-            name = "embedding.physicell",  # as it would be imported # may include packages/namespaces separated by `.`
-
+            name="embedding.physicell",  # as it would be imported # may include packages/namespaces separated by `.`
             # all sources are compiled into a single binary file
-            sources = [  # straight outta PhysiCell Makefile
+            sources=[  # straight outta PhysiCell Makefile
                 # custom_modules_OBJECTS and components
                 "physicellmodule.cpp",
                 "../custom.cpp",
-
                 # BioFVM_OBJECTS and components
                 "../../BioFVM/BioFVM_agent_container.cpp",
                 "../../BioFVM/BioFVM_basic_agent.cpp",  # bue 20240501: modified (reset_max_basic_agent_ID) []
@@ -69,9 +66,8 @@ setup(
                 "../../modules/PhysiCell_various_outputs.cpp",
 
                 # pugixml_OBJECTS and components
-                #"pugixml.cpp",
+                # "pugixml.cpp",
             ],
-
             extra_compile_args=[  # straight outta PhysiCell Makefile
                 "-march=native",  # ARCH
                 "-O3",  # CFLAG
@@ -80,9 +76,8 @@ setup(
                 "-fopenmp",  # CFLAG
                 "-m64",  # CFLAG
                 "-std=c++11",  # CFLAG
-                #"-g",  # gdb
+                "-g",  # gdb
             ],
-
             extra_link_args=[  # needed for openmp
                 "-lgomp",
             ],

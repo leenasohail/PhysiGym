@@ -620,7 +620,7 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
 // extended Python C++ function get_cell
 static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 
-    // recall from C++ into Python list of list
+    // recall from C++ into python3 list of list
     int cell_count = all_cells->size();
     PyObject *pLlist = PyList_New(cell_count);
 
