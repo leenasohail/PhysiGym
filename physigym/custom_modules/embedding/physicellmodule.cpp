@@ -208,7 +208,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //        my_function( pCell->custom_data.vector_variables[vectindex].value );
                 //    } else {
                 //        char error[256];
-                //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
+                //        snprintf(error, sizeof(error), "Error: unknown custom_data vector! %s", my_vector);
                 //        PyErr_SetString(PyExc_KeyError, error);
                 //        return NULL;
                 //    }
@@ -250,7 +250,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //        pCell->custom_data.vector_variables[vectindex].value = value;
                 //    } else {
                 //        char error[256];
-                //        sprintf(error, "Error: unknown custom_data vector! %s", my_vector);
+                //        snprintf(error, sizeof(error), "Error: unknown custom_data vector! %s", my_vector);
                 //        PyErr_SetString(PyExc_KeyError, error);
                 //        return NULL;
                 //    }
@@ -403,7 +403,7 @@ static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
                 parindex = parameters.strings.find_index(label);
                 if (parindex > -1) {
                     if (! PyUnicode_Check(value)) {
-                        sprintf(error, "Error: %s value cannot be interpreted as a string!", label);
+                        snprintf(error, sizeof(error), "Error: %s value cannot be interpreted as a string!", label);
                         PyErr_SetString(PyExc_ValueError, error);
                         return NULL;
                     }
@@ -412,7 +412,7 @@ static PyObject* physicell_set_parameter(PyObject *self, PyObject *args) {
 
                 } else {
                     //error
-                    sprintf(error, "Error: unknown parameter! %s", label);
+                    snprintf(error, sizeof(error), "Error: unknown parameter! %s", label);
                     PyErr_SetString(PyExc_KeyError, error);
                     return NULL;
                 }
@@ -465,7 +465,7 @@ static PyObject* physicell_get_parameter(PyObject *self, PyObject *args) {
                 } else {
                     //error
                     char error[256];
-                    sprintf(error, "Error: unknown parameter! %s", label);
+                    snprintf(error, sizeof(error), "Error: unknown parameter! %s", label);
                     PyErr_SetString(PyExc_KeyError, error);
                     return NULL;
                 }
@@ -492,7 +492,7 @@ static PyObject* physicell_set_variable(PyObject *self, PyObject *args) {
             pCell->custom_data[label] = value;
         } else {
             char error[256];
-            sprintf(error, "Error: unknown custom_data variable! %s", label);
+            snprintf(error, sizeof(error), "Error: unknown custom_data variable! %s", label);
             PyErr_SetString(PyExc_KeyError, error);
             return NULL;
         }
@@ -523,7 +523,7 @@ static PyObject* physicell_get_variable(PyObject *self, PyObject *args) {
         } else {
             Py_XDECREF(pList);
             char error[256];
-            sprintf(error, "Error: unknown custom_data variable! %s", label);
+            snprintf(error, sizeof(error), "Error: unknown custom_data variable! %s", label);
             PyErr_SetString(PyExc_KeyError, error);
             return NULL;
         }
@@ -566,7 +566,7 @@ static PyObject* physicell_set_vector(PyObject *self, PyObject *args) {
             pCell->custom_data.vector_variables[vectindex].value = value;
         } else {
             char error[256];
-            sprintf(error, "Error: unknown custom_data vector! %s", label);
+            snprintf(error, sizeof(error), "Error: unknown custom_data vector! %s", label);
             PyErr_SetString(PyExc_KeyError, error);
             return NULL;
         }
@@ -597,7 +597,7 @@ static PyObject* physicell_get_vector(PyObject *self, PyObject *args) {
             if (vectindex < 0) {
                 Py_XDECREF(pLlist);
                 char error[256];
-                sprintf(error, "Error: unknown custom_data vector! %s", label);
+                snprintf(error, sizeof(error), "Error: unknown custom_data vector! %s", label);
                 PyErr_SetString(PyExc_KeyError, error);
                 return NULL;
             }
@@ -626,12 +626,13 @@ static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 
     for (int i=0; i < cell_count; i++) {
         Cell* pCell = (*all_cells)[i];
-
-        PyObject *pList = PyList_New(4);  // id, x, y, z
+        PyObject *pList = PyList_New(6);  // id, x, y, z, dead, cell_type
         PyList_SetItem(pList, 0, PyLong_FromLong(pCell->ID)); // id
         PyList_SetItem(pList, 1, PyFloat_FromDouble(pCell->position[0])); // x
         PyList_SetItem(pList, 2, PyFloat_FromDouble(pCell->position[1])); // y
         PyList_SetItem(pList, 3, PyFloat_FromDouble(pCell->position[2])); // z
+        PyList_SetItem(pList, 4, PyFloat_FromDouble(pCell->phenotype.death.dead)); // dead
+        PyList_SetItem(pList, 5, PyUnicode_FromString((pCell->type_name).c_str())); // cell_type
         PyList_SetItem(pLlist, i, pList);
     }
 
@@ -652,7 +653,7 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     int subsindex = microenvironment.find_density_index(substrate);
     if (subsindex < 0) {
         char error[256];
-        sprintf(error, "Error: unknown substrate! %s", substrate);
+        snprintf(error, sizeof(error), "Error: unknown substrate! %s", substrate);
         PyErr_SetString(PyExc_KeyError, error);
         return NULL;
     }
