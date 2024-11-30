@@ -23,6 +23,7 @@
 #include <Python.h>
 
 // load standard library
+#include <stdbool.h>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -41,6 +42,8 @@ using namespace BioFVM;
 using namespace PhysiCell;
 
 // global variable
+bool update_variables = false;  // bue 20240624: (over)load solution.
+char loadxml[1024];  // bue 20240624: (over)load solution.
 char filename[1024];
 std::ofstream report_file;
 //std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;
@@ -54,13 +57,27 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // extract args take default if no args
     char *settingxml = "config/PhysiCell_settings.xml";
-    int update_variables = false;
-    if (!PyArg_ParseTuple(args, "|sp", &settingxml, &update_variables)) { return NULL; }
+    if (!PyArg_ParseTuple(args, "|s", &settingxml)) { return NULL; }
 
-    // load and parse settings file (modules/PhysiCell_settings.cpp).
-    bool XML_status = false;
-    XML_status = load_PhysiCell_config_file(settingxml, update_variables);  // (over)load parameter and density definitions
-    if (!XML_status) { exit(-1); }
+    // handle settings file (modules/PhysiCell_settings.cpp).
+    if (!update_variables) {
+       // bue 20240624: load parameter and density definitions
+       std::cout << "load setting xml " << loadxml << " ..." << std::endl;
+       std::cout << "set user parameters ..." << std::endl;
+       std::cout << "set densities ..." << std::endl;
+       bool XML_status = false;
+       XML_status = load_PhysiCell_config_file(settingxml, update_variables);
+       if (!XML_status) { exit(-1); }
+       strcpy(loadxml, settingxml);
+    } else {
+       // bue 20240624: overload parameter and density definitions
+       std::cout << "reload setting xml " << loadxml << " ..." << std::endl;
+       std::cout << "reset user parameters ..." << std::endl;
+       std::cout << "reset densities ..." << std::endl;
+       bool XML_status = false;
+       XML_status = load_PhysiCell_config_file(loadxml, update_variables);
+       if (!XML_status) { exit(-1); }
+    }
 
     // copy config file to output directory
     char copy_command [1024];
@@ -89,7 +106,12 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
 
     // Users typically start modifying here.
-    generate_cell_types();  // bue 20240624: delete cells; (re)load cell definitions;
+    if (!update_variables) {
+        generate_cell_types();  // bue 20240624: load cell definitions
+        update_variables = true;
+    } else {
+        reset_cell_types();  // bue 20240624: delete cells; reload cell definitions
+    }
     setup_tissue();
     // Users typically stop modifying here.
 
@@ -696,7 +718,7 @@ static PyObject* physicell_system(PyObject *self, PyObject *args) {
 // method table lists method name and address
 static struct PyMethodDef ExtendpyMethods[] = {
     {"start", physicell_start, METH_VARARGS,
-     "input:\n    settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n    update_variables (bool) density and parameter structs; default is False.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
+     "input:\n    settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
     },
     {"step", physicell_step, METH_VARARGS,
      "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."

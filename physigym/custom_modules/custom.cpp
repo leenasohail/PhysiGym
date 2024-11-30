@@ -19,29 +19,11 @@ static const std::vector<double> VECTOR_ZERO (4, ZERO);  // generate a 4 charact
 
 
 void generate_cell_types(void) {
-
+    std::cout << "generate cell types ..." << std::endl;
+    std::cout << "cell types can only be defined the first episode of the runtime!" << std::endl;
     // Put any modifications to default cell definition here if you
     // want to have "inherited" by other cell types.
     // This is a good place to set default functions.
-
-    // delete cells
-    for (Cell* pCell: (*all_cells)) {
-        pCell->die();
-    }
-
-    // reset cell ID counter (BioFVM/BioFVM_basic_agent.cpp)
-    // bue 20240608: not strictely necessary!
-    BioFVM::reset_max_basic_agent_ID();
-
-    // reset cell definitions (core/PhysiCell_cell.cpp)
-    //cell_defaults = PhysiCell::Cell_Definition();
-    //PhysiCell::cell_definitions_by_index.clear();
-    //PhysiCell::cell_definitions_by_index.push_back(&cell_defaults);
-    //PhysiCell::cell_definitions_by_name_constructed = false;
-    //PhysiCell::cell_definition_indices_by_name.clear();
-    //PhysiCell::cell_definition_indices_by_type.clear();
-    //PhysiCell::cell_definitions_by_name.clear();
-    //PhysiCell::cell_definitions_by_type.clear();
 
     // cell_default initial definition
     initialize_default_cell_definition();
@@ -76,6 +58,48 @@ void generate_cell_types(void) {
     cell_defaults.functions.update_phenotype = phenotype_function;
     cell_defaults.functions.custom_cell_rule = custom_function;
     cell_defaults.functions.contact_function = contact_function;
+
+    // summarize the cell defintion setup.
+    display_cell_definitions(std::cout);
+
+    return;
+}
+
+
+void reset_cell_types(void) {
+    std::cout << "reset cell types ..." << std::endl;
+    // delete cells
+    for (Cell* pCell: (*all_cells)) {
+        pCell->die();
+    }
+
+    // reset cell ID counter (BioFVM/BioFVM_basic_agent.cpp)
+    // bue 20240608: not strictely necessary!
+    std::cout << "bue: reset agent ID." << std::endl;
+    BioFVM::reset_max_basic_agent_ID();
+
+    // cell_default initial definition
+    // NOP!
+
+    // parse the cell definitions in the XML config file (core/PhysiCell_cell.cpp).
+    std::cout << "bue: initialize cell definitions." << std::endl;
+    initialize_cell_definitions_from_pugixml();
+
+    // generate the maps of cell definitions.
+    std::cout << "bue: build cell definition maps." << std::endl;
+    build_cell_definitions_maps();
+
+    // intializes cell signal and response dictionaries
+    std::cout << "bue: setup signal behavior dictionaries." << std::endl;
+    setup_signal_behavior_dictionaries();
+
+    // initializ cell rule definitions
+    std::cout << "bue: setup cell rules." << std::endl;
+    setup_cell_rules();
+
+    // Put any modifications to individual cell definitions here.
+    // This is a good place to set custom functions.
+    // NOP!
 
     // summarize the cell defintion setup.
     display_cell_definitions(std::cout);

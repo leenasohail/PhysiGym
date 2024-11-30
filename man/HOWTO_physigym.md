@@ -13,7 +13,9 @@ python3 install_physigym.py
 
 3. If you are using environments, this is the time to activate the Python environment in which you would like to run physigym.
 
-4. cd into the PhysiCell folder, reset PhysiCell, load, and compile the physigym project.
+4. Check that you are hooked up to the internet because pip will have to check for build dependencies.
+
+5. cd into the PhysiCell folder, reset PhysiCell, load, and compile the physigym project.
 This will install two Python modules, the first one named `embedding`, the second one named `physigym`.
 ```bash
 cd ../PhysiCell
@@ -23,7 +25,7 @@ make load PROJ=physigym
 make
 ```
 
-5. Now you're good to go! Open a Python shell and type the following:
+6. Now you're good to go! Open a Python shell and type the following:
 ```python
 import gymnasium
 import physigym
@@ -36,7 +38,7 @@ env.close()
 exit()
 ```
 
-6. Check out the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md) to understand what you just ran.
+7. Check out the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md) to understand what you just ran.
 
 
 ## How to fetch the latest version from this PhysiCell user project into this source code repository

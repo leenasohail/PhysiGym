@@ -30,6 +30,8 @@ The Python-based physigym module presented here was written on top of the python
 
 Both, physigym and embedding, are PhysiCell custom_modules.
 
+Limitations: Because of the way how PhysiCell is implemented and run, it is not possible to run or generate more than one PhysiCell Gymnasium environment per runtime. A runtime warning will be thrown if you try to do so. Nonetheless, it is possible to modify the setting.xml for each episode, and changes will take effect!
+
 Walking through the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md), you will gain the understanding needed to tackle more complex PhysiCell-based reinforcement learning projects.
 You will set up a very basic template model that can figure as a starting point for your own project.
 
@@ -82,6 +84,7 @@ To be BibTeX.
 
 # Release Notes:
 
++ 0.2.1 (2024-11-29): physicell gymnasium environment limitation handling.
 + 0.2.0 (2024-10-27): physigym PhysiCell v1.13.1 to v1.14.n adaption.
 + 0.1.0 (2024-06-20): the basic physigym implementation works.
 + 0.0.0 (2024-04-15): physigym rises from the ashes.

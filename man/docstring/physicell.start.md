@@ -3,7 +3,6 @@
 ## input:
 ```
     settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.
-    update_variables (bool) density and parameter structs; default is False.
 
 ```
 
