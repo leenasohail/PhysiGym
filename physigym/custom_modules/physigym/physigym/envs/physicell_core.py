@@ -26,6 +26,8 @@ import numpy as np
 import os
 import sys
 
+# global variable
+physicell.flag_envphysigym = False
 
 # function
 
@@ -142,47 +144,57 @@ class CorePhysiCellEnv(gymnasium.Env):
         description:
             function to initialize the PhysiCell Gymnasium environment.
         """
-        # handle verbose
-        self.verbose = verbose
-        if self.verbose:
-            print(f'physigym: initialize environment ...')
+        # check global physigym environment flag
+        if physicell.flag_envphysigym:
+            raise RuntimeWarning(f'per runtime, only one physigym environment can be loaded. instance generation cancelled!')
 
-        # initialize class whide variables
-        if self.verbose:
-            print(f'physigym: declare class instance-wide variables.')
-        self.episode = -1
-        self.step_episode = None
-        self.step_env = 0
+        else:
+            # handle verbose
+            self.verbose = verbose
+            if self.verbose:
+                print(f'physigym: initialize environment ...')
 
-        # load PhysiCell settings.xml file
-        self.settingxml = settingxml
-        self.x_tree = etree.parse(self.settingxml)
-        if self.verbose:
-            print(f'physigym: reading {self.settingxml}')
-        self.x_root = self.x_tree.getroot()
+            # initialize class whide variables
+            if self.verbose:
+                print(f'physigym: declare class instance-wide variables.')
+            self.episode = -1
+            self.step_episode = None
+            self.step_env = 0
 
-        # handle render mode and figsize
-        if self.verbose:
-            print(f'physigym: declare render settings.')
-        assert render_mode is None or render_mode in self.metadata['render_modes'], f"'{render_mode}' is an unknown render_mode. known are {sorted(self.metadata['render_modes'])}, and None."
-        self.figsize = figsize
-        self.render_mode = render_mode
-        self.metadata.update({'render_fps': render_fps})
-        if not (self.render_mode is None):
-            self.fig, axs = plt.subplots(figsize=self.figsize)
+            # load PhysiCell settings.xml file
+            self.settingxml = settingxml
+            if self.verbose:
+                print(f'physigym: reading {self.settingxml}')
+            self.x_tree = etree.parse(self.settingxml)
+            self.x_root = self.x_tree.getroot()
 
-        # handle spaces
-        if self.verbose:
-            print(f'physigym: declare action and observer space.')
-        self.action_space = self.get_action_space()
-        self.observation_space = self.get_observation_space()
+            # handle render mode and figsize
+            if self.verbose:
+                print(f'physigym: declare render settings.')
+            assert render_mode is None or render_mode in self.metadata['render_modes'], f"'{render_mode}' is an unknown render_mode. known are {sorted(self.metadata['render_modes'])}, and None."
+            self.figsize = figsize
+            self.render_mode = render_mode
+            self.metadata.update({'render_fps': render_fps})
+            if not (self.render_mode is None):
+                self.fig, axs = plt.subplots(figsize=self.figsize)
 
-        self.r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text) - float(
-            self.x_root.xpath("//user_parameters/dt_gym")[0].text
-        )
-        # output
-        if self.verbose:
-            print(f'physigym: ok!')
+            # handle spaces
+            if self.verbose:
+                print(f'physigym: declare action and observer space.')
+            self.action_space = self.get_action_space()
+            self.observation_space = self.get_observation_space()
+
+            # handle max time
+            r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
+            r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
+            self.r_time_max = r_time_max - r_dt_gym
+
+            # set global physigym enviroment flag
+            physicell.flag_envphysigym = True
+
+            # output
+            if self.verbose:
+                print(f'physigym: ok!')
 
 
     def render(self):
@@ -235,9 +247,9 @@ class CorePhysiCellEnv(gymnasium.Env):
             self.get_img()
 
             seed: integer or None; default is None
-                seed = None: generate a random seed. seed with this value python and PhyiCell (via the setting.xml file).
+                seed = None: generate random seeds for python and PhyiCell (via the setting.xml file).
                 seed < 0: take seed from setting.xml
-                seed >= 0: the seed from this value and seed python and PhysiCell (via the setting.xml file).
+                seed >= 0: seed python and PhysiCell (via the setting.xml file) with this value.
 
             options: dictionary or None
                 reserved for possible future use.
@@ -266,21 +278,27 @@ class CorePhysiCellEnv(gymnasium.Env):
             before the reset function has been called.
         """
         if self.verbose :
-            print(f'physigym: reset episode ...')
+            print(f'\nphysigym: reset to episode {self.episode + 1} ...')
 
         # handle random seeding
         if (seed is None):
             i_seed = seed
-            self.x_root.xpath('//random_seed')[0].text = str(-1)
+            if self.verbose :
+                print(f'physigym: set {self.settingxml} random_seed to system_clock.')
+            self.x_root.xpath('//random_seed')[0].text = 'system_clock'
             self.x_tree.write(self.settingxml, pretty_print=True)
         # handle setting.xml based seeding
         elif (seed < 0):
-            i_seed = int(self.x_root.xpath('//random_seed')[0].text)
-            if (i_seed < 0):
+            s_seed = self.x_root.xpath('//random_seed')[0].text.strip()
+            if (s_seed == 'system_clock'):
                 i_seed = None
+            else:
+                i_seed = int(s_seed)
         # handle Gymnasium based seeding
         else: # seed >= 0
             i_seed = seed
+            if self.verbose :
+                print(f'physigym: set {self.settingxml} random_seed to {i_seed}.')
             self.x_root.xpath('//random_seed')[0].text = str(i_seed)
             self.x_tree.write(self.settingxml, pretty_print=True)
         # seed self.np_random number generator
@@ -541,6 +559,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         if self.verbose:
+            print(f'Warning: per runtime, only one physigym environment can be generated.\nto run another physicell model, it will be necessary to initiate a new runtime!')
             print(f'physigym: ok!')
 
 

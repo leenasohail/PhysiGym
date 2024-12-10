@@ -23,6 +23,7 @@
 #include <Python.h>
 
 // load standard library
+#include <stdbool.h>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -32,8 +33,8 @@
 #include <omp.h>
 
 // loade PhysiCell library
-#include "core/PhysiCell.h"
-#include "modules/PhysiCell_standard_modules.h"
+#include "../../core/PhysiCell.h"
+#include "../../modules/PhysiCell_standard_modules.h"
 #include "../../custom_modules/custom.h"
 
 // load namespace
@@ -41,9 +42,12 @@ using namespace BioFVM;
 using namespace PhysiCell;
 
 // global variable
+bool update_variables = false;  // bue 20240624: (over)load solution.
+char loadxml[1024];  // bue 20240624: (over)load solution.
 char filename[1024];
 std::ofstream report_file;
 //std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;
+//std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 
 
 // function
@@ -52,17 +56,32 @@ std::ofstream report_file;
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
     // extract args take default if no args
-    char *argument = "config/PhysiCell_settings.xml";
-    if (!PyArg_ParseTuple(args, "s", &argument)) { PyErr_Clear(); }
+    char *settingxml = "config/PhysiCell_settings.xml";
+    if (!PyArg_ParseTuple(args, "|s", &settingxml)) { return NULL; }
 
-    // load and parse settings file (modules/PhysiCell_settings.cpp).
-    bool XML_status = false;
-    XML_status = load_PhysiCell_config_file(argument, true);  // (over)load parameter and density definitions
-    if (!XML_status) { exit(-1); }
+    // handle settings file (modules/PhysiCell_settings.cpp).
+    if (!update_variables) {
+       // bue 20240624: load parameter and density definitions
+       std::cout << "load setting xml " << loadxml << " ..." << std::endl;
+       std::cout << "set user parameters ..." << std::endl;
+       std::cout << "set densities ..." << std::endl;
+       bool XML_status = false;
+       XML_status = load_PhysiCell_config_file(settingxml, update_variables);
+       if (!XML_status) { exit(-1); }
+       strcpy(loadxml, settingxml);
+    } else {
+       // bue 20240624: overload parameter and density definitions
+       std::cout << "reload setting xml " << loadxml << " ..." << std::endl;
+       std::cout << "reset user parameters ..." << std::endl;
+       std::cout << "reset densities ..." << std::endl;
+       bool XML_status = false;
+       XML_status = load_PhysiCell_config_file(loadxml, update_variables);
+       if (!XML_status) { exit(-1); }
+    }
 
     // copy config file to output directory
     char copy_command [1024];
-    sprintf(copy_command, "cp %s %s", argument, PhysiCell_settings.folder.c_str());
+    sprintf(copy_command, "cp %s %s", settingxml, PhysiCell_settings.folder.c_str());
     system(copy_command);
 
     // copy seeding file
@@ -87,8 +106,12 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     Cell_Container* cell_container = create_cell_container_for_microenvironment(microenvironment, mechanics_voxel_size);
 
     // Users typically start modifying here.
-    random_seed();
-    generate_cell_types();  // bue 20240624: delete cells; (re)load cell definitions;
+    if (!update_variables) {
+        generate_cell_types();  // bue 20240624: load cell definitions
+        update_variables = true;
+    } else {
+        reset_cell_types();  // bue 20240624: delete cells; reload cell definitions
+    }
     setup_tissue();
     // Users typically stop modifying here.
 
@@ -115,17 +138,18 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     // save initial svg cross section through z = 0 and legend
     PhysiCell_SVG_options.length_bar = 200;  // set cross section length bar to 200 microns
     std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // set pathology coloring function // bue 20240130: not going global
+    std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;   // bue 20241026: not going global
 
     sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
     create_plot_legend(filename, cell_coloring_function);
 
     sprintf(filename, "%s/initial.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
 
     // save svg cross section snapshot00000000
     if (PhysiCell_settings.enable_SVG_saves == true) {
         sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
-        SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+        SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
     }
 
     // save legacy simulation report
@@ -319,8 +343,9 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 
                 // save ssvg cross section
                 std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
+                std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;  // bue 20241026: not going global
                 sprintf(filename, "%s/snapshot%08u.svg", PhysiCell_settings.folder.c_str(), PhysiCell_globals.SVG_output_index);
-                SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+                SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
             }
         }
 
@@ -342,8 +367,9 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
 
     // save final svg cross section
     std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // bue 20240130: not going global
+    std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;  // bue 20241026: not going global
     sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
-    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function);
+    SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
 
     // timer
     std::cout << "Total simulation runtime: " << std::endl;
@@ -622,7 +648,7 @@ static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 
     for (int i=0; i < cell_count; i++) {
         Cell* pCell = (*all_cells)[i];
-        PyObject *pList = PyList_New(6);  // id, x, y, z, if dead, type
+        PyObject *pList = PyList_New(6);  // id, x, y, z, dead, cell_type
         PyList_SetItem(pList, 0, PyLong_FromLong(pCell->ID)); // id
         PyList_SetItem(pList, 1, PyFloat_FromDouble(pCell->position[0])); // x
         PyList_SetItem(pList, 2, PyFloat_FromDouble(pCell->position[1])); // y
@@ -692,7 +718,7 @@ static PyObject* physicell_system(PyObject *self, PyObject *args) {
 // method table lists method name and address
 static struct PyMethodDef ExtendpyMethods[] = {
     {"start", physicell_start, METH_VARARGS,
-     "input:\n    args 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
+     "input:\n    settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
     },
     {"step", physicell_step, METH_VARARGS,
      "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."

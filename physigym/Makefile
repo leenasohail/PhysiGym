@@ -19,6 +19,10 @@ ifdef PHYSICELL_CPP
 	CC := $(PHYSICELL_CPP)
 endif
 
+ifndef STATIC_OPENMP
+	STATIC_OPENMP = -fopenmp
+endif
+
 ARCH := native
 
 CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
@@ -40,8 +44,8 @@ endif
 # compile the project
 
 all: main.cpp
-	pip install --force-reinstall custom_modules/embedding
-	pip install --force-reinstall --editable custom_modules/physigym
+	pip install --force-reinstall --no-deps custom_modules/embedding
+	pip install --force-reinstall --no-deps --editable custom_modules/physigym
 	make python-instruction
 
 python-instruction:
@@ -69,7 +73,9 @@ python-instruction:
 ### BEGIN make classic related compiler infromation
 ### ACHTUNG: for python_with_physicell embedding this content was ported to custom_modules/setup.py!
 
-COMPILE_COMMAND := $(CC) $(CFLAGS)
+CFLAGS_LINK := $(shell echo $(CFLAGS) | sed -e "s/-fopenmp//g")
+COMPILE_COMMAND := $(CC) $(CFLAGS) $(EXTRA_FLAGS)
+LINK_COMMAND := $(CC) $(CFLAGS_LINK) $(EXTRA_FLAGS)
 
 BioFVM_OBJECTS := BioFVM_vector.o BioFVM_mesh.o BioFVM_microenvironment.o \
 BioFVM_solvers.o BioFVM_matlab.o BioFVM_utilities.o BioFVM_basic_agent.o \
@@ -96,6 +102,9 @@ ALL_OBJECTS := $(PhysiCell_OBJECTS) $(PhysiCell_custom_module_OBJECTS)
 classic: main.cpp $(ALL_OBJECTS)
 	$(COMPILE_COMMAND) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp
 	make name
+
+static: main.cpp $(ALL_OBJECTS) $(MaBoSS)
+	$(LINK_COMMAND) $(INC) -o $(PROGRAM_NAME) $(ALL_OBJECTS) main.cpp $(LIB) -static-libgcc -static-libstdc++ $(STATIC_OPENMP)
 
 name:
 	@echo ""
@@ -220,18 +229,16 @@ reset:
 	touch ALL_CITATIONS.txt
 	rm ALL_CITATIONS.txt
 	rm -fr ./config/*
-	cp ./sample_projects/PhysiCell_settings.xml-default ./config/PhysiCell_settings.xml
+	cp ./sample_projects/template/config/PhysiCell_settings.xml ./config/PhysiCell_settings.xml
 
 clean:
 	pip uninstall -y embedding
 	pip uninstall -y physigym
 	pip uninstall -y UNKNOWN
-	rm -fr ./custom_modules/embedding/BioFVM
 	rm -fr ./custom_modules/embedding/build
-	rm -fr ./custom_modules/embedding/core
 	rm -fr ./custom_modules/embedding/custom_modules
 	rm -fr ./custom_modules/embedding/embedding.egg-info
-	rm -fr ./custom_modules/embedding/modules
+	rm -fr ./custom_modules/embedding/UNKNOWN.egg-info
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*
 
@@ -334,12 +341,10 @@ save:
 	cp Makefile ./user_projects/$(PROJ)
 	cp VERSION.txt ./user_projects/$(PROJ)
 	cp -r ./config/* ./user_projects/$(PROJ)/config
-	rm -fr ./custom_modules/embedding/BioFVM
 	rm -fr ./custom_modules/embedding/build
-	rm -fr ./custom_modules/embedding/core
 	rm -fr ./custom_modules/embedding/custom_modules
 	rm -fr ./custom_modules/embedding/embedding.egg-info
-	rm -fr ./custom_modules/embedding/modules
+	rm -fr ./custom_modules/embedding/UNKNOWN.egg-info
 	cp -r ./custom_modules/* ./user_projects/$(PROJ)/custom_modules
 
 load:
