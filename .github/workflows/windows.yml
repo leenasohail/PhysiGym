@@ -30,12 +30,14 @@ jobs:
           mingw-w64-x86_64-python-matplotlib mingw-w64-x86_64-python-lxml mingw-w64-x86_64-python-numpy mingw-w64-x86_64-python-pandas mingw-w64-x86_64-python-scipy mingw-w64-x86_64-python-h5py
           mingw-w64-x86_64-vtk
 
-    - name: clone physicell
+    - name: install physicell
       run: |
-        #sudo apt install ffmpeg imagemagick
-        cd D:\\a\\PhysiGym\\
         git clone https://github.com/elmbeech/PhysiCell.git
         git switch physigym
+
+    - name: install physigym
+      run: |
+        git clone https://github.com/Dante-Berth/PhysiGym.git
 
     - name: clone physigym repo
       uses: actions/checkout@v4
@@ -54,5 +56,5 @@ jobs:
     - name: run test tutorial
       shell: msys2 {0}
       run: |
-        cd D:\\a\\PhysiGym\\PhysiGym\\
+        cd PhysiGym
         python test/all_tutorial.py

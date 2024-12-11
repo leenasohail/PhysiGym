@@ -18,14 +18,14 @@ jobs:
 
     steps:
 
-    - name: clone physicell
+    - name: install physicell
       run: |
-        #sudo apt install ffmpeg imagemagick
-        cd /home/runner/work/PhysiGym/
         git clone https://github.com/elmbeech/PhysiCell.git
         git switch physigym
-        pwd -P
-        ls -l
+
+    - name: install physigym
+      run: |
+        git clone https://github.com/Dante-Berth/PhysiGym.git
 
     - name: check out physigym repo
       uses: actions/checkout@v4
@@ -46,5 +46,5 @@ jobs:
 
     - name: run test tutorial
       run: |
-        cd /home/runner/work/PhysiGym/PhysiGym/
+        cd PhysiGym
         python3 test/all_tutorial.py
