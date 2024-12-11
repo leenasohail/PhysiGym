@@ -4,3 +4,10 @@ To install PhysiCell, please follow the instruction from the latest PhysiCell wo
 The "Modeler Setup" is good enough (there is no need for the "Hackathon Setup").
 
 + https://github.com/physicell-training/ws2023/tree/main/setup
+
+## Newer solution from Elmar
+You have to install a modified version of PhysiCell called [physigym](https://github.com/elmbeech/PhysiCell/tree/physigym)
+```
+git clone https://github.com/elmbeech/PhysiCell.git
+git switch physigym
+```

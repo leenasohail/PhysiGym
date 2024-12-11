@@ -22,7 +22,8 @@ jobs:
       run: |
         #sudo apt install ffmpeg imagemagick
         cd /home/runner/work/PhysiGym/
-        git clone --depth 1 https://github.com/MathCancer/PhysiCell.git
+        git clone https://github.com/elmbeech/PhysiCell.git
+        git switch physigym
         pwd -P
         ls -l
 
