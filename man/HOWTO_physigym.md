@@ -22,7 +22,8 @@ cd ../PhysiCell
 make clean data-cleanup reset
 make list-user-projects
 make load PROJ=physigym
-pip install --force-reinstall  custom_modules/embedding
+#pip install --force-reinstall custom_modules/embedding
+pip install --force-reinstall custom_modules/physigym
 make
 ```
 
