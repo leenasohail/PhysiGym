@@ -1,0 +1,6 @@
+celltype_a,substrate_a,decreases,apoptosis,0.0,0.5,4,0
+celltype_a,substrate_b,decreases,apoptosis,0.0,0.5,4,0
+celltype_b,substrate_b,decreases,apoptosis,0.0,0.5,4,0
+celltype_b,substrate_c,decreases,apoptosis,0.0,0.5,4,0
+celltype_c,substrate_c,decreases,apoptosis,0.0,0.5,4,0
+celltype_c,substrate_a,decreases,apoptosis,0.0,0.5,4,0
