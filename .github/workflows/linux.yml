@@ -1,50 +1,42 @@
 name: physigym_linux_test_pilot
-run-name: ${{ github.actor }}::test physigym on linux os, all python3 versions, all unit tests.
+run-name: ${{ github.actor }}::test physigym on the linux os, all pytest unit tests.
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "patch030_workflow"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "patch030_workflow"]
 
 jobs:
   build-linux:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        python-version: ["3.10"]
-        #python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
 
-    - name: install physicell
-      run: |
-        git clone https://github.com/elmbeech/PhysiCell.git
-        git switch physigym
-
-    - name: install physigym
-      run: |
-        git clone https://github.com/Dante-Berth/PhysiGym.git
-
-    - name: check out physigym repo
+    - name: check out the physigym repo
       uses: actions/checkout@v4
 
-    - name: install python ${{ matrix.python-version }}
+    - name: install python3
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.x'
 
     - name: install python modules
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install anndata gymnasium lxml matplotlib numpy pandas pcdl scipy vtk
+        python3 -m pip install pytest gymnasium lxml matplotlib numpy pandas pcdl
         which python3
         which python
         which pip3
         which pip
 
-    - name: run test tutorial
+    - name: install physicell
       run: |
-        cd PhysiGym
-        python3 test/all_tutorial.py
+        git clone https://github.com/MathCancer/PhysiCell.git /home/runner/work/PhysiGym/PhysiCell
+
+    - name: run the pytest
+      run: |
+        pytest test/test_physigym_model.py -v
+        #pytest test/test_physigym_reload.py -v
