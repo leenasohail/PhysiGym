@@ -42,7 +42,9 @@ class TestPhysigymTemplate(object):
         s_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         s_result = subprocess.run(['make', 'load', 'PROJ=physigym_template'], check=False, capture_output=True)
         s_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        s_result = subprocess.run(['make', 'classic','-j8'], check=False, capture_output=True)
+        s_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/<omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        s_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock</random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        s_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         s_result = subprocess.run(['./project'], check=False, capture_output=True)
         #print('\n',s_result)
         assert(os.path.exists('output/episode00000000/output00000024.xml')) and \
@@ -50,7 +52,6 @@ class TestPhysigymTemplate(object):
               (os.path.exists('output/episode00000002/output00000024.xml')) and \
               (os.path.exists('output/episode00000003/output00000024.xml'))
         shutil.rmtree('output/')
-        assert True
 
     def test_physigym_template_embedded(self):
         os.chdir(s_path_physigym)
@@ -60,10 +61,9 @@ class TestPhysigymTemplate(object):
         shutil.rmtree('output/', ignore_errors=True)
         s_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         s_result = subprocess.run(['make', 'load', 'PROJ=physigym_template'], check=False, capture_output=True)
-        s_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         s_result = subprocess.run(['make'], check=False, capture_output=True)
-        s_result = subprocess.run(['python3','run_physigym_template_episodes.py'], check=False, capture_output=True)
-        #print('\n', s_result)
+        s_result = subprocess.run(['python3','run_physigym_template_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'none'], check=False, capture_output=True)
+        print('\n', s_result)
         assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
               (os.path.exists('output/episode00000001/output00000023.xml')) and \
               (os.path.exists('output/episode00000002/output00000023.xml'))
@@ -81,7 +81,9 @@ class TestPhysigymTutorial(object):
         s_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         s_result = subprocess.run(['make', 'load', 'PROJ=physigym_tutorial'], check=False, capture_output=True)
         s_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        s_result = subprocess.run(['make', 'classic','-j8'], check=False, capture_output=True)
+        s_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/<omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        s_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock</random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        s_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         s_result = subprocess.run(['./project'], check=False, capture_output=True)
         #print('\n', s_result)
         assert(os.path.exists('output/episode00000000/output00000024.xml')) and \
@@ -89,7 +91,6 @@ class TestPhysigymTutorial(object):
               (os.path.exists('output/episode00000002/output00000024.xml')) and \
               (os.path.exists('output/episode00000003/output00000024.xml'))
         shutil.rmtree('output/')
-        assert True
 
     def test_physigym_tutorial_embedded(self):
         os.chdir(s_path_physigym)
@@ -99,9 +100,8 @@ class TestPhysigymTutorial(object):
         shutil.rmtree('output/', ignore_errors=True)
         s_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         s_result = subprocess.run(['make', 'load', 'PROJ=physigym_tutorial'], check=False, capture_output=True)
-        s_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         s_result = subprocess.run(['make'], check=False, capture_output=True)
-        s_result = subprocess.run(['python3','run_physigym_tutorial_episodes.py'], check=False, capture_output=True)
+        s_result = subprocess.run(['python3','run_physigym_tutorial_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'none'], check=False, capture_output=True)
         #print('\n', s_result)
         assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
               (os.path.exists('output/episode00000001/output00000023.xml')) and \
@@ -120,7 +120,9 @@ class TestPhysigymEpisode(object):
         s_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         s_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         s_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        s_result = subprocess.run(['make', 'classic','-j8'], check=False, capture_output=True)
+        s_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/<omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        s_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock</random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        s_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         s_result = subprocess.run(['./project'], check=False, capture_output=True)
         #print('\n', s_result)
         assert(os.path.exists('output/episode00000000/output00000024.xml')) and \
@@ -128,7 +130,6 @@ class TestPhysigymEpisode(object):
               (os.path.exists('output/episode00000002/output00000024.xml')) and \
               (os.path.exists('output/episode00000003/output00000024.xml'))
         shutil.rmtree('output/')
-        assert True
 
     def test_physigym_episode_embedded(self):
         os.chdir(s_path_physigym)
@@ -138,24 +139,10 @@ class TestPhysigymEpisode(object):
         shutil.rmtree('output/', ignore_errors=True)
         s_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         s_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
-        s_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         s_result = subprocess.run(['make'], check=False, capture_output=True)
-        s_result = subprocess.run(['python3','run_physigym_episode_episodes.py'], check=False, capture_output=True)
+        s_result = subprocess.run(['python3','run_physigym_episode_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'none'], check=False, capture_output=True)
         #print('\n', s_result)
         assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
               (os.path.exists('output/episode00000001/output00000023.xml')) and \
               (os.path.exists('output/episode00000002/output00000023.xml'))
         shutil.rmtree('output/')
-
-    #def test_physigym_episode_classic_nonrandom(self):
-    #    assert False
-
-    #def test_physigym_episode_classic_random(self):
-    #    assert False
-
-    #def test_physigym_episode_embedded_nonrandom((self):
-    #    assert False
-
-    #def test_physigym_episode_embedded_random((self):
-    #    assert False
-
