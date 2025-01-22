@@ -183,12 +183,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.action_space = self.get_action_space()
         self.observation_space = self.get_observation_space()
 
-        # handle max time
-        # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
-        r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
-        r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
-        self.r_time_max = r_time_max - r_dt_gym
-
         # set global physigym enviroment flag
         physicell.flag_envphysigym = True
 
@@ -294,6 +288,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 i_seed = None
             else:
                 i_seed = int(s_seed)
+            self.x_tree.write(self.settingxml, pretty_print=True)
         # handle Gymnasium based seeding
         else: # seed >= 0
             i_seed = seed
@@ -316,6 +311,14 @@ class CorePhysiCellEnv(gymnasium.Env):
         # initialize physcell model
         if self.verbose:
             print(f'physigym: declare PhysiCell model instance.')
+
+        # max time
+        # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
+        r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
+        r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
+        self.r_time_max = r_time_max - r_dt_gym
+
+        # output folder
         os.makedirs(self.x_root.xpath('//save/folder')[0].text, exist_ok=True)
         physicell.start(self.settingxml, self.episode != 0)
 
