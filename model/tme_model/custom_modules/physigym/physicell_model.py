@@ -60,41 +60,29 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
     def __init__(
         self,
-        settingxml="src/list_models/tme_model/config/PhysiCell_settings.xml",
+        settingxml="config/PhysiCell_settings.xml",
         figsize=(8, 6),
         render_mode=None,
         render_fps=10,
         verbose=False,
         nb_steps_max=100,
-        dict_random_initial_state: dict = {
-            "random_initial_state": False,
-            "dict_cells_definition": {"cancer_cell": 100, "nurse_cell": 30},
-        },
         observation_type="simple",
     ):
-        """
-        Initialize the simulation with the given parameters.
-
-        Args:
-            settingxml (str, optional): Path to the XML configuration file. Defaults to "config/PhysiCell_settings.xml".
-            figsize (tuple, optional): Figure size for plotting. Defaults to (8, 6).
-            render_mode (str, optional): Type of render mode. Can be "human", "none", or "rgb_array". Defaults to None.
-            render_fps (int, optional): Number of frames per second for rendering. Defaults to 10.
-            verbose (bool, optional): Whether to print detailed logs. Defaults to False.
-            observation_type (str, optional): Type of observation. "simple" means just the number of cells, graph of cells, or image of cells. Defaults to "simple".
-        """
         self.observation_type = "simple" if None else observation_type
-        if self.observation_type not in ["simple", "image", "graph"]:
-            raise f"Error unknown observation type: {self.observation_type}"
-        super(CorePhysiCellEnv, self).__init__(
+        if self.observation_type not in ["simple", "image"]:
+            raise ValueError(
+                f"Error: unknown observation type: {self.observation_type}"
+            )
+
+        # Corrected usage of super()
+        super().__init__(
             settingxml=settingxml,
             figsize=figsize,
             render_mode=render_mode,
             render_fps=render_fps,
             verbose=verbose,
-            nb_steps_max=nb_steps_max,
-            dict_random_initial_state=dict_random_initial_state,
         )
+
         self.cell_count_cancer_cell_target = int(
             self.x_root.xpath("//cell_count_cancer_cell_target")[0].text
         )

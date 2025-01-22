@@ -27,7 +27,7 @@
     </parallel>
 
     <save>
-        <folder>output/tme_model</folder>
+        <folder>output</folder>
         <full_data>
             <interval units="min">12</interval>
             <enable>true</enable>
@@ -416,18 +416,18 @@
         </cell_definition>
     </cell_definitions>
 
-    <initial_conditions>
-        <cell_positions type="csv" enabled="true">
-            <folder>./src/list_models/tme_model/config</folder>
+        <initial_conditions>
+        <cell_positions type="csv" enabled="false">
+            <folder>./config</folder>
             <filename>cells.csv</filename>
         </cell_positions>
     </initial_conditions>
 
     <cell_rules>
         <rulesets>
-            <ruleset protocol="CBHG" version="2.0" format="csv" enabled="true">
-                <folder>./src/list_models/tme_model/config</folder>
-                <filename>rules0.csv</filename>
+            <ruleset protocol="CBHG" version="3.0" format="csv" enabled="true">
+                <folder>./config</folder>
+                <filename>cell_rules.csv</filename>
             </ruleset>
         </rulesets>
         <settings/>

@@ -240,6 +240,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 step = false;
             }
 
+
             // on diffusion time step
 
             // Put diffusion time scale code here!
@@ -606,7 +607,6 @@ static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 }
 
 
-// extended Python C++ function get_microenv
 static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     // extract variable label
     const char *substrate;
@@ -617,13 +617,13 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     // extract substrate index
     int subsindex = microenvironment.find_density_index(substrate);
     if (subsindex < 0) {
-        char error[1024];
+        char error[64];
         snprintf(error, sizeof(error), "Error: unknown substrate! %s", substrate);
         PyErr_SetString(PyExc_KeyError, error);
         return NULL;
     }
 
-    // recall from C++ into Python list of list
+    // recall from C++ into python3 list of list
     int voxel_count = microenvironment.number_of_voxels();
     PyObject *pLlist = PyList_New(voxel_count);
 
