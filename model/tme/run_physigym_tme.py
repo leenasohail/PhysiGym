@@ -1,5 +1,5 @@
 #####
-# title: run_physigym_episode.py
+# title: run_physigym_tme.py
 #
 # language: python3
 # library: gymnasium, numpy, physicell embedding, physigym
@@ -12,10 +12,10 @@
 #
 # run:
 #   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_episode.py
+#   2. python3 run_physigym_tme.py
 #
 # description:
-#   python script to run a single episode from the physigym episode model.
+#   python script to run a single episode from the physigym tme model.
 #####
 
 
@@ -38,6 +38,7 @@ o_observation, d_info = env.reset()
 # time step loop
 b_episode_over = False
 while not b_episode_over:
+
     # policy according to o_observation
     d_observation = o_observation
     d_action = {
@@ -48,5 +49,6 @@ while not b_episode_over:
     # action
     o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
     b_episode_over = b_terminated or b_truncated
+
 # drop the environment
 env.close()

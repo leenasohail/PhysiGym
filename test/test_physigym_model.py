@@ -155,31 +155,31 @@ class TestPhysigymEpisode(object):
 
 
 class TestPhysigymTme(object):
+    """tests for the physigym tme model."""
 
-    def test_physigym_episode_classic(self):
+    def test_physigym_tme_classic(self):
         os.chdir(s_path_physigym)
-        s_result = subprocess.run(['python3', 'install_physigym.py', 'tme', '-f'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3', 'install_physigym.py', 'tme', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.rmtree('output/', ignore_errors=True)
-        s_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
-        s_result = subprocess.run(['make', 'load', 'PROJ=physigym_tme'], check=False, capture_output=True)
-        s_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        s_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/<omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        s_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock</random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        s_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
-        s_result = subprocess.run([f'{s_path_physicell}/project'], check=False, capture_output=True)
-        #print('\n', s_result)
+        o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
+        o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tme'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
+        o_result = subprocess.run([f'{s_path_physicell}/project'], check=False, capture_output=True)
+        #print('\n', o_result)
         assert(os.path.exists('output/episode00000000/output00000024.xml')) and \
               (os.path.exists('output/episode00000001/output00000024.xml')) and \
               (os.path.exists('output/episode00000002/output00000024.xml')) and \
               (os.path.exists('output/episode00000003/output00000024.xml'))
         shutil.rmtree('output/')
 
-    """tests for the physigym episode model."""
 
-    def test_physigym_episode_embedded(self):
+    def test_physigym_tme_embedded(self):
         os.chdir(s_path_physigym)
-        s_result = subprocess.run(
+        o_result = subprocess.run(
             ["python3", "install_physigym.py", "tme", "-f"],
             check=False,
             capture_output=True,
@@ -190,31 +190,36 @@ class TestPhysigymTme(object):
             dst=s_path_physicell,
         )
         shutil.rmtree("output/", ignore_errors=True)
-        s_result = subprocess.run(
-            ["make", "data-cleanup", "clean", "reset"], check=False, capture_output=True
+        o_result = subprocess.run(
+            ["make", "data-cleanup", "clean", "reset"],
+            check=False,
+            capture_output=True,
         )
-        s_result = subprocess.run(
-            ["make", "load", "PROJ=physigym_tme"], check=False, capture_output=True
+        o_result = subprocess.run(
+            ["make", "load", "PROJ=physigym_tme"],
+            check=False,
+            capture_output=True,
         )
-        s_result = subprocess.run(["make"], check=False, capture_output=True)
-        s_result = subprocess.run(
+        o_result = subprocess.run(["make"],
+            check=False,
+            capture_output=True,
+        )
+        o_result = subprocess.run(
             [
                 "python3",
                 "run_physigym_tme_episodes.py",
-                "--max_time",
-                "1440.0",
-                "--thread",
-                "4",
-                "--seed",
-                "none",
+                "--max_time", "1440.0",
+                "--thread", "4",
+                "--seed", "none",
             ],
             check=False,
             capture_output=True,
         )
-        # print('\n', s_result)
+        # print('\n', o_result)
         assert (
             (os.path.exists("output/episode00000000/output00000005.xml"))
             and (os.path.exists("output/episode00000001/output00000005.xml"))
             and (os.path.exists("output/episode00000002/output00000005.xml"))
         )
         shutil.rmtree("output/")
+

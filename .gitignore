@@ -1,9 +1,10 @@
 # python and build
 __pycache__/
 *.egg-info
+.venv
 build
 dist
-.venv
+
 # physicell and physicell studio
 empty.txt
 PhysiCell_settings-backup.xml
