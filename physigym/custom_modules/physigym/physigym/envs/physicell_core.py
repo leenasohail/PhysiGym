@@ -280,7 +280,6 @@ class CorePhysiCellEnv(gymnasium.Env):
             if self.verbose :
                 print(f'physigym: set {self.settingxml} random_seed to system_clock.')
             self.x_root.xpath('//random_seed')[0].text = 'system_clock'
-            self.x_tree.write(self.settingxml, pretty_print=True)
         # handle setting.xml based seeding
         elif (seed < 0):
             s_seed = self.x_root.xpath('//random_seed')[0].text.strip()
@@ -288,14 +287,16 @@ class CorePhysiCellEnv(gymnasium.Env):
                 i_seed = None
             else:
                 i_seed = int(s_seed)
-            self.x_tree.write(self.settingxml, pretty_print=True)
         # handle Gymnasium based seeding
         else: # seed >= 0
             i_seed = seed
             if self.verbose :
                 print(f'physigym: set {self.settingxml} random_seed to {i_seed}.')
             self.x_root.xpath('//random_seed')[0].text = str(i_seed)
-            self.x_tree.write(self.settingxml, pretty_print=True)
+
+        # rewrite setting xml file
+        self.x_tree.write(self.settingxml, pretty_print=True)
+
         # seed self.np_random number generator
         super().reset(seed=i_seed)
         if self.verbose:

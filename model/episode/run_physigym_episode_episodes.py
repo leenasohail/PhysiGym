@@ -45,7 +45,7 @@ def run(s_settingxml='config/PhysiCell_settings.xml', r_maxtime=1440.0, i_thread
 
         # reset the environment
         r_reward = 0.0
-        o_observation, d_info = env.reset()
+        o_observation, d_info = env.reset(seed=i_seed)
 
         # time step loop
         b_episode_over = False

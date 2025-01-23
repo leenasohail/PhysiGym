@@ -78,7 +78,8 @@ To be BibTeX.
 
 # Road Map:
 
-+ nop
++ Test drive physigym on apple's mac osx.
++ Test drive physigym on ms's windows os.
 
 
 # Release Notes:
