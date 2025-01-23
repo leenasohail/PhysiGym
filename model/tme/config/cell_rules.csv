@@ -1,0 +1,6 @@
+cancer_cell,antiapoptosis_chemical_nc,decreases,apoptosis,0,0.5,7,0
+nurse_cell,drug_reducing_antiapoptosis,decreases,antiapoptosis_chemical_nc secretion,0,0.5,7,0
+cancer_cell,drug_apoptosis,increases,apoptosis,0.003,0.5,7,0
+nurse_cell,stress_chemical_cc,increases,antiapoptosis_chemical_nc secretion,3,0.5,7,0
+cancer_cell,apoptotic,increases,stress_chemical_cc secretion,2,0.5,7,0
+cancer_cell,antiapoptosis_chemical_nc,increases,exit from cycle phase 0,0.0015,0.5,4,0
