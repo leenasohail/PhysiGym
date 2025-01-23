@@ -1,5 +1,5 @@
 #####
-# title: run_physigym_episode_episodes.py
+# title: run_physigym_tme_episodes.py
 #
 # language: python3
 # library: gymnasium, numpy, physicell embedding, physigym
@@ -12,10 +12,10 @@
 #
 # run:
 #   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_episode_episodes.py
+#   2. python3 run_physigym_tme_episodes.py
 #
 # description:
-#   python script to run multiple episodes from the physigym episode model.
+#   python script to run multiple episodes from the physigym tme model.
 #####
 
 
@@ -30,11 +30,11 @@ from random import randrange
 
 # function
 def run(
-    s_settingxml="config/PhysiCell_settings.xml",
-    r_maxtime=1440.0,
-    i_thread=8,
-    i_seed=3,
-):
+        s_settingxml="config/PhysiCell_settings.xml",
+        r_maxtime=1440.0,
+        i_thread=8,
+        i_seed=3,
+    ):
     # load PhysiCell Gymnasium environment
     # %matplotlib
     # env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode='human', render_fps=10)
