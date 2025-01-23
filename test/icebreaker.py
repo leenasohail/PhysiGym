@@ -13,16 +13,20 @@
 #     unit test code for the physigym project
 #####
 
+# bue 20250123: icebreaker have to fetch threads and seed from the xml (and maybe time).
 
 # modules
 import argparse
 import glob
+from lxml import etree
 import matplotlib.pyplot as plt
 import pcdl
 
 def drift(b_plot=False):
 
     # processing
+    b_settingxml = False
+
     ddf_cell = {}
     ddf_conc = {}
     for s_path in sorted(glob.glob('output/episode0*')):
@@ -30,6 +34,12 @@ def drift(b_plot=False):
 
         # extract episode
         i_episode = int(s_path.replace('output/episode',''))
+
+        # load settingxml
+        if not b_settingxml:
+            x_tree = etree.parse(f'{s_path}/PhysiCell_settings.xml')
+            x_root = x_tree.getroot()
+            b_settingxml = True
 
         # load data
         mcdsts = pcdl.TimeSeries(s_path, settingxml=f'PhysiCell_settings.xml', verbose=False)
@@ -72,7 +82,9 @@ def drift(b_plot=False):
 
         except ValueError:
             b_drift_cell = True
-
+    o_seed = x_root.xpath('//random_seed')[0].text
+    print(['seed', [int(o_seed) if o_seed.isdigit() else o_seed][0]])
+    print(['thread', int(x_root.xpath('//omp_num_threads')[0].text)])
     print([b_drift_conc, b_drift_cell])
     print(any([b_drift_conc, b_drift_cell]))
     return 0

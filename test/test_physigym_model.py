@@ -42,8 +42,8 @@ class TestPhysigymTemplate(object):
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_template'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/<omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock</random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         o_result = subprocess.run(['./project'], check=False, capture_output=True)
         #print('\n',o_result)
@@ -63,8 +63,8 @@ class TestPhysigymTemplate(object):
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_template'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
-        o_result = subprocess.run(['python3','run_physigym_template_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'none'], check=False, capture_output=True)
-        print('\n', o_result)
+        o_result = subprocess.run(['python3','run_physigym_template_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
+        #print('\n', o_result)
         assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
               (os.path.exists('output/episode00000001/output00000023.xml')) and \
               (os.path.exists('output/episode00000002/output00000023.xml'))
@@ -82,8 +82,8 @@ class TestPhysigymTutorial(object):
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tutorial'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/<omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock</random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         o_result = subprocess.run(['./project'], check=False, capture_output=True)
         #print('\n', o_result)
@@ -103,7 +103,7 @@ class TestPhysigymTutorial(object):
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tutorial'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
-        o_result = subprocess.run(['python3','run_physigym_tutorial_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'none'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3','run_physigym_tutorial_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
         #print('\n', o_result)
         assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
               (os.path.exists('output/episode00000001/output00000023.xml')) and \
@@ -122,8 +122,8 @@ class TestPhysigymEpisode(object):
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/<omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
-        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock</random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         o_result = subprocess.run(['./project'], check=False, capture_output=True)
         #print('\n', o_result)
@@ -143,7 +143,7 @@ class TestPhysigymEpisode(object):
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
-        o_result = subprocess.run(['python3','run_physigym_episode_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'none'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3','run_physigym_episode_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
         #print('\n', o_result)
         assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
               (os.path.exists('output/episode00000001/output00000023.xml')) and \
