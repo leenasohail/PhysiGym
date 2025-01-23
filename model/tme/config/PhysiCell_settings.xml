@@ -435,7 +435,7 @@
 
     <user_parameters>
         <random_seed type="int" units="dimensionless" description="">6</random_seed>
-        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">12</number_of_cells>
+        <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">200</number_of_cells>
         <drug_apoptosis type="double" units="none" description="">0</drug_apoptosis>
         <drug_reducing_antiapoptosis type="double" units="none" description="">0</drug_reducing_antiapoptosis>
         <cell_count type="int" units="none" description="">100</cell_count>

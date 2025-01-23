@@ -86,16 +86,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.cell_count_cancer_cell_target = int(
             self.x_root.xpath("//cell_count_cancer_cell_target")[0].text
         )
-        self.params_dict = {
-            "settingxml": self.settingxml,
-            "figsize": self.figsize,
-            "render_mode": self.render_mode,
-            "render_fps": self.render_fps,
-            "verbose": self.verbose,
-            "nb_steps_max": self.nb_steps_max,
-            "dict_random_initial_state": self.dict_random_initial_state,
-            "observation_type": self.observation_type,
-        }
 
     def get_action_space(self):
         """

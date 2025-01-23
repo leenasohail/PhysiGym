@@ -33,7 +33,7 @@ def run(
     s_settingxml="config/PhysiCell_settings.xml",
     r_maxtime=1440.0,
     i_thread=8,
-    i_seed=None,
+    i_seed=3,
 ):
     # load PhysiCell Gymnasium environment
     # %matplotlib
@@ -63,16 +63,17 @@ def run(
             # policy according to o_observation
             d_observation = o_observation
             d_action = {
-                "drug_apoptosis": np.array([randrange(30)]),
-                "drug_reducing_antiapoptosis": np.array([randrange(30)]),
+                "drug_apoptosis": np.array([randrange(1)]),
+                "drug_reducing_antiapoptosis": np.array([randrange(1)]),
             }
-
+            print(f"Reward:{r_reward}")
+            print(f"Info: {d_info}")
             # action
             o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(
                 d_action
             )
             b_episode_over = b_terminated or b_truncated
-
+            print(b_episode_over)
     # drop the environment
     env.close()
 
