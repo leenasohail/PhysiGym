@@ -54,6 +54,7 @@ class TestPhysigymTemplate(object):
         shutil.rmtree('output/')
 
     def test_physigym_template_embedded(self):
+        ''' note: be hooked up to the internet to run this test successfully.'''
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'template', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
@@ -93,6 +94,7 @@ class TestPhysigymTutorial(object):
         shutil.rmtree('output/')
 
     def test_physigym_tutorial_embedded(self):
+        ''' note: be hooked up to the internet to run this test successfully.'''
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'tutorial', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
@@ -132,6 +134,7 @@ class TestPhysigymEpisode(object):
         shutil.rmtree('output/')
 
     def test_physigym_episode_embedded(self):
+        ''' note: be hooked up to the internet to run this test successfully.'''
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'episode', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
