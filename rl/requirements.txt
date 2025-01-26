@@ -1,7 +1,7 @@
-torch
-torchvision
-torchaudio
-tyro
-wandb
 tensorboard
 tensordict
+torch
+torchaudio
+torchvision
+tyro
+wandb
