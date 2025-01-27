@@ -3,10 +3,3 @@ torchvision
 torchaudio
 tyro
 wandb
-tensorboard
-tensordict
-jax
-flax
-einops
-dm_env
-dm_control

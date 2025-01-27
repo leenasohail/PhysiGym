@@ -193,7 +193,7 @@ def main():
         env = wrap_env_with_rescale_stats_autoreset(env)
         return env
     env = make_gym_env(env_id=args.env_id)
-
+    exit()
     actor = Actor(env).to(device)
     qf1 = QNetwork(env).to(device)
     qf2 = QNetwork(env).to(device)

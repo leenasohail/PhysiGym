@@ -152,14 +152,10 @@ def train(cfg: dict):
         return env
         
 
-
-    vector_env_cls = (
-        gym.vector.AsyncVectorEnv
-        if env_config.asynchronous
-        else gym.vector.SyncVectorEnv
-    )
-    env = vector_env_cls([partial(make_gym_env,env_config.env_id) 
-                          for seed in range(cfg.seed, cfg.seed+env_config.num_envs)])
+    
+    env = gym.vector.SyncVectorEnv([partial(make_gym_env,env_config.env_id) 
+                            for seed in range(cfg.seed, cfg.seed+env_config.num_envs)])
+    
     np.random.seed(cfg.seed)
     rng = jax.random.PRNGKey(cfg.seed)
 

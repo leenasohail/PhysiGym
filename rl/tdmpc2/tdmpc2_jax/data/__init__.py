@@ -1,6 +1,6 @@
 import os, sys
 absolute_path = os.path.abspath(__file__)[
-    : os.path.abspath(__file__).find("PhysiGym_Models") + len("PhysiGym_Models")
+    : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
 
