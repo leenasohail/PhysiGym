@@ -71,6 +71,9 @@ Within the PhysiGym library, we tried to stick to the documentation policy laid 
 + Involved: Emmanuel Rachelson, Heber Lima da Rocha, Marcelo Hurtado, Paul Macklin, Randy Heiland, Vera Pancaldi, Vincent François
 
 
+# Funding:
+
+
 # Cite:
 
 To be BibTeX.
