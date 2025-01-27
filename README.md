@@ -73,7 +73,7 @@ Within the PhysiGym library, we tried to stick to the documentation policy laid 
 
 # Funding:
 
-This material is based upon research supported by the [Chateaubriand Fellowship](https://chateaubriand-fellowship.org/) of the Office for Science & Technology of the Embassy of France in the United States.
+This material is based upon research supported by the [Chateaubriand Fellowship](https://chateaubriand-fellowship.org/) from the Office for Science & Technology from the Embassy of France in the United States.
 
 
 # Cite:
