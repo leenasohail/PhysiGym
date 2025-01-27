@@ -194,6 +194,7 @@ def main():
         env = PhysiCellModelWrapper(env)
         env = wrap_env_with_rescale_stats_autoreset(env)
         return env
+    
     env = make_gym_env(env_id=args.env_id)
 
     actor = Actor(env).to(device)
