@@ -1,0 +1,7 @@
+tensorboard
+tensordict
+torch
+torchaudio
+torchvision
+tyro
+wandb
