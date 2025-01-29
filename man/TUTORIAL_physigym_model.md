@@ -496,22 +496,97 @@ mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug conce
 
 ## The [episode](https://github.com/Dante-Berth/PhysiGym/tree/main/model/episode) model.
 
+The episode mode is more or less the PhysiCell episode sample project.
+The only difference is that the three substrates are through a set of rules protecting the cells from becoming apoptotic.
+
+The episode model was released with PhysiCell version 1.14.2, to run properly reset a series of episodes of a PhysiCell model within one runtime.
+Before PhysiCell release 1.14.2 this was not possible.
+Yet, running a model consecutively in a runtime is an absolute necessarily for any kind of learning.
+One simply cannot learn and improve from one episode to another, if one has to destroy the runtime after each episode, to reset to the initial condition.
+Because one will at the same time erase everything learned from this episode.
+
+
 0. Install and load the model (Bash).
+
+```bash
+cd path/to/PhysiGym
+python3 install_physigym.py episode
+```
+```bash
+cd ../PhysiCell
+make clean data-cleanup reset
+make list-user-projects
+make load PROJ=physigym_episode
+```
 
 1. Compile and run the model the classic way (Bash).
 
-2. Compile and run the model the embedded way (Bash and Python).
+Running the model the classic way, there will be no policy to control for the number of cells by regulating the amount of substrate the cell are secreting.
+Since the secreted substrate is protecting the cells to undergo apoptosis, the cell population will just grow exponentially.
 
+```bask
+make classic -j8
+./project
+```
 
+2. Compile the embedded way (Bash).
 
-## The [tme](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tme) model.
+```bash
+make
+```
 
-0. Install and load the model (Bash).
+3. Run the model the embeded way (Python).
 
-1. Compile and run the model the classic way (Bash).
+Running the model the embedded way, we can introduce a very policy which tries to control the number of  cells for each cell type by the amount set for cell_count_target in the setting xml file.
 
-2. Compile and run the model the embedded way (Bash and Python).
+Open a ipython shell.
 
-3. Reinforcement learning.
+```python
+# library
+from embedding import physicell
+import gymnasium
+import numpy as np
+import physigym
 
-link to man/TUTORIAL_rl.md
+# load PhysiCell Gymnasium environment
+%matplotlib
+env = gymnasium.make(
+     'physigym/ModelPhysiCellEnv-v0',
+     settingxml='config/PhysiCell_settings.xml',
+     figsize=(8,6),
+     render_mode='human',
+     render_fps=10
+)
+
+# reset the environment
+r_reward = 0.0
+o_observation, d_info = env.reset()
+
+# time step loop
+b_episode_over = False
+while not b_episode_over:
+
+    # policy according to o_observation
+    d_observation = o_observation
+    d_action = {
+        'secretion_a': np.array([0.0]),
+        'secretion_b': np.array([0.0]),
+        'secretion_c': np.array([0.0]),
+    }
+    # celltype a
+    if (d_observation['celltype_a'][0] <= physicell.get_parameter('cell_count_target')):
+        d_action.update({'secretion_a': np.array([(1 - r_reward) * 1/12])})
+    # celltype b
+    if (d_observation['celltype_b'][0] <= physicell.get_parameter('cell_count_target')):
+        d_action.update({'secretion_b': np.array([(1 - r_reward) * 1/12])})
+    # celltype c
+    if (d_observation['celltype_c'][0] <= physicell.get_parameter('cell_count_target')):
+        d_action.update({'secretion_c': np.array([(1 - r_reward) * 1/12])})
+
+    # action
+    o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
+    b_episode_over = b_terminated or b_truncated
+
+# drop the environment
+env.close()
+```

@@ -47,7 +47,8 @@ May the force be with you!
 
 # Tutorial:
 
-+ [physigym tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md)
++ [physigym modelling tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym_model.md)
++ [physigym reinforcement learning tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym_rl.md)
 
 
 # Reference Manual:
