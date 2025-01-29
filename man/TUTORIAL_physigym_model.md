@@ -496,14 +496,14 @@ mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug conce
 
 ## The [episode](https://github.com/Dante-Berth/PhysiGym/tree/main/model/episode) model.
 
-The episode mode is more or less the PhysiCell episode sample project.
-The only difference is that the three substrates are through a set of rules protecting the cells from becoming apoptotic.
+The physigym episode mode is more or less the PhysiCell episode sample project.
+The episode sample project comprises three cell types, each of which is secreting a substrate.
+The difference between sample project and physigym model is an added nifty set of rules which defined that the substrates protect the cells from becoming apoptotic.
 
-The episode model was released with PhysiCell version 1.14.2, to run properly reset a series of episodes of a PhysiCell model within one runtime.
+The episode sample project was released with PhysiCell version 1.14.2, to run a series of properly reset episodes of a PhysiCell model within one runtime.
 Before PhysiCell release 1.14.2 this was not possible.
-Yet, running a model consecutively in a runtime is an absolute necessarily for any kind of learning.
-One simply cannot learn and improve from one episode to another, if one has to destroy the runtime after each episode, to reset to the initial condition.
-Because one will at the same time erase everything learned from this episode.
+Yet, beeing able to run a model consecutively in a runtime is an absolute necessity for any kind of learning.
+One simply cannot learn and improve from one episode to another, if one has to destroy the runtime after each episode, to reset to the initial condition because one will at the same time erase everything learned from this episode.
 
 
 0. Install and load the model (Bash).
