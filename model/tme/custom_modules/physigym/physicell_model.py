@@ -159,12 +159,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             )
         elif self.observation_type == "image":
             # Calculate width and height
-            self.width = self.x_max - self.x_min
-            self.height = self.y_max - self.y_min
+            self.width = self.x_max + 2*self.dx  - self.x_min
+            self.height = self.y_max + 2*self.dy - self.y_min
 
             # Define the Box space for the image
             o_observation_space = spaces.Box(
-                low=0, high=1, shape=(3, self.height, self.width), dtype=float
+                low=0, high=255, shape=(self.height, self.width, 3), dtype=np.uint8
             )
         else:
             raise f"Error unknown observation type: {o_observation_space}"
@@ -209,19 +209,22 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             # Extracting the x, y coordinates and cell id into a numpy array
             x = df_cell["x"].to_numpy()
             y = df_cell["y"].to_numpy()
-            df_cell["color"] = df_cell["type"].map(lambda t: self.color_mapping.get(t, (1, 1, 1)))  # Default to black if type not found
-            df_cell[(df_cell["dead"] != 0.0)]["color"] = (1,1,1)
+            df_cell["color"] = df_cell["type"].map(lambda t: self.color_mapping.get(t, (255,255,255)))  # Default to black if type not found
+            df_cell["color"] = df_cell.apply(lambda row: [255, 255, 255] if row["dead"] != 0.0 else row["color"], axis=1)
+
+
+
             cell_id = df_cell["ID"].to_numpy()
 
-            o_observation = np.ones((3, self.height, self.width), dtype=float)
+            o_observation = 255*np.ones((self.height, self.width, 3), dtype=np.uint8)
 
             # Normalizing the coordinates to fit into the image grid
-            x_normalized = (x - self.x_min).astype(int)
-            y_normalized = (y - self.y_min).astype(int)
+            x_normalized = (x - self.x_min - self.dx).astype(int)
+            y_normalized = (y - self.y_min - self.dy).astype(int)
 
              # Assign colors to the image grid
             for i in range(len(cell_id)):
-                o_observation[:, y_normalized[i], x_normalized[i]] = df_cell["color"].iloc[i]
+                o_observation[y_normalized[i], x_normalized[i], :] = df_cell["color"].iloc[i]
     
         else:
             raise f"Observation type: {self.observation_type} does not exist"
@@ -397,13 +400,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         TO DO
         """
-        image = np.transpose(o_observation, (1, 2, 0)) 
-        image = np.clip(image, 0, 1)
-        image = (image * 255).astype(np.uint8)
-
+        assert np.shape(o_observation) == 2
+        assert np.type(o_observation) == np.uint8
         # Plot the image using imshow
         fig, ax = plt.subplots(figsize=(8, 8))
-        cax = ax.imshow(image)
+        cax = ax.imshow(o_observation)
 
         # Set titles and labels
         ax.set_title("Cell Position")

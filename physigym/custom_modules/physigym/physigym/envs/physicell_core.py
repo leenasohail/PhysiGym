@@ -29,28 +29,35 @@ import sys
 # global variable
 physicell.flag_envphysigym = False
 
-# class
-COLORS  = [
+# Function to calculate RGB values from the original float-based colors
+def calculate_rgb(value):
+    return int(round(value * 255))
+
+# List of base color values as floats (e.g., 0.5 for 50%)
+base_colors = [
     (0.5, 0.5, 0.5),  # Gray
-    (1, 0, 0),  # Red
-    (1, 0.5, 0),  # Orange
-    (1, 1, 0),  # Yellow
-    (0, 1, 0),  # Green
-    (0, 0, 1),  # Blue
-    (0.29, 0, 0.51),  # Indigo
+    (1.0, 0.0, 0.0),  # Red
+    (1.0, 0.5, 0.0),  # Orange
+    (1.0, 1.0, 0.0),  # Yellow
+    (0.0, 1.0, 0.0),  # Green
+    (0.0, 0.0, 1.0),  # Blue
+    (0.29, 0.0, 0.51),  # Indigo
     (0.93, 0.51, 0.93),  # Violet
     (0.54, 0.27, 0.07),  # Brown
-    (0.5, 0, 0),  # Dark Red
+    (0.5, 0.0, 0.0),  # Dark Red
     (0.8, 0.52, 0.25),  # Sienna
     (0.9, 0.9, 0.9),  # Light Gray
     (0.8, 0.2, 0.6),  # Pink
     (0.2, 0.6, 0.8),  # Light Blue
     (0.1, 0.3, 0.2),  # Dark Green
-    (1, 0.8, 0.6),  # Peach
+    (1.0, 0.8, 0.6),  # Peach
     (0.7, 0.3, 0.2),  # Copper
     (0.2, 0.2, 0.5),  # Navy Blue
     (0.1, 0.6, 0.1),  # Lime Green
 ]
+
+# Applying the calculate_rgb function to each color in the list
+COLORS = [tuple(calculate_rgb(c) for c in color) for color in base_colors]
 
 class CorePhysiCellEnv(gymnasium.Env):
     """
@@ -202,6 +209,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.x_max = int(self.x_root.xpath("//domain/x_max")[0].text)
         self.y_min = int(self.x_root.xpath("//domain/y_min")[0].text)
         self.y_max = int(self.x_root.xpath("//domain/y_max")[0].text)
+        self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
+        self.dy = int(self.x_root.xpath("//domain/dy")[0].text) 
 
         cell_definitions = self.x_root.xpath('//cell_definitions/cell_definition')
         self.color_mapping = {}  # This will map type IDs to specific colors

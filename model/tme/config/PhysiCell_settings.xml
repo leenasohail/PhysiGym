@@ -434,7 +434,7 @@
     </cell_rules>
 
     <user_parameters>
-        <random_seed type="int" units="dimensionless" description="">6</random_seed>
+        <random_seed type="int" units="dimensionless" description="">system_clock</random_seed>
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">10</number_of_cells>
         <drug_apoptosis type="double" units="none" description="">0</drug_apoptosis>
         <drug_reducing_antiapoptosis type="double" units="none" description="">0</drug_reducing_antiapoptosis>

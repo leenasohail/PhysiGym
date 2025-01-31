@@ -1,22 +1,16 @@
-#####
-# please, write some header!
-####
-
-
+import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Box
-import numpy as np
-
 
 class PhysiCellModelWrapper(gym.Wrapper):
     def __init__(
-            self,
-            env: gym.Env,
-            list_variable_name: list[str] = [
-                "drug_apoptosis",
-                "drug_reducing_antiapoptosis",
-            ],
-        ):
+        self,
+        env: gym.Env,
+        list_variable_name: list[str] = [
+            "drug_apoptosis",
+            "drug_reducing_antiapoptosis",
+        ],
+    ):
         """
         Args:
             env (gym.Env): The environment to wrap.
@@ -90,7 +84,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
         return o_observation, r_reward, b_terminated, b_truncated, info
 
-
 def wrap_env_with_rescale_stats_autoreset(env: gym.Env, min_action:float=-1, max_action:float=1):
     """
     Applies RescaleAction to normalize actions between -1 and 1,
@@ -99,4 +92,10 @@ def wrap_env_with_rescale_stats_autoreset(env: gym.Env, min_action:float=-1, max
     env = gym.wrappers.RescaleAction(env, min_action=min_action, max_action=max_action)
     env = gym.wrappers.RecordEpisodeStatistics(env)
     env = gym.wrappers.Autoreset(env)
+    return env
+
+def wrap_gray_env_image(env,resize_shape=(138,138), stack_size=2):
+    env = gym.wrappers.ResizeObservation(env,resize_shape)
+    env = gym.wrappers.GrayscaleObservation(env)
+    env = gym.wrappers.FrameStackObservation(env, stack_size=stack_size)
     return env

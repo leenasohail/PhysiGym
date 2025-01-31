@@ -1,20 +1,15 @@
-####
-# please, write some header!
-####
-
-
+import torch
 import numpy as np
 from tensordict import TensorDict
-import torch
 
 
 class ReplayBuffer(object):
-    def __init__(self, state_dim, action_dim, device, buffer_size, batch_size):
+    def __init__(self, state_dim, action_dim, device, buffer_size, batch_size, state_type = np.float32):
         self.device = device
         self.buffer_size = int(buffer_size)
 
-        self.state = np.empty((self.buffer_size, state_dim), dtype=np.float32)
-        self.next_state = np.empty((self.buffer_size, state_dim), dtype=np.float32)
+        self.state = np.empty((self.buffer_size, state_dim), dtype=state_type)
+        self.next_state = np.empty((self.buffer_size, state_dim), dtype=state_type)
         self.action = np.empty((self.buffer_size, action_dim), dtype=np.float32)
         self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
         self.done = np.empty((self.buffer_size, 1), dtype=np.float32)
