@@ -1,6 +1,8 @@
 ## How to install PhysiCell
 
-To install PhysiCell, please follow the instruction from the latest PhysiCell workshop for your operating system.
-The "Modeler Setup" is good enough (there is no need for the "Hackathon Setup").
+To install PhysiCell, please follow the instruction from for your operating system:
 
-+ https://github.com/physicell-training/ws2023/tree/main/setup
++ [Linux](https://github.com/Dante-Berth/PhysiGym/blob/main/man/physicell_setup_poweruser_linux_v20250201.pdf) &#x1F427;
++ [MacOSX](https://github.com/Dante-Berth/PhysiGym/blob/main/man/physicell_setup_poweruser_apple_v20250201.pdf) &#x1F350;
++ [Windows](https://github.com/Dante-Berth/PhysiGym/blob/main/man/physicell_setup_poweruser_windows_v20250201.pdf) &#x1FA9F;
+
