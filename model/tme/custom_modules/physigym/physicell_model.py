@@ -87,6 +87,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             self.x_root.xpath("//cell_count_cancer_cell_target")[0].text
         )
 
+
     def get_action_space(self):
         """
         input:
@@ -158,12 +159,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             )
         elif self.observation_type == "image":
             # Calculate width and height
-            self.width = self.x_max - self.x_min
-            self.height = self.y_max - self.y_min
+            self.width = self.x_max + 2*self.dx  - self.x_min
+            self.height = self.y_max + 2*self.dy - self.y_min
 
             # Define the Box space for the image
             o_observation_space = spaces.Box(
-                low=0, high=1, shape=(self.height, self.width, 1), dtype=float
+                low=0, high=255, shape=(self.height, self.width, 3), dtype=np.uint8
             )
         else:
             raise f"Error unknown observation type: {o_observation_space}"
@@ -204,22 +205,27 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             df_cell = pd.DataFrame(
                 physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "type"]
             )
-            df_cell = df_cell[df_cell["dead"] == 0]
+            # df_cell = df_cell[df_cell["dead"] == 0]
             # Extracting the x, y coordinates and cell id into a numpy array
             x = df_cell["x"].to_numpy()
             y = df_cell["y"].to_numpy()
-            cell_id = df_cell["ID"].to_numpy()
-            max_id = float(np.max(cell_id))
+            df_cell["color"] = df_cell["type"].map(lambda t: self.color_mapping.get(t, (255,255,255)))  # Default to black if type not found
+            df_cell["color"] = df_cell.apply(lambda row: [255, 255, 255] if row["dead"] != 0.0 else row["color"], axis=1)
 
-            o_observation = np.zeros((self.height, self.width, 1), dtype=float)
+
+
+            cell_id = df_cell["ID"].to_numpy()
+
+            o_observation = 255*np.ones((self.height, self.width, 3), dtype=np.uint8)
 
             # Normalizing the coordinates to fit into the image grid
-            x_normalized = (x - self.x_min).astype(int)
-            y_normalized = (y - self.y_min).astype(int)
+            x_normalized = (x - self.x_min - self.dx).astype(int)
+            y_normalized = (y - self.y_min - self.dy).astype(int)
 
+             # Assign colors to the image grid
             for i in range(len(cell_id)):
-                o_observation[y_normalized[i], x_normalized[i]] = cell_id[i]
-            o_observation = o_observation / max_id
+                o_observation[y_normalized[i], x_normalized[i], :] = df_cell["color"].iloc[i]
+    
         else:
             raise f"Observation type: {self.observation_type} does not exist"
 
@@ -295,7 +301,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         i_cellcount = np.clip(
             physicell.get_parameter("count_cancer_cell"),
             a_min=0,
-            a_max=1.5 * self.cell_count_cancer_cell_target,
+            a_max=2 * self.cell_count_cancer_cell_target,
         )
         r_reward = -np.abs(i_cellcount - i_cellcount_target)
         return r_reward
@@ -390,6 +396,23 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # s_path = self.x_root.xpath('//save/folder')[0].text
         # self.fig.savefig(f'{s_path}/timeseries_step{str(self.step_env).zfill(3)}.jpeg', facecolor='white')
 
+    def _show(self, o_observation):
+        """
+        TO DO
+        """
+        assert np.shape(o_observation) == 2
+        assert np.type(o_observation) == np.uint8
+        # Plot the image using imshow
+        fig, ax = plt.subplots(figsize=(8, 8))
+        cax = ax.imshow(o_observation)
+
+        # Set titles and labels
+        ax.set_title("Cell Position")
+        ax.set_xlabel("Width")
+        ax.set_ylabel("Height")
+
+        # Use mpld3 to render the plot and open in the default browser
+        plt.show()
 
 class PhysiCellModelWrapper(gym.Wrapper):
     def __init__(
