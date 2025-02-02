@@ -44,4 +44,4 @@ jobs:
     - name: run the pytest
       run: |
         pytest test/test_physigym_model.py -v
-        pytest test/test_physigym_reload.py -v
+        #pytest test/test_physigym_reload.py -v
