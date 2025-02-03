@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  PHYSICELL_CPP: g++-14
+
 jobs:
   build-macosx:
     runs-on: macos-latest
@@ -17,10 +20,10 @@ jobs:
 
     - name: install gcc
       run : |
-        if ! brew list gcc@13 &>/dev/null; then
-          brew install gcc@13
+        if ! brew list gcc@14 &>/dev/null; then
+          brew install gcc
         else
-          echo "gcc@13 is already installed."
+          echo "gcc@14 is already installed."
         fi
 
     - name: check out the physigym repo
@@ -34,7 +37,7 @@ jobs:
     - name: install python3 modules
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install pytest gymnasium lxml matplotlib numpy pandas #pcdl
+        python3 -m pip install pytest gymnasium "lxml>5.0" matplotlib numpy pandas #pcdl
 
     - name: install physicell
       run: |
@@ -43,3 +46,4 @@ jobs:
     - name: run test tutorial
       run: |
         pytest test/test_physigym_model.py -v
+        #pytest test/test_physigym_reload.py -v
