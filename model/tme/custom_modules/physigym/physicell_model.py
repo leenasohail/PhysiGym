@@ -111,10 +111,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         d_action_space = spaces.Dict(
             {
                 "drug_apoptosis": spaces.Box(
-                    low=0.0, high=30.0, shape=(1,), dtype=np.float64
+                    low=0.0, high=30.0*45, shape=(1,), dtype=np.float64
                 ),
                 "drug_reducing_antiapoptosis": spaces.Box(
-                    low=0.0, high=30.0, shape=(1,), dtype=np.float64
+                    low=0.0, high=30.0*45, shape=(1,), dtype=np.float64
                 ),
             }
         )

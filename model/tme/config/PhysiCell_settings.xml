@@ -1,10 +1,10 @@
 <PhysiCell_settings version="devel-version">
 
     <domain>
-        <x_min>-500</x_min>
-        <x_max>500</x_max>
-        <y_min>-500</y_min>
-        <y_max>500</y_max>
+        <x_min>-128</x_min>
+        <x_max>128</x_max>
+        <y_min>-128</y_min>
+        <y_max>128</y_max>
         <z_min>-10</z_min>
         <z_max>10</z_max>
         <dx>20</dx>
@@ -50,6 +50,7 @@
         <legacy_random_points_on_sphere_in_divide>true</legacy_random_points_on_sphere_in_divide>
         <virtual_wall_at_domain_edge>true</virtual_wall_at_domain_edge>
         <disable_automated_spring_adhesions>true</disable_automated_spring_adhesions>
+        <random_seed>1</random_seed>
     </options>
 
     <microenvironment_setup>
@@ -434,7 +435,6 @@
     </cell_rules>
 
     <user_parameters>
-        <random_seed type="int" units="dimensionless" description="">system_clock</random_seed>
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">10</number_of_cells>
         <drug_apoptosis type="double" units="none" description="">0</drug_apoptosis>
         <drug_reducing_antiapoptosis type="double" units="none" description="">0</drug_reducing_antiapoptosis>
