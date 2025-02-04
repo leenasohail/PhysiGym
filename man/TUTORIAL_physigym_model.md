@@ -102,6 +102,10 @@ make classic -j8  # the j parameter specifies the number of cores to use for com
 ./project config/PhysiCell_settings.xml
 ```
 
+Note that, starting with the second episode, you might see a `WARNING: Setting the random seed again. [...]`.
+You can safely ignore this warning!
+It is triggered because we run a series of episodes of a model in single runtime and not because we have set a random_seed user parameter.
+
 Let's make a clean slate for the next PhysiCell run.
 ```bash
 rm -r output
