@@ -85,10 +85,9 @@ To be BibTeX.
 
 # Road Map:
 
-+ test drive physigym on apple's mac osx.
-+ test drive physigym on ms's windows os.
++ embedding >>< extend.
 + add rl part.
-
++ finalize paper.
 
 # Release Notes:
 
