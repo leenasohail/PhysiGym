@@ -40,14 +40,12 @@ class FeatureExtractor(nn.Module):
             # CNN feature extractor
             num_channels = obs_shape[0]
             self.feature_extractor = nn.Sequential(
-                nn.Conv2d(num_channels, 32, kernel_size=3, stride=2, padding=1),
+                nn.Conv2d(num_channels, out_channels=32, kernel_size=8, stride=4, padding=1),
                 nn.Mish(),
-                nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),
+                nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
                 nn.Mish(),
-                nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),
-                nn.Mish(),
-                nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),
-                nn.Mish(),
+                nn.Conv2d(in_channels=64,out_channels=64,kernel_size=3, stride=1),
+                nn.Mish()
             )
             self.feature_size = self._get_feature_size(obs_shape)
         else:
@@ -62,9 +60,9 @@ class FeatureExtractor(nn.Module):
             out = self.feature_extractor(dummy_input)
             return int(np.prod(out.shape[1:]))
 
-    def forward(self, x):
+    def forward(self, z):
         if self.is_image:
-            x = self.feature_extractor(x/255)  # Apply CNN
+            x = self.feature_extractor(z/255)  # Apply CNN
             x = x.view(x.size(0), -1)  # Flatten
         return x
 
