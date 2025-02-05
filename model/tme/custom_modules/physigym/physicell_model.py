@@ -297,14 +297,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             cost function.
         """
         # model dependent reward processing logic goes here!
-        i_cellcount_target = self.cell_count_cancer_cell_target
-        i_cellcount = np.clip(
-            physicell.get_parameter("count_cancer_cell"),
-            a_min=0,
-            a_max=2 * self.cell_count_cancer_cell_target,
-        )
-        r_reward = -np.abs(i_cellcount - i_cellcount_target)
-        return r_reward
+        return -np.abs(physicell.get_parameter("count_cancer_cell") - self.cell_count_cancer_cell_target)
 
     def get_img(self):
         """

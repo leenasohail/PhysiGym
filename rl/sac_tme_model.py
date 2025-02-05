@@ -60,9 +60,9 @@ class FeatureExtractor(nn.Module):
             out = self.feature_extractor(dummy_input)
             return int(np.prod(out.shape[1:]))
 
-    def forward(self, z):
+    def forward(self, x):
         if self.is_image:
-            x = self.feature_extractor((z/255-0.5)/0.5)  # Apply CNN
+            x = self.feature_extractor((x/255-0.5)/0.5)  # Apply CNN
             x = x.view(x.size(0), -1)  # Flatten
         return x
 
