@@ -85,16 +85,16 @@ class PhysiCellModelWrapper(gym.Wrapper):
         return o_observation, r_reward, b_terminated, b_truncated, info
 
 class PhysiCellRewardWrapper(gym.Wrapper):
-    def __init__(self, env, truncation_penalty=-1000):
+    def __init__(self, env, done_penalty=-1000):
         super().__init__(env)
-        self.truncation_penalty = truncation_penalty
+        self.done_penalty = done_penalty
 
     def step(self, action):
         obs, reward, done, truncated, info = self.env.step(action)
 
-        # Apply penalty if truncated
-        if truncated:
-            reward += self.truncation_penalty  # Decrease reward
+        # Apply penalty if done
+        if done:
+            reward += self.done_penalty  # Decrease reward
 
         return obs, reward, done, truncated, info
 

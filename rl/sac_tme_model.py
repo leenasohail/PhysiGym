@@ -62,7 +62,7 @@ class FeatureExtractor(nn.Module):
 
     def forward(self, z):
         if self.is_image:
-            x = self.feature_extractor(z/255)  # Apply CNN
+            x = self.feature_extractor((z/255-0.5)/0.5)  # Apply CNN
             x = x.view(x.size(0), -1)  # Flatten
         return x
 
