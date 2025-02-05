@@ -91,15 +91,15 @@ def capture_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
                     src=f'{s_path_prj}custom_modules/{s_file}',
                     dst=f'{s_path_model}custom_modules/',
                 )
-            elif os.path.isdir(f'{s_path_prj}custom_modules/{s_file}') and not (s_file in {'embedding','physigym'}):
+            elif os.path.isdir(f'{s_path_prj}custom_modules/{s_file}') and not (s_file in {'extending','physigym'}):
                 shutil.copytree(src=f'{s_path_prj}custom_modules/{s_file}/', dst=f'{s_path_model}custom_modules/{s_file}/')
 
-        # copy files to the model's custom_modules embedding folder
-        os.makedirs(f'{s_path_model}custom_modules/embedding/', exist_ok=True)
-        print(f'copy to: {s_path_model}custom_modules/embedding/physicellmodule.cpp ...')
+        # copy files to the model's custom_modules extendingfolder
+        os.makedirs(f'{s_path_model}custom_modules/extending/', exist_ok=True)
+        print(f'copy to: {s_path_model}custom_modules/extending/physicellmodule.cpp ...')
         shutil.copy(
-            src=f'{s_path_prj}custom_modules/embedding/physicellmodule.cpp',
-            dst=f'{s_path_model}custom_modules/embedding/',
+            src=f'{s_path_prj}custom_modules/extending/physicellmodule.cpp',
+            dst=f'{s_path_model}custom_modules/extending/',
         )
 
         # copy files to the model's custom_modules physigym folder

@@ -1,7 +1,7 @@
 import gymnasium as gym
 import numpy as np
 import os
-from embedding import physicell
+from extending import physicell
 import physigym  # import the Gymnasium PhysiCell bridge module
 import random
 import shutil

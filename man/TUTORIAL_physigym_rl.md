@@ -40,7 +40,7 @@ Open a ipython shell.
 
 ```python
 # library
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import numpy as np
 import physigym

@@ -16,7 +16,7 @@ python3 install_physigym.py template
 4. Check that you are hooked up to the internet because pip must be able to check for build dependencies.
 
 5. cd into the PhysiCell folder, reset PhysiCell, load, and compile the physigym template project.
-This will install two Python modules, the first one named `embedding`, the second one named `physigym`.
+This will install two Python modules, the first one named `extending`, the second one named `physigym`.
 ```bash
 cd ../PhysiCell
 make clean data-cleanup reset

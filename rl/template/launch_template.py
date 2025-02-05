@@ -4,7 +4,7 @@
 
 
 from dataclasses import dataclass
-#from embedding import physicell
+#from extending import physicell
 import gymnasium as gym
 import numpy as np
 import os

@@ -64,7 +64,7 @@ setup(
     # compiler and linker ditrectives
     ext_modules = [
         Extension(
-            name = "embedding.physicell",  # as it would be imported # may include packages/namespaces separated by `.`
+            name = "extending.physicell",  # as it would be imported # may include packages/namespaces separated by `.`
 
             # all sources are compiled into a single binary file
             sources = [  # straight outta PhysiCell Makefile

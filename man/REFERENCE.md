@@ -14,7 +14,7 @@ cd path/to/PhysiCell
 ```
 
 ```python
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import physigym
 

@@ -99,14 +99,14 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
                     src=f'{s_path_model}custom_modules/{s_file}',
                     dst=f'{s_path_prj}custom_modules/',
                 )
-            elif os.path.isdir(f'{s_path_model}custom_modules/{s_file}') and not (s_file in {'embedding','physigym'}):
+            elif os.path.isdir(f'{s_path_model}custom_modules/{s_file}') and not (s_file in {'extending','physigym'}):
                 shutil.copytree(src=f'{s_path_model}custom_modules/{s_file}/', dst=f'{s_path_prj}custom_modules/{s_file}/')
 
-        # copy files to the user_project's custom_modules embedding folder
-        print(f'copy from: {s_path_model}custom_modules/embedding/physicellmodule.cpp ...')
+        # copy files to the user_project's custom_modules extending folder
+        print(f'copy from: {s_path_model}custom_modules/extending/physicellmodule.cpp ...')
         shutil.copy(
-            src=f'{s_path_model}custom_modules/embedding/physicellmodule.cpp',
-            dst=f'{s_path_prj}custom_modules/embedding/',
+            src=f'{s_path_model}custom_modules/etending/physicellmodule.cpp',
+            dst=f'{s_path_prj}custom_modules/extending/',
         )
 
         # copy files to the user_project's custom_modules physigym folder

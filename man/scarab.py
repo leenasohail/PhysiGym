@@ -19,7 +19,7 @@
 
 
 # library
-from embedding import physicell  # import the Python/PhysiCell API module
+from extending import physicell  # import the Python/PhysiCell API module
 import gymnasium
 import physigym  # import the Gymnasium PhysiCell bridge module
 import os

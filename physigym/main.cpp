@@ -11,8 +11,8 @@
 // modified source code: https://github.com/Dante-Berth/PhysiGym
 //
 // description:
-//   for the PhysiCell Python embedding the content of this regular main.cpp
-//   was ported to the physicellmodule.cpp file.
+//   for the physicell embedding the content of this regular main.cpp
+//   was ported to the custom_modules/extending/physicellmodule.cpp file.
 //   this main.cpp was kept, to be still able to run the model the classic way,
 //   although slightly adapted to be compatible with physicellmodule.cpp.
 ////////

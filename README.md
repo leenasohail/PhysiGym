@@ -85,12 +85,13 @@ To be BibTeX.
 
 # Road Map:
 
-+ embedding >>< extend.
 + add rl part.
 + finalize paper.
 
 # Release Notes:
 
++ 0.4.0 (2025-02-28): models, rl, os portability, unit tests, and documentation complete.
++ 0.3.1 (2025-02-09): custom_modules/embedding to custom_module/extending change.
 + 0.3.0 (2025-01-16): complete physigym PhysiCell >= v1.14.2 compatibility.
 + 0.2.1 (2024-11-29): physicell gymnasium environment limitation handling.
 + 0.2.0 (2024-10-27): physigym PhysiCell v1.13.1 to v1.14.n adaption.
