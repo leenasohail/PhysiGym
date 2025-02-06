@@ -2,7 +2,8 @@
 # title: run_physigym_template_episodes.py
 #
 # language: python3
-# library: gymnasium, physicell embedding, physigym
+# library: gymnasium,
+#   and the extending and physigym custom_modules
 #
 # date:
 # license: <has to be comatiple with bsb-3-clause>
@@ -22,7 +23,7 @@
 
 # library
 import argparse
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import physigym
 

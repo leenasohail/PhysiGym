@@ -14,7 +14,7 @@ class SequentialReplayBuffer():
                seed: Optional[int] = None,
                ):
     """
-    Sequential replay buffer with support for parallel environments. 
+    Sequential replay buffer with support for parallel environments.
 
     To simplify the implementation and speed up sampling, episode boundaries are NOT respected. i.e., the sampled subsequences may span multiple episodes. Any code using this buffer should handle this with termination/truncation signals
 
@@ -49,14 +49,14 @@ class SequentialReplayBuffer():
 
     self.current_ind = (self.current_ind + 1) % self.capacity
     self.size = min(self.size + 1, self.capacity)
-  
+
   def get_state(self) -> Dict:
     return {
       'current_ind': self.current_ind,
       'size': self.size,
       'data': self.data,
     }
-  
+
   def restore(self, state: Dict) -> None:
     self.current_ind = state['current_ind']
     self.size = state['size']

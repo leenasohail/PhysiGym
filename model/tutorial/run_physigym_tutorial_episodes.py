@@ -2,7 +2,8 @@
 # title: run_physigym_tutorial_episodes.py
 #
 # language: python3
-# library: gymnasium, numpy, physicell embedding, physigym
+# library: gymnasium, numpy,
+#   and the extending and physigym custom_modules
 #
 # date: 2024-spring
 # license: <has to be comatiple with bsb-3-clause>
@@ -22,7 +23,7 @@
 
 # library
 import argparse
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import numpy as np
 import physigym

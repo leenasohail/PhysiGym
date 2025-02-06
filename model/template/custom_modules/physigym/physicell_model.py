@@ -10,7 +10,8 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     Gymnasium enviroemnt for PhysiCell embedding
+#     model specific implementation of the custom_modules/extend module
+#     comaptible Gymnasium environment.
 # + https://gymnasium.farama.org/main/
 # + https://gymnasium.farama.org/main/introduction/create_custom_env/
 # + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/environment_creation/
@@ -18,7 +19,7 @@
 
 
 # library
-from embedding import physicell
+from extending import physicell
 from gymnasium import spaces
 import matplotlib.pyplot as plt
 from matplotlib import cm

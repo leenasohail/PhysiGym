@@ -128,7 +128,7 @@ class Physics(cheetah.Physics):
 
 class CustomCheetah(cheetah.Cheetah):
     """Custom Cheetah tasks."""
-    
+
     def __init__(self, goal='run-backwards', move_speed=0, random=None):
         super().__init__(random)
         self._goal = goal
@@ -140,7 +140,7 @@ class CustomCheetah(cheetah.Cheetah):
                             margin=self._move_speed,
                             value_at_margin=0,
                             sigmoid='linear')
-       
+
     def _stand_one_foot_reward(self, physics, foot):
         """Note: `foot` is the foot that is *not* on the ground."""
         torso_height = physics.named.data.xpos['torso', 'z']
@@ -158,10 +158,10 @@ class CustomCheetah(cheetah.Cheetah):
 
     def _stand_front_reward(self, physics):
         return self._stand_one_foot_reward(physics, 'bfoot')
-    
+
     def _stand_back_reward(self, physics):
         return self._stand_one_foot_reward(physics, 'ffoot')
-    
+
     def _jump_reward(self, physics):
         front_reward = self._stand_front_reward(physics)
         back_reward = self._stand_back_reward(physics)
@@ -190,7 +190,7 @@ class CustomCheetah(cheetah.Cheetah):
 
     def _run_front_reward(self, physics):
         return self._run_one_foot_reward(physics, 'bfoot')
-    
+
     def _run_back_reward(self, physics):
         return self._run_one_foot_reward(physics, 'ffoot')
 
@@ -218,7 +218,7 @@ class CustomCheetah(cheetah.Cheetah):
         get_up = self._run_one_foot_reward(physics, 'bfoot')
         legs_up_reward = (5*torso_down + get_up) / 6
         return legs_up_reward
-    
+
     def _flip_reward(self, physics, forward=True):
         spin_reward = rewards.tolerance(
                             (1. if forward else -1.) * physics.angmomentum(),

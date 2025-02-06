@@ -277,7 +277,7 @@ def main():
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         done = terminations or truncations
-        rb.add(obs.flatten() if is_image else obs, actions, 
+        rb.add(obs.flatten() if is_image else obs, actions,
                rewards, next_obs.flatten() if is_image else next_obs, done)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
