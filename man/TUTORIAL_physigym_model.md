@@ -94,7 +94,7 @@ studio -c config/PhysiCell_settings.xml
 
 For model development, it is sometimes useful to be able to compile and run the model the old-fashioned way.
 In fact, this is the only reason why we kept the original [main.cpp](https://github.com/Dante-Berth/PhysiGym/blob/main/physigym/main.cpp) in the physigym code base.
-Physigym as such is written on top of the [physicell embedding](https://github.com/elmbeech/physicellembedding) python_with_physicell module, 
+Physigym as such is written on top of the [physicell embedding](https://github.com/elmbeech/physicellembedding) python_with_physicell module,
 for which the main.cpp file had to be ported to [custom/extending/physicellmodule.cpp](https://github.com/Dante-Berth/PhysiGym/blob/main/model/template/custom_modules/extending/physicellmodule.cpp) that you can find in the physigym code base too.
 
 In physigym and in physicell embedding you can compile and run the model the old-fashioned way like this:

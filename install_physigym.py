@@ -105,7 +105,7 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
         # copy files to the user_project's custom_modules extending folder
         print(f'copy from: {s_path_model}custom_modules/extending/physicellmodule.cpp ...')
         shutil.copy(
-            src=f'{s_path_model}custom_modules/etending/physicellmodule.cpp',
+            src=f'{s_path_model}custom_modules/extending/physicellmodule.cpp',
             dst=f'{s_path_prj}custom_modules/extending/',
         )
 

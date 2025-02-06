@@ -22,7 +22,7 @@
 
 
 # library
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import physigym
 
