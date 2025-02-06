@@ -10,7 +10,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     Gymnasium environment for PhysiCell embedding
+#     core of the custom_modules/extend module comaptible Gymnasium environment.
 # + https://gymnasium.farama.org/main/
 # + https://gymnasium.farama.org/main/introduction/create_custom_env/
 # + https://gymnasium.farama.org/main/tutorials/gymnasium_basics/environment_creation/
@@ -18,7 +18,7 @@
 
 
 # library
-from embedding import physicell
+from extending import physicell
 import gymnasium
 from lxml import etree
 import matplotlib.pyplot as plt
@@ -210,18 +210,18 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.y_min = int(self.x_root.xpath("//domain/y_min")[0].text)
         self.y_max = int(self.x_root.xpath("//domain/y_max")[0].text)
         self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
-        self.dy = int(self.x_root.xpath("//domain/dy")[0].text) 
+        self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
 
         cell_definitions = self.x_root.xpath('//cell_definitions/cell_definition')
         self.color_mapping = {}  # This will map type IDs to specific colors
 
         # Get the list of unique cell types
         unique_cell_types = sorted([cell_def.xpath('./@name')[0] for cell_def in cell_definitions])
-        
+
 
         for i, cell_type in enumerate(unique_cell_types):
             self.color_mapping[cell_type]  = COLORS[i]
-            
+
         self.color_mapping_255 = {key: tuple(np.array(value) * 255) for key, value in self.color_mapping.items()}
 
         # handle spaces
@@ -389,7 +389,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             else: # rgb_array
                 self.fig.canvas.setVisible(False)
 
-        
+
         # output
         if self.verbose:
             print(f'Warning: per runtime, only one physigym environment can be generated.\nto run another physicell model, it will be necessary to initiate a new runtime!')

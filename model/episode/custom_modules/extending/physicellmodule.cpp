@@ -12,7 +12,7 @@
 // input: https://docs.python.org/3/extending/extending.html
 //
 // description:
-//   for the PhysiCell Python embedding the content of the regular main.cpp
+//   for physicell embedding the content of the regular main.cpp
 //   was ported to this physicellmodule.cpp file.
 ////////
 
@@ -221,25 +221,104 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 step = false;
             }
 
-            if (action){
-                std::cout << "administer drug ... " << std::endl;
-                set_microenv("drug_apoptosis", parameters.doubles("drug_apoptosis"));
-                set_microenv("drug_reducing_antiapoptosis", parameters.doubles("drug_reducing_antiapoptosis"));
+            // do action
+            if (action) {
+
+                // achtung : begin physigym specific implementation!
+                std::cout << "processing action block ... " << std::endl;
                 action = false;
+                // achtung : end physigym specific implementation!
+
+                // Put physigym related parameter, variable, and vector action mapping here!
+
+                // parameter
+                //my_function( parameters.bools("my_bool")) );
+                //my_function( parameters.ints("my_int")) );
+                //my_function( parameters.doubles("my_float") );
+                //my_function( parameters.strings("my_str") );
+
+                // custom variable
+                //std::string my_variable = "my_variable";
+                //for (Cell* pCell : (*all_cells)) {
+                //    my_function( pCell->custom_data[my_variable] );
+                //}
+
+                // custom vector
+                //std::string my_vector = "my_vector";
+                //for (Cell* pCell : (*all_cells)) {
+                //    int vectindex = pCell->custom_data.find_vector_variable_index(my_vector);
+                //    if (vectindex > -1) {
+                //        my_function( pCell->custom_data.vector_variables[vectindex].value );
+                //    } else {
+                //        char error[1024];
+                //        snprintf(error, sizeof(error), "Error: unknown custom_data vector! %s", my_vector);
+                //        PyErr_SetString(PyExc_KeyError, error);
+                //        return NULL;
+                //    }
+                //}
+
+                // update substiate secretion rate
+                set_secretion_rate();
             }
 
             // do observation
             // on dt_gym time step
-            if (custom_countdown < diffusion_dt / 3) {
+            if (custom_countdown < 0.5 * diffusion_dt) {
 
+                // achtung : begin physigym specific implementation!
                 custom_countdown += parameters.doubles("dt_gym");  // [min]
                 std::cout << "processing gym time step observation block ... " << std::endl;
                 parameters.doubles("time") = PhysiCell_globals.current_time;
-                get_celltypescount(); // observation
                 action = true;
                 step = false;
+                // achtung : end physigym specific implementation!
+
+                // Put physigym related parameter, variable, and vector observation mapping here!
+
+                // parameter
+                //parameters.bools("my_bool") = value;
+                //parameters.ints("my_int") = value;
+                //parameters.doubles("my_float") = value;
+                //parameters.strings("my_str") = value;
+
+                // custom variable
+                //std::string my_variable = "my_variable";
+                //for (Cell* pCell : (*all_cells)) {
+                //    pCell->custom_data[my_variable] = value;
+                //}
+
+                // custom vector
+                //std::string my_vector = "my_vector";
+                //for (Cell* pCell : (*all_cells)) {
+                //    int vectindex = pCell->custom_data.find_vector_variable_index(my_vector);
+                //    if (vectindex > -1) {
+                //        pCell->custom_data.vector_variables[vectindex].value = value;
+                //    } else {
+                //        char error[1024];
+                //        snprintf(error, sizeof(error), "Error: unknown custom_data vector! %s", my_vector);
+                //        PyErr_SetString(PyExc_KeyError, error);
+                //        return NULL;
+                //    }
+                //}
             }
 
+            // on phenotype time step
+            if (phenotype_countdown < 0.5 * diffusion_dt) {
+                phenotype_countdown += phenotype_dt;
+
+                // Put phenotype time scale code here!
+                //std::cout << "processing phenotype time step observation block ... " << std::endl;
+                //step = false;
+            }
+
+            // on mechanics time step
+            if (mechanics_countdown < 0.5 * diffusion_dt) {
+                mechanics_countdown += mechanics_dt;
+
+                // Put mechanics time scale code here!
+                //std::cout << "processing mechanic time step observation block ... " << std::endl;
+                //step = false;
+            }
 
             // on diffusion time step
 
@@ -607,6 +686,7 @@ static PyObject* physicell_get_cell(PyObject *self, PyObject *args) {
 }
 
 
+// extended Python C++ function get_microenv
 static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     // extract variable label
     const char *substrate;
@@ -617,13 +697,13 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     // extract substrate index
     int subsindex = microenvironment.find_density_index(substrate);
     if (subsindex < 0) {
-        char error[64];
+        char error[1024];
         snprintf(error, sizeof(error), "Error: unknown substrate! %s", substrate);
         PyErr_SetString(PyExc_KeyError, error);
         return NULL;
     }
 
-    // recall from C++ into python3 list of list
+    // recall from C++ into Python list of list
     int voxel_count = microenvironment.number_of_voxels();
     PyObject *pLlist = PyList_New(voxel_count);
 
@@ -661,37 +741,37 @@ static PyObject* physicell_system(PyObject *self, PyObject *args) {
 // method table lists method name and address
 static struct PyMethodDef ExtendpyMethods[] = {
     {"start", physicell_start, METH_VARARGS,
-     "input:\n    settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n    reload (bool) density and parameter structs; default is False.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
+     "input:\n    settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n    reload (bool) density and parameter structs; default is False.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from extending import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
     },
     {"step", physicell_step, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
+     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from extending import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
     },
     {"stop", physicell_stop, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a PhysiCell episode."
+     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from extending import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a PhysiCell episode."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
-     "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."
+     "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from extending import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."
     },
     {"get_parameter", physicell_get_parameter, METH_VARARGS,
-     "input:\n    parameter name (string)\n\noutput:\n    values (bool or int or float or str).\n\nrun:\n    from embedding import physicell\n    physicell.get_parameter('my_parameter')\n\ndescription:\n    function to recall a user parameter."
+     "input:\n    parameter name (string)\n\noutput:\n    values (bool or int or float or str).\n\nrun:\n    from extending import physicell\n    physicell.get_parameter('my_parameter')\n\ndescription:\n    function to recall a user parameter."
     },
     {"set_variable", physicell_set_variable, METH_VARARGS,
-     "input:\n    variable name (string), variable value (float or integer).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_variable('my_variable', value)\n\ndescription:\n    function to store a custom variable value."
+     "input:\n    variable name (string), variable value (float or integer).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from extending import physicell\n    physicell.set_variable('my_variable', value)\n\ndescription:\n    function to store a custom variable value."
     },
     {"get_variable", physicell_get_variable, METH_VARARGS,
-     "input:\n    variable name (string).\n\noutput:\n    values (list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_variable('my_variable')\n\ndescription:\n    function to recall a custom variable."
+     "input:\n    variable name (string).\n\noutput:\n    values (list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_variable('my_variable')\n\ndescription:\n    function to recall a custom variable."
     },
     {"set_vector", physicell_set_vector, METH_VARARGS,
-     "input:\n    vector name (string), vector values (list of floats or integers).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_vector('my_vector', value)\n\ndescription:\n    function to store a custom vector."
+     "input:\n    vector name (string), vector values (list of floats or integers).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from extending import physicell\n    physicell.set_vector('my_vector', value)\n\ndescription:\n    function to store a custom vector."
     },
     {"get_vector", physicell_get_vector, METH_VARARGS,
-     "input:\n    vector name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_vector('my_vector')\n\ndescription:\n    function to recall a custom vector."
+     "input:\n    vector name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_vector('my_vector')\n\ndescription:\n    function to recall a custom vector."
     },
     {"get_cell", physicell_get_cell, METH_VARARGS,
-     "input:\n    none\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_cell()\n\ndescription:\n    function to recall cell position coordinate and id."
+     "input:\n    none\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_cell()\n\ndescription:\n    function to recall cell position coordinate and id."
     },
     {"get_microenv", physicell_get_microenv, METH_VARARGS,
-     "input:\n    substrate name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_microenv('my_substrate')\n\ndescription:\n    function to recall a voxel center coordinates and substrate concentration."
+     "input:\n    substrate name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_microenv('my_substrate')\n\ndescription:\n    function to recall a voxel center coordinates and substrate concentration."
     },
     {"system", physicell_system, METH_VARARGS, "execute a shell command."},
     /*{NULL, NULL, 0, NULL}  // Sentinel */

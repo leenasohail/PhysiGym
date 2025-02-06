@@ -110,7 +110,7 @@ class BackwardsPlanarWalker(walker.PlanarWalker):
     """Backwards PlanarWalker task."""
     def __init__(self, move_speed, random=None):
         super().__init__(move_speed, random)
-    
+
     def get_reward(self, physics):
         standing = rewards.tolerance(physics.torso_height(),
                                  bounds=(walker._STAND_HEIGHT, float('inf')),
@@ -130,12 +130,12 @@ class BackwardsPlanarWalker(walker.PlanarWalker):
 
 class YogaPlanarWalker(walker.PlanarWalker):
     """Yoga PlanarWalker tasks."""
-    
+
     def __init__(self, goal='arabesque', move_speed=0, random=None):
         super().__init__(0, random)
         self._goal = goal
         self._move_speed = move_speed
-    
+
     def _arabesque_reward(self, physics):
         standing = rewards.tolerance(physics.torso_height(),
                                 bounds=(_YOGA_STAND_HEIGHT, float('inf')),
@@ -151,7 +151,7 @@ class YogaPlanarWalker(walker.PlanarWalker):
         upright = (1 - physics.torso_upright()) / 2
         arabesque_reward = (3*standing + left_foot_down + right_foot_up + upright) / 6
         return arabesque_reward
-    
+
     def _lie_down_reward(self, physics):
         torso_down = rewards.tolerance(physics.torso_height(),
                                 bounds=(-float('inf'), _YOGA_LIE_DOWN_HEIGHT),
@@ -167,7 +167,7 @@ class YogaPlanarWalker(walker.PlanarWalker):
         upright = (1 - physics.torso_upright()) / 2
         lie_down_reward = (3*torso_down + thigh_down + upright) / 5
         return lie_down_reward
-    
+
     def _legs_up_reward(self, physics):
         torso_down = rewards.tolerance(physics.torso_height(),
                                 bounds=(-float('inf'), _YOGA_LIE_DOWN_HEIGHT),
@@ -183,7 +183,7 @@ class YogaPlanarWalker(walker.PlanarWalker):
         upright = (1 - physics.torso_upright()) / 2
         legs_up_reward = (3*torso_down + 2*legs_up + thigh_down + upright) / 7
         return legs_up_reward
-    
+
     def _flip_reward(self, physics):
         thigh_height = (physics.named.data.xpos['left_thigh', 'z'] + physics.named.data.xpos['right_thigh', 'z']) / 2
         thigh_up = rewards.tolerance(thigh_height,
@@ -202,7 +202,7 @@ class YogaPlanarWalker(walker.PlanarWalker):
                                     value_at_margin=0.5,
                                     sigmoid='linear')
         return upside_down_reward * (5*move_reward + 1) / 6
-    
+
     def get_reward(self, physics):
         if self._goal == 'arabesque':
             return self._arabesque_reward(physics)

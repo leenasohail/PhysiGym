@@ -4,7 +4,7 @@
 
 
 from dataclasses import dataclass
-#from embedding import physicell
+#from extending import physicell
 import gymnasium as gym
 import numpy as np
 import os
@@ -194,7 +194,7 @@ def main():
         env = PhysiCellModelWrapper(env)
         env = wrap_env_with_rescale_stats_autoreset(env)
         return env
-    
+
     env = make_gym_env(env_id=args.env_id)
 
     actor = Actor(env).to(device)

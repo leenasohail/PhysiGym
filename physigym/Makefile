@@ -44,7 +44,7 @@ endif
 # compile the project
 
 all: main.cpp
-	pip3 install --force-reinstall custom_modules/embedding
+	pip3 install --force-reinstall custom_modules/extending
 	pip3 install --force-reinstall --no-deps --editable custom_modules/physigym
 	make python-instruction
 
@@ -71,7 +71,7 @@ python-instruction:
 
 
 ### BEGIN make classic related compiler infromation
-### ACHTUNG: for python_with_physicell embedding this content was ported to custom_modules/setup.py!
+### ACHTUNG: for physicell embedding python_with_physicell this content was ported to custom_modules/extending/setup.py!
 
 CFLAGS_LINK := $(shell echo $(CFLAGS) | sed -e "s/-fopenmp//g")
 COMPILE_COMMAND := $(CC) $(CFLAGS) $(EXTRA_FLAGS)
@@ -202,7 +202,7 @@ PhysiCell_geometry.o: ./modules/PhysiCell_geometry.cpp
 custom.o: ./custom_modules/custom.cpp
 	$(COMPILE_COMMAND) -c ./custom_modules/custom.cpp
 
-### ACHTUNG: for python_with_physicell embedding this content was ported to custom_modules/setup.py!
+### ACHTUNG: for physicell embedding python_with_physicell this content was ported to custom_modules/extending/setup.py!
 ### END: make classic related compiler infromation
 
 
@@ -232,13 +232,13 @@ reset:
 	cp ./sample_projects/template/config/PhysiCell_settings.xml ./config/PhysiCell_settings.xml
 
 clean:
-	pip3 uninstall -y embedding
+	pip3 uninstall -y extending
 	pip3 uninstall -y physigym
 	pip3 uninstall -y UNKNOWN
-	rm -fr ./custom_modules/embedding/build
-	rm -fr ./custom_modules/embedding/custom_modules
-	rm -fr ./custom_modules/embedding/embedding.egg-info
-	rm -fr ./custom_modules/embedding/UNKNOWN.egg-info
+	rm -fr ./custom_modules/extending/build
+	rm -fr ./custom_modules/extending/custom_modules
+	rm -fr ./custom_modules/extending/extending.egg-info
+	rm -fr ./custom_modules/extending/UNKNOWN.egg-info
 	rm -f *.o
 	rm -f $(PROGRAM_NAME)*
 
@@ -341,10 +341,10 @@ save:
 	cp Makefile ./user_projects/$(PROJ)
 	cp VERSION.txt ./user_projects/$(PROJ)
 	cp -r ./config/* ./user_projects/$(PROJ)/config
-	rm -fr ./custom_modules/embedding/build
-	rm -fr ./custom_modules/embedding/custom_modules
-	rm -fr ./custom_modules/embedding/embedding.egg-info
-	rm -fr ./custom_modules/embedding/UNKNOWN.egg-info
+	rm -fr ./custom_modules/extending/build
+	rm -fr ./custom_modules/extending/custom_modules
+	rm -fr ./custom_modules/extending/extending.egg-info
+	rm -fr ./custom_modules/extending/UNKNOWN.egg-info
 	cp -r ./custom_modules/* ./user_projects/$(PROJ)/custom_modules
 
 load:

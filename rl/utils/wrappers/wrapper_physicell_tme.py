@@ -117,7 +117,7 @@ def wrap_gray_env_image(env,resize_shape=(None,None), stack_size=1, gray=True):
     class UInt8Wrapper(gym.ObservationWrapper):
         def observation(self, obs):
             return obs.astype(np.uint8)
-    
+
     env = UInt8Wrapper(env)
     print(env.observation_space.shape)
 

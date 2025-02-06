@@ -14,7 +14,7 @@
 
 ## run:
 ```python
-    from embedding import physicell
+    from extending import physicell
     physicell.get_vector('my_vector')
 
 ```

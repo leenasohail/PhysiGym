@@ -12,7 +12,7 @@
 // input: https://docs.python.org/3/extending/extending.html
 //
 // description:
-//   for the PhysiCell Python embedding the content of the regular main.cpp
+//   for physicell embedding the content of the regular main.cpp
 //   was ported to this physicellmodule.cpp file.
 ////////
 
@@ -257,6 +257,8 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //    }
                 //}
 
+                // add drug
+                set_microenv("drug", parameters.doubles("drug_dose"));
             }
 
             // do observation
@@ -298,6 +300,14 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //        return NULL;
                 //    }
                 //}
+
+                // receive cell count
+                parameters.ints("cell_count") = (*all_cells).size();
+
+                // receive apoptosis rate
+                for (Cell* pCell : (*all_cells)) {
+                    pCell->custom_data["apoptosis_rate"] = get_single_behavior(pCell, "apoptosis");
+                }
             }
 
             // on phenotype time step
@@ -739,37 +749,37 @@ static PyObject* physicell_system(PyObject *self, PyObject *args) {
 // method table lists method name and address
 static struct PyMethodDef ExtendpyMethods[] = {
     {"start", physicell_start, METH_VARARGS,
-     "input:\n    settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n    reload (bool) density and parameter structs; default is False.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
+     "input:\n    settingxml 'path/to/setting.xml' file (string); default is 'config/PhysiCell_settings.xml'.\n    reload (bool) density and parameter structs; default is False.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from extending import physicell\n    physicell.start('path/to/setting.xml')\n\ndescription:\n    function (re)initializes PhysiCell as specified in the settings.xml, cells.csv, and cell_rules.csv files and generates the step zero observation output."
     },
     {"step", physicell_step, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
+     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from extending import physicell\n    physicell.step()\n\ndescription:\n    function runs one time step."
     },
     {"stop", physicell_stop, METH_VARARGS,
-     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from embedding import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a PhysiCell episode."
+     "input:\n    none.\n\noutput:\n    PhysiCell processing. 0 for success.\n\nrun:\n    from extending import physicell\n    physicell.stop()\n\ndescription:\n    function finalizes a PhysiCell episode."
     },
     {"set_parameter", physicell_set_parameter, METH_VARARGS,
-     "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."
+     "input:\n    parameter name (string), vector value (bool or int or float or str).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from extending import physicell\n    physicell.set_parameter('my_parameter', value)\n\ndescription:\n    function to store a user parameter."
     },
     {"get_parameter", physicell_get_parameter, METH_VARARGS,
-     "input:\n    parameter name (string)\n\noutput:\n    values (bool or int or float or str).\n\nrun:\n    from embedding import physicell\n    physicell.get_parameter('my_parameter')\n\ndescription:\n    function to recall a user parameter."
+     "input:\n    parameter name (string)\n\noutput:\n    values (bool or int or float or str).\n\nrun:\n    from extending import physicell\n    physicell.get_parameter('my_parameter')\n\ndescription:\n    function to recall a user parameter."
     },
     {"set_variable", physicell_set_variable, METH_VARARGS,
-     "input:\n    variable name (string), variable value (float or integer).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_variable('my_variable', value)\n\ndescription:\n    function to store a custom variable value."
+     "input:\n    variable name (string), variable value (float or integer).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from extending import physicell\n    physicell.set_variable('my_variable', value)\n\ndescription:\n    function to store a custom variable value."
     },
     {"get_variable", physicell_get_variable, METH_VARARGS,
-     "input:\n    variable name (string).\n\noutput:\n    values (list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_variable('my_variable')\n\ndescription:\n    function to recall a custom variable."
+     "input:\n    variable name (string).\n\noutput:\n    values (list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_variable('my_variable')\n\ndescription:\n    function to recall a custom variable."
     },
     {"set_vector", physicell_set_vector, METH_VARARGS,
-     "input:\n    vector name (string), vector values (list of floats or integers).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from embedding import physicell\n    physicell.set_vector('my_vector', value)\n\ndescription:\n    function to store a custom vector."
+     "input:\n    vector name (string), vector values (list of floats or integers).\n\noutput:\n    0 for success and -1 for failure.\n\nrun:\n    from extending import physicell\n    physicell.set_vector('my_vector', value)\n\ndescription:\n    function to store a custom vector."
     },
     {"get_vector", physicell_get_vector, METH_VARARGS,
-     "input:\n    vector name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_vector('my_vector')\n\ndescription:\n    function to recall a custom vector."
+     "input:\n    vector name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_vector('my_vector')\n\ndescription:\n    function to recall a custom vector."
     },
     {"get_cell", physicell_get_cell, METH_VARARGS,
-     "input:\n    none\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_cell()\n\ndescription:\n    function to recall cell position coordinate and id."
+     "input:\n    none\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_cell()\n\ndescription:\n    function to recall cell position coordinate and id."
     },
     {"get_microenv", physicell_get_microenv, METH_VARARGS,
-     "input:\n    substrate name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from embedding import physicell\n    physicell.get_microenv('my_substrate')\n\ndescription:\n    function to recall a voxel center coordinates and substrate concentration."
+     "input:\n    substrate name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_microenv('my_substrate')\n\ndescription:\n    function to recall a voxel center coordinates and substrate concentration."
     },
     {"system", physicell_system, METH_VARARGS, "execute a shell command."},
     /*{NULL, NULL, 0, NULL}  // Sentinel */

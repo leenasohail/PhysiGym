@@ -93,9 +93,11 @@ studio -c config/PhysiCell_settings.xml
 1.3 Compile and run the model the classic way.
 
 For model development, it is sometimes useful to be able to compile and run the model the old-fashioned way.
-In fact, this is the only reason why we kept the original main.cpp (which for python embedding had to be ported to custom/embedding/physicellmodule.cpp) in the physigym code base.
+In fact, this is the only reason why we kept the original [main.cpp](https://github.com/Dante-Berth/PhysiGym/blob/main/physigym/main.cpp) in the physigym code base.
+Physigym as such is written on top of the [physicell embedding](https://github.com/elmbeech/physicellembedding) python_with_physicell module,
+for which the main.cpp file had to be ported to [custom/extending/physicellmodule.cpp](https://github.com/Dante-Berth/PhysiGym/blob/main/model/template/custom_modules/extending/physicellmodule.cpp) that you can find in the physigym code base too.
 
-In python_with_physicell embedding we can compile and run the model the old-fashioned way like this:
+In physigym and in physicell embedding you can compile and run the model the old-fashioned way like this:
 
 ```bash
 make classic -j8  # the j parameter specifies the number of cores to use for compiling.
@@ -154,16 +156,16 @@ int set_microenv(std::string s_substrate, double r_dose);
 ```
 
 
-2. The PhysiCell Python embedding level (C++).
+2. The PhysiCell Python extending level (C++).
 
 Parameters, custom variables, and custom vectors are only the interface.
 We still have to connect them to something meaningful.
-This is done in the custom_modules/embedding/physicellmodule.cpp in the physicell_step function.
+This is done in the custom_modules/extending/physicellmodule.cpp in the physicell_step function.
 Please have a look at this function.
 
 At *line around 217*, you will find already prepared, commented out example code, for action and observation, for all possible parameter, variable and vector types.
 
-2.1 Edit the *custom_modules/embedding/physicellmodule.cpp* file for action.
+2.1 Edit the *custom_modules/extending/physicellmodule.cpp* file for action.
 
 Let's first focus on the action.
 The only thing left to do is to connect our drug_dose parameter with the already implemented set_microenv function.
@@ -174,7 +176,7 @@ After the commented-out action example code, at *line 259*, inserts the followin
 set_microenv("drug", parameters.doubles("drug_dose"));
 ```
 
-2.2 Edit the custom_modules/embedding/physicellmodule.cpp file for observation.
+2.2 Edit the custom_modules/extending/physicellmodule.cpp file for observation.
 
 For observation, we simply have to update our cell_count parameter with the actual cell count.
 After the commented out observation example code, at around *line 302*, insert the following line.
@@ -213,7 +215,7 @@ This is a single continuous vector with all possible real values from 0 to 1.
 
 Now, very important, in physigym, the action has always to be provided in dictionary form.
 The key to each entry is the parameter, variable, or vector name we defined in the underlying
-PhysiCell model and the Python embedding.
+PhysiCell model and the custom_modules/extending/physicellmodule.cpp.
 
 Your modified action space dictionary should look something like this:
 ```python
@@ -346,7 +348,7 @@ df_cell.plot(
 
 4.1 Compile the model.
 
-This is necessary, because of all the changes we did in the PhysiCell custom.cpp code and the embedding module.
+This is necessary, because of all the changes we did in the PhysiCell custom.cpp code and the extending module.
 And even the physigym Python module is ultimately installed in editable mode (have a look at the pip install command in the Make file), the module has still to be built and installed once.
 ```bash
 make
@@ -367,7 +369,7 @@ Execute the following code sequence:
 
 ```python
 # library
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import numpy as np
 import physigym
@@ -408,7 +410,7 @@ Alternatively, write a Python script that does the same.
 
 ```python
 # library
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import numpy as np
 import physigym
@@ -547,7 +549,7 @@ Open a ipython shell.
 
 ```python
 # library
-from embedding import physicell
+from extending import physicell
 import gymnasium
 import numpy as np
 import physigym

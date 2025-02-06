@@ -15,7 +15,7 @@
 
 ## run:
 ```python
-    from embedding import physicell
+    from extending import physicell
     physicell.start('path/to/setting.xml')
 
 ```

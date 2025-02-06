@@ -1,4 +1,8 @@
 <!--
+# find files with traling spaces:
+find . -type f -exec egrep -l " +$" {} \;
+
+# tag commit
 git tag -a v0.0.0 -m'version 0.0.0'
 git push --tag
 -->
@@ -85,12 +89,13 @@ To be BibTeX.
 
 # Road Map:
 
-+ embedding >>< extend.
 + add rl part.
 + finalize paper.
 
 # Release Notes:
 
++ 0.4.0 (2025-02-28): models, rl, os portability, unit tests, and documentation complete.
++ 0.3.1 (2025-02-05): custom_modules/embedding to custom_module/extending change.
 + 0.3.0 (2025-01-16): complete physigym PhysiCell >= v1.14.2 compatibility.
 + 0.2.1 (2024-11-29): physicell gymnasium environment limitation handling.
 + 0.2.0 (2024-10-27): physigym PhysiCell v1.13.1 to v1.14.n adaption.

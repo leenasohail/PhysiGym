@@ -14,7 +14,7 @@
 
 ## run:
 ```python
-    from embedding import physicell
+    from extending import physicell
     physicell.set_parameter('my_parameter', value)
 
 ```

@@ -150,12 +150,12 @@ def train(cfg: dict):
         env = PhysiCellModelWrapper(env)
         env = wrap_env_with_rescale_stats_autoreset(env)
         return env
-        
 
-    
-    env = gym.vector.SyncVectorEnv([partial(make_gym_env,env_config.env_id) 
+
+
+    env = gym.vector.SyncVectorEnv([partial(make_gym_env,env_config.env_id)
                             for seed in range(cfg.seed, cfg.seed+env_config.num_envs)])
-    
+
     np.random.seed(cfg.seed)
     rng = jax.random.PRNGKey(cfg.seed)
 

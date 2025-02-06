@@ -19,7 +19,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "embedding"  # as it would appear on PyPI
+name = "extending"  # as it would appear on PyPI
 dynamic = ["version"]
 description = "Embed PhysiCell into Python."
 #readme = "README.md"
@@ -31,6 +31,7 @@ keywords = [
     "physicell",
     "python",
     "c++",
+    "extending",
     "embedding",
 ]
 classifiers = [

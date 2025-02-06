@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
 	std::vector<std::string> (*cell_coloring_function)(Cell *) = my_coloring_function;
 	std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 
-	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() ); 
+	sprintf( filename , "%s/initial.svg" , PhysiCell_settings.folder.c_str() );
 	SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function );
 
 	sprintf(filename, "%s/legend.svg", PhysiCell_settings.folder.c_str());
@@ -395,16 +395,16 @@ int main(int argc, char *argv[])
 	{
 		while (PhysiCell_globals.current_time < PhysiCell_settings.max_time)
 		{
-			
-			
+
+
 			// save SVG plot if it's time
 			if( PhysiCell_globals.current_time > PhysiCell_globals.next_SVG_save_time - 0.5 * diffusion_dt )
 			{
 				if( PhysiCell_settings.enable_SVG_saves == true )
-				{	
-					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index ); 
+				{
+					sprintf( filename , "%s/snapshot%08u.svg" , PhysiCell_settings.folder.c_str() , PhysiCell_globals.SVG_output_index );
 					SVG_plot( filename , microenvironment, 0.0 , PhysiCell_globals.current_time, cell_coloring_function );
-					PhysiCell_globals.SVG_output_index++; 
+					PhysiCell_globals.SVG_output_index++;
 					PhysiCell_globals.next_SVG_save_time  += PhysiCell_settings.SVG_save_interval;
 				}
 			}

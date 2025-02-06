@@ -2,4 +2,4 @@
 # python_with_physicell user_project template
 # original source code: https://github.com/elmbeech/physicellembedding
 # modified source code: https://github.com/Dante-Berth/PhysiGym
-__version__ = '0.3.0'
+__version__ = '0.3.1'

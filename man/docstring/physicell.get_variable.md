@@ -14,7 +14,7 @@
 
 ## run:
 ```python
-    from embedding import physicell
+    from extending import physicell
     physicell.get_variable('my_variable')
 
 ```
