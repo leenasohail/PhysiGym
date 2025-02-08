@@ -232,5 +232,15 @@ In Reinforcement Learning (RL), the aim is to maxmize the expected cumulative re
 ```
 The aim of an agent is to maximizes it, in the next chapter, we would use a deep reinforcement learning algorithm to solve our problem.
 
+We applied a Deep Reinforcement Learning Algorithm called SAC is adapted for continous action space. To Launch SAC on tme model you just need to install libraries, but before in your PhysiGym launch:
+```
+python3 install_rl_folder.py
+```
+The `rl`folder from PhysiGym will be installed into PhysiCell, but you can use your own Reinforcement Learning Algorithms or Folders, you have to keep it mind than the python script related to Reinforcemetn Learning should be launched since PhysiCell because PhysiCell is the main tool to compute the microenvironment.
+
+If you have selected to use the current work you can keep follow the steps, we only focus on launching the SAC reinforcement learning algorithm on TME model.
+
+In the sac folder there are three files, the `sac_requirements.txt`in order to install the libraries nedded, `launch_sac.sh`a script to launch the script `sac.py` multiple times with multiple different seeds. `sac.py`contains almost all the code needed to launch a SAC algorithm the other important files are in the folder `rl/utils`. In this folder, there is the replay buffer mainly used in Deep Reinforcement Learning Algorithms but also a wrapper file called `wrapper_physicell_tme.py`this wrapper is a easiest way to wrap  the environment from `model/custom_modules/physigym/physicell_model.py` from tme model ()
+
 
 < ALEX, HERE COMES THE BIG CHUNK >
