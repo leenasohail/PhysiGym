@@ -221,9 +221,16 @@ def get_observation(self):
 
         return o_observation
 ```
-If the selected observation type is  ``simple``, the output of the function is the ratio between the number of cancer cells and the number of target cancer cells. In other words, the state, also referred to as the observation in Reinforcement Learning and denoted $s_{t}$ equals to $\frac{c_{t}/c}$
+If the selected observation type is  ``simple``, the output of the function is the ratio between the number of cancer cells and the number of target cancer cells. In other words, the state, also referred to as the observation in Reinforcement Learning and denoted $s_{t}$ equals to $\frac{c_{t}}{c}$
 
 
 4. Reinforcement learn a policy for the model.
+
+In Reinforcement Learning (RL), the aim is to maxmize the expected cumulative reward with $\gamma$ (discount factor), $r_t$ the reward function, $\pi$ the policy which can be seen as the strategy, $s_0$ the initial state given in our case by $cells.csv$.
+```math
+    \argmax_{\pi}\mathbb{E}\left[\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
+```
+The aim of an agent is to maximizes it, in the next chapter, we would use a deep reinforcement learning algorithm to solve our problem.
+
 
 < ALEX, HERE COMES THE BIG CHUNK >
