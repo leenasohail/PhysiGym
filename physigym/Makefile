@@ -68,6 +68,8 @@ python-instruction:
 	@echo "exit()"
 	@echo ""
 
+install-requirement:
+	pip3 install --requirement custom_modules/physigym/requirements.txt
 
 
 ### BEGIN make classic related compiler infromation
