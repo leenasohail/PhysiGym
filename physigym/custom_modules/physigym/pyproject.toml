@@ -31,7 +31,7 @@ dependencies = [
     "matplotlib",
     "numpy",
     "pandas",
-    "PyQt6",
+    "pyqt6",
 ]
 
 [tool.hatch.version]
