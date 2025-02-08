@@ -32,9 +32,9 @@ Two types of drugs can be applied to the system:
 - `drug_reducing_antiapoptosis`: Deactivates the protein produced by nurse cells, rendering them ineffective. This makes nurse cells unable to protect and feed cancer cells.
 
 A quick view of tme model:
-![Same TME model with three different representations, cancer cells are in grey hwile nurse cells are in red. THe first presentation is the raw representation , while the second one is displaying the production of stress chemicall cc and the last image represents the production of antiapoptosis chemical nc produced by nurse cells](man/img/tme_model.png)
+![Same TME model with three different representations, cancer cells are in grey hwile nurse cells are in red. THe first presentation is the raw representation , while the second one is displaying the production of stress chemicall cc and the last image represents the production of antiapoptosis chemical nc produced by nurse cells](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/tme_model.png)
 The presentation presented can be modified given different intial state, the initial state is given by  `cells.csv`.
-
+man/img/tme_model.png
 
 0. Install and load the model (Bash).
 
@@ -119,7 +119,7 @@ while not b_episode_over:
 # drop the environment
 env.close()
 ```
-Congratulations, you can control the tme model. But before controlling, let's deep dive into 
+Congratulations :huggingface:, you can control the tme model. But before controlling, let's deep dive into the [physicell_model.py](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/custom_modules/physigym/physicell_model.py) which is the child class from 
 
 4. Reinforcement learn a policy for the model.
 
