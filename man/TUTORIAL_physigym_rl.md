@@ -221,7 +221,12 @@ def get_observation(self):
 
         return o_observation
 ```
-If the selected observation type is  ``simple``, the output of the function is the ratio between the number of cancer cells and the number of target cancer cells. In other words, the state, also referred to as the observation in Reinforcement Learning and denoted $s_{t}$ equals to $\frac{c_{t}}{c}$
+If the selected observation type is `simple`, the output of the function is the ratio between the number of cancer cells and the number of target cancer cells. In other words, the state, also referred to as the observation in Reinforcement Learning and denoted as $s_t$, is given by: $s_t = \frac{c_t}{c}$
+
+If the selected observation type is `image`, the function's output will be an RGB image with the shape $(x_{\max} - x_{\min} - 2dx, y_{\max} - y_{\min} - 2dy, 3)$, where $x_{\max}, x_{\min}, dx, y_{\max}, y_{\min}, dy$ are parameters from [`PhysiCell_settings.xml`](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/config/PhysiCell_settings.xml).  
+
+This raw output can be fed directly into the Deep Reinforcement Learning algorithm, but instead of using an RGB image, we may prefer a grayscale image. While we could modify [`physicell_core.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/physigym/custom_modules/physigym/physigym/envs/physicell_core.py) to achieve this, we instead use a Gymnasium wrapper environment that handles the modification for us: [GrayscaleObservation](https://gymnasium.farama.org/api/wrappers/observation_wrappers/#gymnasium.wrappers.GrayscaleObservation).
+
 
 
 4. Reinforcement learn a policy for the model.
@@ -229,7 +234,7 @@ If the selected observation type is  ``simple``, the output of the function is t
 4.1 Introduction
 In Reinforcement Learning (RL), the aim is to maxmize the expected cumulative reward with $\gamma$ (discount factor), $r_t$ the reward function, $\pi$ the policy which can be seen as the strategy, $s_0$ the initial state given by ``cells.csv``.
 ```math
-    \argmax_{\pi}\mathbb{E}\left[\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
+\underset{<constraints>}{\operatorname{<argmax>}}_{\pi}\mathbb{E}\left[\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
 The aim of an agent is to maximizes it, in the next chapter, we would use a deep reinforcement learning algorithm to solve our problem.
 
