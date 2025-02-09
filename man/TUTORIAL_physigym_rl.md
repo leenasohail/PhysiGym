@@ -226,21 +226,32 @@ If the selected observation type is  ``simple``, the output of the function is t
 
 4. Reinforcement learn a policy for the model.
 
-In Reinforcement Learning (RL), the aim is to maxmize the expected cumulative reward with $\gamma$ (discount factor), $r_t$ the reward function, $\pi$ the policy which can be seen as the strategy, $s_0$ the initial state given in our case by $cells.csv$.
+4.1 Introduction
+In Reinforcement Learning (RL), the aim is to maxmize the expected cumulative reward with $\gamma$ (discount factor), $r_t$ the reward function, $\pi$ the policy which can be seen as the strategy, $s_0$ the initial state given by ``cells.csv``.
 ```math
     \argmax_{\pi}\mathbb{E}\left[\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
 The aim of an agent is to maximizes it, in the next chapter, we would use a deep reinforcement learning algorithm to solve our problem.
 
-We applied a Deep Reinforcement Learning Algorithm called SAC is adapted for continous action space. To Launch SAC on tme model you just need to install libraries, but before in your PhysiGym launch:
+4.2 Description folder rl
+We applied a Deep Reinforcement Learning Algorithm called [SAC](https://arxiv.org/pdf/1812.05905) is adapted for continous action space. To Launch SAC on tme model you just need to install libraries, but before in your PhysiGym launch:
 ```
 python3 install_rl_folder.py
 ```
-The `rl`folder from PhysiGym will be installed into PhysiCell, but you can use your own Reinforcement Learning Algorithms or Folders, you have to keep it mind than the python script related to Reinforcemetn Learning should be launched since PhysiCell because PhysiCell is the main tool to compute the microenvironment.
+The `rl`folder from PhysiGym will be installed into PhysiCell, but you can use your own Reinforcement Learning Algorithms, you have to keep it mind than the python script related to Reinforcemetn Learning should be launched since PhysiCell because PhysiCell is the main tool to compute the microenvironment.
 
 If you have selected to use the current work you can keep follow the steps, we only focus on launching the SAC reinforcement learning algorithm on TME model.
 
-In the sac folder there are three files, the `sac_requirements.txt`in order to install the libraries nedded, `launch_sac.sh`a script to launch the script `sac.py` multiple times with multiple different seeds. `sac.py`contains almost all the code needed to launch a SAC algorithm the other important files are in the folder `rl/utils`. In this folder, there is the replay buffer mainly used in Deep Reinforcement Learning Algorithms but also a wrapper file called `wrapper_physicell_tme.py`this wrapper is a easiest way to wrap  the environment from `model/custom_modules/physigym/physicell_model.py` from tme model ()
+In the sac folder there are three files, the [sac_requirements.txt](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt) in order to install the libraries needed, [launch_sac.sh](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/launch_sac.sh) a script to launch [sac.py](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) multiple times with multiple different seeds. [sac.py](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) contains almost all the code needed to launch a SAC algorithm the other important files are in the folder [rl/utils](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/utils), in this folder, there is a replay buffer mainly used in Deep Reinforcement Learning Algorithms but also a wrapper file called [wrapper_physicell_tme.py](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/utils/wrappers/wrapper_physicell_tme.py) contains wrapper for [physicell_model.py](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/custom_modules/physigym/physicell_model.py).
+
+4.3 Launch SAC
+
+First install the libraries needed by:
+```bash
+pip install -r rl/sac/sac_requirements.txt
+```
+In the [sac_requirements.txt](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt), you may figure out a library called [wandb](https://wandb.ai/site). This library is a famous library to save results in the cloud, you need to create an account in order to launch sac and to save results. 
+
 
 
 < ALEX, HERE COMES THE BIG CHUNK >
