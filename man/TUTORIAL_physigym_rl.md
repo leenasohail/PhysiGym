@@ -242,7 +242,7 @@ The `rl`folder from PhysiGym will be installed into PhysiCell, but you can use y
 
 If you have selected to use the current work you can keep follow the steps, we only focus on launching the SAC reinforcement learning algorithm on TME model.
 
-In the sac folder there are three files, the [sac_requirements.txt](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt) in order to install the libraries needed, [launch_sac.sh](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/launch_sac.sh) a script to launch [sac.py](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) multiple times with multiple different seeds. [sac.py](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) contains almost all the code needed to launch a SAC algorithm the other important files are in the folder [rl/utils](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/utils), in this folder, there is a replay buffer mainly used in Deep Reinforcement Learning Algorithms but also a wrapper file called [wrapper_physicell_tme.py](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/utils/wrappers/wrapper_physicell_tme.py) contains wrapper for [physicell_model.py](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/custom_modules/physigym/physicell_model.py).
+In the sac folder there are three files, the [`sac_requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt) in order to install the libraries needed, [`launch_sac.sh`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/launch_sac.sh) a script to launch [`sac.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) multiple times with multiple different seeds. [`sac.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) contains almost all the code needed to launch a SAC algorithm the other important files are in the folder [`rl/utils`](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/utils), in this folder, there is a replay buffer mainly used in Deep Reinforcement Learning Algorithms but also a wrapper file called [`wrapper_physicell_tme.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/utils/wrappers/wrapper_physicell_tme.py) contains wrapper for [`physicell_model.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/custom_modules/physigym/physicell_model.py).
 
 4.3 Launch SAC
 
@@ -250,8 +250,11 @@ First install the libraries needed by:
 ```bash
 pip install -r rl/sac/sac_requirements.txt
 ```
-In the [sac_requirements.txt](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt), you may figure out a library called [wandb](https://wandb.ai/site). This library is a famous library to save results in the cloud, you need to create an account in order to launch sac and to save results. 
+In the [`sac_requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt), you may figure out a library called [wandb](https://wandb.ai/site). This popular library allows you to save results in the cloud. To use it, you need to create an account before launching SAC and saving results.
 
+Depending on your available resources, you can run multiple seeds in parallel. In reinforcement learning, it is recommended to run multiple seeds to ensure consistency regardless of the seed used.
 
-
-< ALEX, HERE COMES THE BIG CHUNK >
+Finally, navigate to the root of your PhysiCell folder.
+```bash
+./rl/sac/launch_sac.sh
+```
