@@ -22,7 +22,7 @@ absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
-from rl.utils.wrappers.wrapper_physicell_tme import PhysiCellModelWrapper, wrap_env_with_rescale_stats_autoreset, wrap_gray_env_image
+from rl.utils.wrappers.wrapper_physicell_tme import PhysiCellModelWrapper, wrap_env_with_rescale_stats, wrap_gray_env_image
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 
 LOG_STD_MAX = 2
@@ -224,7 +224,7 @@ def main():
         env = PhysiCellModelWrapper(env)
         if observation_type == "image":
             env = wrap_gray_env_image(env, stack_size=1, gray=True, resize_shape=(None,None))
-        env = wrap_env_with_rescale_stats_autoreset(env)
+        env = wrap_env_with_rescale_stats(env)
         return env
     env = make_gym_env(env_id=args.env_id, observation_type=args.observation_type)
     shape_observation_space_env = env.observation_space.shape
@@ -372,6 +372,7 @@ def main():
             writer.add_scalar(
                 "charts/episodic_length", info["episode"]["l"], global_step
             )
+            obs, _ = env.reset(seed=args.seed)
     env.close()
     writer.close()
 
