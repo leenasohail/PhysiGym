@@ -223,7 +223,7 @@ def main():
         env = gym.make(env_id,observation_type=observation_type)
         env = PhysiCellModelWrapper(env)
         if observation_type == "image":
-            env = wrap_gray_env_image(env, stack_size=2, gray=True, resize_shape=(128,128))
+            env = wrap_gray_env_image(env, stack_size=1, gray=True, resize_shape=(None,None))
         env = wrap_env_with_rescale_stats_autoreset(env)
         return env
     env = make_gym_env(env_id=args.env_id, observation_type=args.observation_type)
