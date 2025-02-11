@@ -85,7 +85,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         return o_observation, r_reward, b_terminated, b_truncated, info
 
 class PhysiCellRewardWrapper(gym.Wrapper):
-    def __init__(self, env, done_penalty=-1000):
+    def __init__(self, env, done_penalty=-100):
         super().__init__(env)
         self.done_penalty = done_penalty
 
@@ -98,15 +98,14 @@ class PhysiCellRewardWrapper(gym.Wrapper):
 
         return obs, reward, done, truncated, info
 
-def wrap_env_with_rescale_stats_autoreset(env: gym.Env, min_action:float=-1, max_action:float=1):
+def wrap_env_with_rescale_stats(env: gym.Env, min_action:float=-1, max_action:float=1):
     """
     Applies RescaleAction to normalize actions between -1 and 1,
-    Records Episode Statistics, and enables Autoreset for the environment.
+    Records Episode Statistics for the environment.
     """
     env = gym.wrappers.RescaleAction(env, min_action=min_action, max_action=max_action)
     env = PhysiCellRewardWrapper(env)
     env = gym.wrappers.RecordEpisodeStatistics(env)
-    env = gym.wrappers.Autoreset(env)
     return env
 
 def wrap_gray_env_image(env,resize_shape=(None,None), stack_size=1, gray=True):

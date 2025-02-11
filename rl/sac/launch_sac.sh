@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Number of instances to launch
-NUM_INSTANCES=8
+NUM_INSTANCES=2
 
 # Path to the Python file
 SCRIPT_PATH="rl/sac/sac.py"

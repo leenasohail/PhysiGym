@@ -233,6 +233,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         # set global physigym enviroment flag
         physicell.flag_envphysigym = True
 
+        self.autoreset = False
+
         # output
         if self.verbose:
             print(f'physigym: ok!')
@@ -483,6 +485,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         # do action
         if self.verbose:
             print(f'physigym: action.')
+
+        if self.autoreset:
+            o_observation, d_info = self.reset()
+            r_reward, b_terminated, b_truncated = self.get_reward(), False, False
+            self.autoreset = False
+            return o_observation, r_reward, b_terminated, b_truncated, d_info
+        
         for s_action, o_value in action.items():  # action is always a gymnasium composite space dict
             # gymnasium composite space tuple: nop.
             # gymnasium composite space sequences: nop.
@@ -561,7 +570,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         b_terminated = self.get_terminated()
         b_truncated = self.get_truncated()
         d_info = self.get_info()
-
+        self.autoreset = b_terminated or b_truncated
         # get revard
         r_reward = self.get_reward()
 
@@ -574,7 +583,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 plt.pause(1 / self.metadata['render_fps'])
 
         # check if episode finish
-        if b_terminated or b_truncated:
+        if self.autoreset:
             if self.verbose:
                 print(f'physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated}).')
             physicell.stop()

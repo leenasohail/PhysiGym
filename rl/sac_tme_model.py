@@ -22,7 +22,7 @@ absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
-from rl.utils.wrappers.wrapper_physicell_tme import PhysiCellModelWrapper, wrap_env_with_rescale_stats_autoreset, wrap_gray_env_image
+from rl.utils.wrappers.wrapper_physicell_tme import PhysiCellModelWrapper, wrap_env_with_rescale_stats, wrap_gray_env_image
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 
 LOG_STD_MAX = 2
@@ -105,7 +105,7 @@ class Actor(nn.Module):
         self.fc2 = nn.LazyLinear(256)
         self.fc_mean = nn.LazyLinear(action_dim)
         self.fc_logstd = nn.LazyLinear(action_dim)
-        self.mish = nn.Mish()
+        self.relu = nn.ReLU()
         # Action scaling
         self.register_buffer("action_scale", torch.tensor((env.action_space.high - env.action_space.low) / 2.0, dtype=torch.float32))
         self.register_buffer("action_bias", torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32))
@@ -113,8 +113,8 @@ class Actor(nn.Module):
     def forward(self, x):
         x = self.feature_extractor(x)  # Extract features
 
-        x = self.mish(self.fc1(x))
-        x = self.mish(self.fc2(x))
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
 
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
@@ -154,7 +154,7 @@ class Args:
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
     track: bool = False
-    wandb_project_name: str = "SAC_ModelTmePhysiCellEnv_PhysiGym"
+    wandb_project_name: str = "SAC_IMAGE_SIMPLE_PHYSIGYM"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
 
@@ -165,13 +165,13 @@ class Args:
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
-    buffer_size: int = int(1e6)
+    buffer_size: int = int(5e5)
     """the replay memory buffer size"""
     gamma: float = 0.99
     """the discount factor gamma"""
     tau: float = 0.005
     """target smoothing coefficient (default: 0.005)"""
-    batch_size: int = 128
+    batch_size: int = 2
     """the batch size of sample from the reply memory"""
     learning_starts: float = 5e3
     """timestep to start learning"""
@@ -221,10 +221,10 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
     def make_gym_env(env_id, observation_type):
         env = gym.make(env_id,observation_type=observation_type)
-        if observation_type == "image":
-            env = wrap_gray_env_image(env, stack_size=2, gray=True)
         env = PhysiCellModelWrapper(env)
-        env = wrap_env_with_rescale_stats_autoreset(env)
+        if observation_type == "image":
+            env = wrap_gray_env_image(env, stack_size=1, gray=True, resize_shape=(None,None))
+        env = wrap_env_with_rescale_stats(env)
         return env
     env = make_gym_env(env_id=args.env_id, observation_type=args.observation_type)
     shape_observation_space_env = env.observation_space.shape
@@ -362,7 +362,7 @@ def main():
         )
         writer.add_scalar("env/drug_apoptosis", actions[0], global_step)
         writer.add_scalar("env/drug_reducing_antiapoptosis", actions[1], global_step)
-
+        
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
             print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
@@ -372,6 +372,7 @@ def main():
             writer.add_scalar(
                 "charts/episodic_length", info["episode"]["l"], global_step
             )
+            obs, _ = env.reset(seed=args.seed)
     env.close()
     writer.close()
 
