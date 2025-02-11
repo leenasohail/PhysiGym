@@ -4,8 +4,8 @@ run-name: ${{ github.actor }}::test physigym on the linux os, all pytest unit te
 on:
   push:
     branches: ["main"]
-  # pull_request:
-    # branches: ["main"]
+  #pull_request:
+  #  branches: ["main"]
 
 jobs:
   build-linux:
@@ -31,7 +31,7 @@ jobs:
     - name: install python modules
       run: |
         python3 -m pip install --upgrade pip
-        python3 -m pip install pytest gymnasium "lxml>5.0" matplotlib numpy pandas pcdl
+        python3 -m pip install pytest gymnasium "lxml>5.0" matplotlib numpy pandas #pcdl
         which python3
         which python
         which pip3
