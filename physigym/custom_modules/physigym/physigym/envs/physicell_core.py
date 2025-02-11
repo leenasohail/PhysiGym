@@ -230,10 +230,11 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.action_space = self.get_action_space()
         self.observation_space = self.get_observation_space()
 
+        # set autoreset flag
+        self.autoreset = False
+
         # set global physigym enviroment flag
         physicell.flag_envphysigym = True
-
-        self.autoreset = False
 
         # output
         if self.verbose:
@@ -488,10 +489,12 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         if self.autoreset:
             o_observation, d_info = self.reset()
-            r_reward, b_terminated, b_truncated = self.get_reward(), False, False
+            r_reward = self.get_reward()
+            b_terminated = False
+            b_truncated = False
             self.autoreset = False
             return o_observation, r_reward, b_terminated, b_truncated, d_info
-        
+
         for s_action, o_value in action.items():  # action is always a gymnasium composite space dict
             # gymnasium composite space tuple: nop.
             # gymnasium composite space sequences: nop.
@@ -571,6 +574,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         b_truncated = self.get_truncated()
         d_info = self.get_info()
         self.autoreset = b_terminated or b_truncated
+
         # get revard
         r_reward = self.get_reward()
 
