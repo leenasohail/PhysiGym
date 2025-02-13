@@ -88,7 +88,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             self.x_root.xpath("//cell_count_cancer_cell_target")[0].text
         )
 
-
     def get_action_space(self):
         """
         input:
@@ -112,10 +111,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         d_action_space = spaces.Dict(
             {
                 "drug_apoptosis": spaces.Box(
-                    low=0.0, high=30.0*45, shape=(1,), dtype=np.float64
+                    low=0.0, high=30.0 * 45, shape=(1,), dtype=np.float64
                 ),
                 "drug_reducing_antiapoptosis": spaces.Box(
-                    low=0.0, high=30.0*45, shape=(1,), dtype=np.float64
+                    low=0.0, high=30.0 * 45, shape=(1,), dtype=np.float64
                 ),
             }
         )
@@ -160,8 +159,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             )
         elif self.observation_type == "image":
             # Calculate width and height
-            self.width = self.x_max + 2*self.dx  - self.x_min
-            self.height = self.y_max + 2*self.dy - self.y_min
+            self.width = self.x_max + 2 * self.dx - self.x_min
+            self.height = self.y_max + 2 * self.dy - self.y_min
 
             # Define the Box space for the image
             o_observation_space = spaces.Box(
@@ -210,22 +209,26 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             # Extracting the x, y coordinates and cell id into a numpy array
             x = df_cell["x"].to_numpy()
             y = df_cell["y"].to_numpy()
-            df_cell["color"] = df_cell["type"].map(lambda t: self.color_mapping.get(t, (255,255,255)))  # Default to black if type not found
-            df_cell["color"] = df_cell.apply(lambda row: [255, 255, 255] if row["dead"] != 0.0 else row["color"], axis=1)
-
-
+            df_cell["color"] = df_cell["type"].map(
+                lambda t: self.color_mapping.get(t, (0, 0, 0))
+            )  # Default to black if type not found
+            df_cell["color"] = df_cell.apply(
+                lambda row: [0, 0, 0] if row["dead"] != 0.0 else row["color"], axis=1
+            )
 
             cell_id = df_cell["ID"].to_numpy()
 
-            o_observation = 255*np.ones((self.height, self.width, 3), dtype=np.uint8)
+            o_observation = np.zeros((self.height, self.width, 3), dtype=np.uint8)
 
             # Normalizing the coordinates to fit into the image grid
             x_normalized = (x - self.x_min).astype(int)
             y_normalized = (y - self.y_min).astype(int)
 
-             # Assign colors to the image grid
+            # Assign colors to the image grid
             for i in range(len(cell_id)):
-                o_observation[x_normalized[i], y_normalized[i], :] = df_cell["color"].iloc[i]
+                o_observation[x_normalized[i], y_normalized[i], :] = df_cell[
+                    "color"
+                ].iloc[i]
 
         else:
             raise f"Observation type: {self.observation_type} does not exist"
@@ -297,7 +300,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        return -np.abs(physicell.get_parameter("count_cancer_cell") - self.cell_count_cancer_cell_target)
+        return -np.abs(
+            physicell.get_parameter("count_cancer_cell")
+            - self.cell_count_cancer_cell_target
+        )
 
     def get_img(self):
         """
