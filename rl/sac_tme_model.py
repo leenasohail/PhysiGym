@@ -18,15 +18,21 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 import tyro
 import sys, os
+
 absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
-from rl.utils.wrappers.wrapper_physicell_tme import PhysiCellModelWrapper, wrap_env_with_rescale_stats, wrap_gray_env_image
+from rl.utils.wrappers.wrapper_physicell_tme import (
+    PhysiCellModelWrapper,
+    wrap_env_with_rescale_stats,
+    wrap_gray_env_image,
+)
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 
 LOG_STD_MAX = 2
 LOG_STD_MIN = -5
+
 
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
@@ -40,12 +46,14 @@ class FeatureExtractor(nn.Module):
             # CNN feature extractor
             num_channels = obs_shape[0]
             self.feature_extractor = nn.Sequential(
-                nn.Conv2d(num_channels, out_channels=32, kernel_size=8, stride=4, padding=1),
+                nn.Conv2d(
+                    num_channels, out_channels=32, kernel_size=8, stride=4, padding=1
+                ),
                 nn.Mish(),
                 nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
                 nn.Mish(),
-                nn.Conv2d(in_channels=64,out_channels=64,kernel_size=3, stride=1),
-                nn.Mish()
+                nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=1),
+                nn.Mish(),
             )
             self.feature_size = self._get_feature_size(obs_shape)
         else:
@@ -62,7 +70,7 @@ class FeatureExtractor(nn.Module):
 
     def forward(self, x):
         if self.is_image:
-            x = self.feature_extractor((x/255-0.5)/0.5)  # Apply CNN
+            x = self.feature_extractor((x / 255 - 0.5) / 0.5)  # Apply CNN
             x = x.view(x.size(0), -1)  # Flatten
         return x
 
@@ -107,8 +115,20 @@ class Actor(nn.Module):
         self.fc_logstd = nn.LazyLinear(action_dim)
         self.relu = nn.ReLU()
         # Action scaling
-        self.register_buffer("action_scale", torch.tensor((env.action_space.high - env.action_space.low) / 2.0, dtype=torch.float32))
-        self.register_buffer("action_bias", torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32))
+        self.register_buffer(
+            "action_scale",
+            torch.tensor(
+                (env.action_space.high - env.action_space.low) / 2.0,
+                dtype=torch.float32,
+            ),
+        )
+        self.register_buffer(
+            "action_bias",
+            torch.tensor(
+                (env.action_space.high + env.action_space.low) / 2.0,
+                dtype=torch.float32,
+            ),
+        )
 
     def forward(self, x):
         x = self.feature_extractor(x)  # Extract features
@@ -119,7 +139,9 @@ class Actor(nn.Module):
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
         log_std = torch.tanh(log_std)
-        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)  # Stable variance scaling
+        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (
+            log_std + 1
+        )  # Stable variance scaling
 
         return mean, log_std
 
@@ -138,6 +160,7 @@ class Actor(nn.Module):
 
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
         return action, log_prob, mean
+
 
 # Wrap the environment
 list_variable_name = ["drug_apoptosis", "drug_reducing_antiapoptosis"]
@@ -219,16 +242,20 @@ def main():
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
+
     def make_gym_env(env_id, observation_type):
-        env = gym.make(env_id,observation_type=observation_type)
+        env = gym.make(env_id, observation_type=observation_type)
         env = PhysiCellModelWrapper(env)
         if observation_type == "image":
-            env = wrap_gray_env_image(env, stack_size=1, gray=True, resize_shape=(None,None))
+            env = wrap_gray_env_image(
+                env, stack_size=1, gray=True, resize_shape=(None, None)
+            )
         env = wrap_env_with_rescale_stats(env)
         return env
+
     env = make_gym_env(env_id=args.env_id, observation_type=args.observation_type)
     shape_observation_space_env = env.observation_space.shape
-    is_image = True if len(shape_observation_space_env) >1 else False
+    is_image = True if len(shape_observation_space_env) > 1 else False
 
     actor = Actor(env).to(device)
     qf1 = QNetwork(env).to(device)
@@ -259,7 +286,7 @@ def main():
         device=device,
         buffer_size=args.buffer_size,
         batch_size=args.batch_size,
-        state_type=env.observation_space.dtype
+        state_type=env.observation_space.dtype,
     )
 
     # TRY NOT TO MODIFY: start the game
@@ -277,8 +304,13 @@ def main():
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         done = terminations or truncations
-        rb.add(obs.flatten() if is_image else obs, actions,
-               rewards, next_obs.flatten() if is_image else next_obs, done)
+        rb.add(
+            obs.flatten() if is_image else obs,
+            actions,
+            rewards,
+            next_obs.flatten() if is_image else next_obs,
+            done,
+        )
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs
@@ -287,8 +319,18 @@ def main():
         if global_step > args.learning_starts:
             data = rb.sample()
             with torch.no_grad():
-                data_next_state = data["next_state"].reshape(args.batch_size, *shape_observation_space_env) if is_image else data["next_state"]
-                data_state = data["state"].reshape(args.batch_size, *shape_observation_space_env) if is_image else data["state"]
+                data_next_state = (
+                    data["next_state"].reshape(
+                        args.batch_size, *shape_observation_space_env
+                    )
+                    if is_image
+                    else data["next_state"]
+                )
+                data_state = (
+                    data["state"].reshape(args.batch_size, *shape_observation_space_env)
+                    if is_image
+                    else data["state"]
+                )
                 next_state_actions, next_state_log_pi, _ = actor.get_action(
                     data_next_state
                 )
@@ -362,7 +404,6 @@ def main():
         )
         writer.add_scalar("env/drug_apoptosis", actions[0], global_step)
         writer.add_scalar("env/drug_reducing_antiapoptosis", actions[1], global_step)
-        
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
             print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
