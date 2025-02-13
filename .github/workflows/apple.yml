@@ -4,8 +4,8 @@ run-name: ${{ github.actor }}::test physigym on the macosx, all pytest unit test
 on:
   push:
     branches: ["main"]
-  pull_request:
-    branches: ["main"]
+  #pull_request:
+  #  branches: ["main"]
 
 env:
   PHYSICELL_CPP: g++-14
