@@ -5,7 +5,7 @@ import pandas as pd
 from tensordict import TensorDict
 
 
-class ReplayBuffer(object):
+class ImgReplayBuffer(object):
     def __init__(
         self,
         action_dim,
@@ -78,10 +78,10 @@ class ReplayBuffer(object):
         # Convert images to tensors
         state_tensor = torch.tensor(
             np.array(state_images), dtype=torch.float32
-        )  # Normalize
+        ).permute(0, 3, 1, 2)
         next_state_tensor = torch.tensor(
             np.array(next_state_images), dtype=torch.float32
-        )
+        ).permute(0, 3, 1, 2)
 
         # Create a dictionary of the sampled experiences
         sample = TensorDict(
@@ -99,12 +99,18 @@ class ReplayBuffer(object):
 
     def df_to_image(self, df_cell):
         """Reconstruct the image from df_cell."""
-        o_observation = 255 * np.ones((self.height, self.width, 3), dtype=np.uint8)
+        x = df_cell["x"].to_numpy()
+        y = df_cell["y"].to_numpy()
+        cell_id = df_cell["ID"].to_numpy()
 
-        x_normalized = (df_cell["x"] - self.x_min).astype(int)
-        y_normalized = (df_cell["y"] - self.y_min).astype(int)
+        o_observation = np.zeros((self.height, self.width, 3), dtype=np.uint8)
 
-        for i in range(len(df_cell)):
+        # Normalizing the coordinates to fit into the image grid
+        x_normalized = (x - self.x_min).astype(int)
+        y_normalized = (y - self.y_min).astype(int)
+
+        # Assign colors to the image grid
+        for i in range(len(cell_id)):
             o_observation[x_normalized[i], y_normalized[i], :] = df_cell["color"].iloc[
                 i
             ]
