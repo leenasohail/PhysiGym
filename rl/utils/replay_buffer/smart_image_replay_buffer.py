@@ -4,20 +4,8 @@ import pickle
 import pandas as pd
 from tensordict import TensorDict
 
-
 class ImgReplayBuffer(object):
-    def __init__(
-        self,
-        action_dim,
-        device,
-        buffer_size,
-        batch_size,
-        height,
-        width,
-        x_min,
-        y_min,
-        color_mapping,
-    ):
+    def __init__(self, action_dim, device, buffer_size, batch_size, height, width, x_min, y_min, color_mapping):
         self.device = device
         self.buffer_size = int(buffer_size)
 
@@ -56,13 +44,9 @@ class ImgReplayBuffer(object):
     def sample(self):
         """Sample a batch of experiences from the replay buffer."""
         batch_size = self.batch_size
-        assert self.full or (self.buffer_index > batch_size), (
-            "Buffer does not have enough samples"
-        )
+        assert self.full or (self.buffer_index > batch_size), "Buffer does not have enough samples"
 
-        sample_index = np.random.randint(
-            0, self.buffer_size if self.full else self.buffer_index, batch_size
-        )
+        sample_index = np.random.randint(0, self.buffer_size if self.full else self.buffer_index, batch_size)
 
         # Deserialize df_cell for sampled indices
         state_df_list = [pickle.loads(self.state[i]) for i in sample_index]
@@ -76,12 +60,8 @@ class ImgReplayBuffer(object):
         next_state_images = [self.df_to_image(df) for df in next_state_df_list]
 
         # Convert images to tensors
-        state_tensor = torch.tensor(
-            np.array(state_images), dtype=torch.float32
-        ).permute(0, 3, 1, 2)
-        next_state_tensor = torch.tensor(
-            np.array(next_state_images), dtype=torch.float32
-        ).permute(0, 3, 1, 2)
+        state_tensor = torch.tensor(np.array(state_images), dtype=torch.float32)
+        next_state_tensor = torch.tensor(np.array(next_state_images), dtype=torch.float32)
 
         # Create a dictionary of the sampled experiences
         sample = TensorDict(
@@ -102,17 +82,15 @@ class ImgReplayBuffer(object):
         x = df_cell["x"].to_numpy()
         y = df_cell["y"].to_numpy()
         cell_id = df_cell["ID"].to_numpy()
-
-        o_observation = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+        
+        o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
 
         # Normalizing the coordinates to fit into the image grid
         x_normalized = (x - self.x_min).astype(int)
         y_normalized = (y - self.y_min).astype(int)
 
-        # Assign colors to the image grid
+            # Assign colors to the image grid
         for i in range(len(cell_id)):
-            o_observation[x_normalized[i], y_normalized[i], :] = df_cell["color"].iloc[
-                i
-            ]
+            o_observation[:, x_normalized[i], y_normalized[i]] = df_cell["color"].iloc[i]
 
         return o_observation
