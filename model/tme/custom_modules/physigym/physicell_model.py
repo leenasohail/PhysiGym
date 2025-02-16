@@ -112,10 +112,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         d_action_space = spaces.Dict(
             {
                 "drug_apoptosis": spaces.Box(
-                    low=0.0, high=30.0*45, shape=(1,), dtype=np.float64
+                    low=0.0, high=30, shape=(1,), dtype=np.float16
                 ),
                 "drug_reducing_antiapoptosis": spaces.Box(
-                    low=0.0, high=30.0*45, shape=(1,), dtype=np.float64
+                    low=0.0, high=30, shape=(1,), dtype=np.float16
                 ),
             }
         )
@@ -156,16 +156,17 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # model dependent observation_space processing logic goes here!
         if self.observation_type == "simple":
             o_observation_space = spaces.Box(
-                low=0, high=2**8, shape=(1,), dtype=np.float64
+                low=0, high=2**8, shape=(1,), dtype=np.float32
             )
         elif self.observation_type == "image":
-            # Calculate width and height
-            self.width = self.x_max + 2*self.dx  - self.x_min
-            self.height = self.y_max + 2*self.dy - self.y_min
-
             # Define the Box space for the image
             o_observation_space = spaces.Box(
                 low=0, high=255, shape=(self.height, self.width, 3), dtype=np.uint8
+            )
+        elif self.observation_type == "image_rgb_first":
+            # Define the Box space for the image
+            o_observation_space = spaces.Box(
+                low=0, high=255, shape=(3, self.height, self.width), dtype=np.uint8
             )
         else:
             raise f"Error unknown observation type: {o_observation_space}"
@@ -191,6 +192,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             + physicell.get_vector('my_vector')
             however, there are no limits.
         """
+        self.df_cell = pd.DataFrame(
+                physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "type"]
+            )
         # model dependent observation processing logic goes here!
         if self.observation_type == "simple":
             o_observation = np.array([physicell.get_parameter("count_cancer_cell")])
@@ -202,31 +206,30 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 o_observation, self.observation_space.low, self.observation_space.high
             )
 
-        elif self.observation_type == "image":
-            df_cell = pd.DataFrame(
-                physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "type"]
-            )
-            # df_cell = df_cell[df_cell["dead"] == 0]
-            # Extracting the x, y coordinates and cell id into a numpy array
-            x = df_cell["x"].to_numpy()
-            y = df_cell["y"].to_numpy()
-            df_cell["color"] = df_cell["type"].map(lambda t: self.color_mapping.get(t, (255,255,255)))  # Default to black if type not found
-            df_cell["color"] = df_cell.apply(lambda row: [255, 255, 255] if row["dead"] != 0.0 else row["color"], axis=1)
-
-
-
-            cell_id = df_cell["ID"].to_numpy()
-
-            o_observation = 255*np.ones((self.height, self.width, 3), dtype=np.uint8)
-
+        elif self.observation_type == "image" or self.observation_type == "image_rgb_first":
+            x = self.df_cell["x"].to_numpy()
+            y = self.df_cell["y"].to_numpy()
+            cell_id = self.df_cell["ID"].to_numpy()
             # Normalizing the coordinates to fit into the image grid
             x_normalized = (x - self.x_min).astype(int)
             y_normalized = (y - self.y_min).astype(int)
+            # Extracting the x, y coordinates and cell id into a numpy array
+            self.df_cell["color"] = self.df_cell["type"].map(lambda t: self.color_mapping.get(t, (0,0,0)))  # Default to black if type not found
+            self.df_cell["color"] = self.df_cell.apply(lambda row: [0,0,0] if row["dead"] != 0.0 else row["color"], axis=1)
 
-             # Assign colors to the image grid
-            for i in range(len(cell_id)):
-                o_observation[x_normalized[i], y_normalized[i], :] = df_cell["color"].iloc[i]
+            if self.observation_type == "image":
+                o_observation = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+                # Assign colors to the image grid
+                for i in range(len(cell_id)):
+                    o_observation[x_normalized[i], y_normalized[i], :] = self.df_cell["color"].iloc[i]
 
+            elif self.observation_type == "image_rgb_first":
+                o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
+                # Assign colors to the image grid
+                for i in range(len(cell_id)):
+                    o_observation[:, x_normalized[i], y_normalized[i]] = self.df_cell["color"].iloc[i]
+            else:
+                raise f"Observation type: {self.observation_type} does not exist"
         else:
             raise f"Observation type: {self.observation_type} does not exist"
 
@@ -249,7 +252,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             the number of hearts (lives left) from our character.
         """
         # model dependent info processing logic goes here!
-        info = {"number_cancer_cells": physicell.get_parameter("count_cancer_cell")}
+        info = {"number_cancer_cells": physicell.get_parameter("count_cancer_cell"),
+                "df_cell":self.df_cell}
 
         # output
         return info
@@ -274,10 +278,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # model dependent terminated processing logic goes here!
         cancer_cell = physicell.get_parameter("count_cancer_cell")
         b_terminated = (
-            cancer_cell <= self.cell_count_cancer_cell_target // 2
+            cancer_cell <= self.cell_count_cancer_cell_target // 4
             or cancer_cell > 1.5 * self.cell_count_cancer_cell_target
         )
-        # output
         return b_terminated
 
     def get_reward(self):
@@ -297,7 +300,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        return -np.abs(physicell.get_parameter("count_cancer_cell") - self.cell_count_cancer_cell_target)
+        return -np.abs(physicell.get_parameter("count_cancer_cell") - self.cell_count_cancer_cell_target)# **(1+(physicell.get_parameter('time') /self.r_time_max))
 
     def get_img(self):
         """
@@ -388,12 +391,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # plt.tight_layout()
         # s_path = self.x_root.xpath('//save/folder')[0].text
         # self.fig.savefig(f'{s_path}/timeseries_step{str(self.step_env).zfill(3)}.jpeg', facecolor='white')
-
-    def _show(self, o_observation):
+    @staticmethod
+    def show(o_observation):
         """
         TO DO
         """
-
+        import mpld3
         # Plot the image using imshow
         fig, ax = plt.subplots(figsize=(8, 8))
         cax = ax.imshow(o_observation)
@@ -404,4 +407,4 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         ax.set_ylabel("Height")
 
         # Use mpld3 to render the plot and open in the default browser
-        plt.show()
+        mpld3.show()
