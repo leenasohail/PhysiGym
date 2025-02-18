@@ -29,6 +29,63 @@ import matplotlib.pyplot as plt
 LOG_STD_MAX = 2
 LOG_STD_MIN = -5
 
+class ShiftAug(nn.Module):
+	"""
+	Random shift image augmentation.
+	Adapted from https://github.com/facebookresearch/drqv2
+	"""
+	def __init__(self, pad=3):
+		super().__init__()
+		self.pad = pad
+		self.padding = tuple([self.pad] * 4)
+
+	def forward(self, x):
+		x = x.float()
+		n, _, h, w = x.size()
+		assert h == w
+		x = F.pad(x, self.padding, 'replicate')
+		eps = 1.0 / (h + 2 * self.pad)
+		arange = torch.linspace(-1.0 + eps, 1.0 - eps, h + 2 * self.pad, device=x.device, dtype=x.dtype)[:h]
+		arange = arange.unsqueeze(0).repeat(h, 1).unsqueeze(2)
+		base_grid = torch.cat([arange, arange.transpose(1, 0)], dim=2)
+		base_grid = base_grid.unsqueeze(0).repeat(n, 1, 1, 1)
+		shift = torch.randint(0, 2 * self.pad + 1, size=(n, 1, 1, 2), device=x.device, dtype=x.dtype)
+		shift *= 2.0 / (h + 2 * self.pad)
+		grid = base_grid + shift
+		return F.grid_sample(x, grid, padding_mode='zeros', align_corners=False)
+
+
+class PixelPreprocess(nn.Module):
+	"""
+	Normalizes pixel observations to [-0.5, 0.5].
+	"""
+
+	def __init__(self):
+		super().__init__()
+
+	def forward(self, x):
+		return x.div(255.).sub(0.5)
+
+class SimNorm(nn.Module):
+	"""
+	Simplicial normalization.
+	Adapted from https://arxiv.org/abs/2204.00616.
+	"""
+
+	def __init__(self, simnorm_dim:int =8):
+		super().__init__()
+		self.dim = simnorm_dim
+
+	def forward(self, x):
+		shp = x.shape
+		x = x.view(*shp[:-1], -1, self.dim)
+		x = F.softmax(x, dim=-1)
+		return x.view(*shp)
+
+	def __repr__(self):
+		return f"SimNorm(dim={self.dim})"
+
+
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
@@ -39,15 +96,14 @@ class FeatureExtractor(nn.Module):
 
         if self.is_image:
             # CNN feature extractor
-            num_channels = obs_shape[0] 
-            self.feature_extractor = nn.Sequential(
-                nn.Conv2d(num_channels, out_channels=32, kernel_size=8, stride=4, padding=1),
-                nn.Mish(),
-                nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
-                nn.Mish(),
-                nn.Conv2d(in_channels=64,out_channels=16,kernel_size=3, stride=1),
-                nn.Mish()
-            )
+            num_channels = 8
+            layers = [
+                ShiftAug(), PixelPreprocess(),
+                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2), nn.ReLU(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 5, stride=2), nn.ReLU(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=2), nn.ReLU(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=1), nn.Flatten(), SimNorm()]
+            self.feature_extractor = nn.Sequential(*layers)
             self.feature_size = self._get_feature_size(obs_shape)
         else:
             # Directly flatten vector input
@@ -63,7 +119,7 @@ class FeatureExtractor(nn.Module):
 
     def forward(self, x):
         if self.is_image:
-            x = self.feature_extractor(x/255)  # Apply CNN
+            x = self.feature_extractor(x)  # Apply CNN
             x = x.view(x.size(0), -1)  # Flatten
         return x
 
@@ -166,21 +222,21 @@ class Args:
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
-    buffer_size: int = int(5e5)
+    buffer_size: int = int(1e6)
     """the replay memory buffer size"""
     gamma: float = 0.99
     """the discount factor gamma"""
     tau: float = 0.005
     """target smoothing coefficient (default: 0.005)"""
-    batch_size: int = 64
+    batch_size: int = 256
     """the batch size of sample from the reply memory"""
-    learning_starts: float = 5e3
+    learning_starts: float = 25e3
     """timestep to start learning"""
     policy_lr: float = 3e-4
     """the learning rate of the policy network optimizer"""
     q_lr: float = 1e-3
     """the learning rate of the Q network network optimizer"""
-    policy_frequency: int = 2
+    policy_frequency: int = 3
     """the frequency of training policy (delayed)"""
     target_network_frequency: int = 1  # Denis Yarats' implementation delays this by 2.
     """the frequency of updates for the target nerworks"""
