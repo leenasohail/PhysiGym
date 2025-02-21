@@ -10,7 +10,6 @@ from stable_baselines3 import SAC, PPO
 from sb3_contrib import TQC
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.logger import configure
-from wandb.integration.sb3 import WandbCallback
 import tyro
 import time
 from gymnasium.spaces import Box
@@ -20,7 +19,7 @@ from dataclasses import dataclass
 class Args:
     algo_name: str = "TQC"
     """the name of the algo"""
-    wandb_project_name: str = "SAC_IMAGE_SIMPLE_PHYSIGYM"
+    wandb_project_name: str = "IMAGE_TME_PHYSIGYM"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
     # Algorithm specific arguments

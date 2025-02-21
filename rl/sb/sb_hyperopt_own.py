@@ -115,7 +115,6 @@ class TrackingCallback(BaseCallback):
         self.mean_ep_reward = float("-inf") 
 
     def _on_step(self) -> bool:
-
         if self.global_step>=self.start_tracking_step:
             for info in self.locals["infos"]:
                 if "episode" in info:  # Only store reward at end of episode
@@ -146,7 +145,7 @@ class TrackingCallback(BaseCallback):
         return True  
     
 class RLHyperparamTuner:
-    def __init__(self, algo="TQC", env_id="physigym/ModelPhysiCellEnv-v0", n_trials=200, total_timesteps=int(1e6), pruner_type="median", 
+    def __init__(self, algo="TQC", env_id="physigym/ModelPhysiCellEnv-v0", n_trials=300, total_timesteps=int(1e6), pruner_type="median", 
                  start_tracking_step=50000, mean_elements=int(1e2), policy="CnnPolicy", 
                  wandb_project_name="IMAGE_TME_PHYSIGYM", wandb_entity="corporate-manu-sureli", eval_frequency=int(2.5e4), observation_type="image"):
         """
@@ -173,7 +172,11 @@ class RLHyperparamTuner:
         self.wandb_entity = wandb_entity
         self.eval_frequency = eval_frequency
         self.observation_type = observation_type
-
+        self.log_dir = f"./RLHyperparamTuner/{algo}/{env_id}"
+        self.study_name = f"{algo}_{env_id.rsplit('/', 1)[-1]}_{observation_type}"
+        os.makedirs(self.log_dir, exist_ok=True)
+        self.storage_study = self.log_dir +"/"+self.study_name
+        os.makedirs(self.storage_study, exist_ok=True)
         # Validate algorithm
         if self.algo not in HYPERPARAMS_SAMPLER:
             raise ValueError(f"Algorithm {self.algo} not supported. Choose from {list(HYPERPARAMS_SAMPLER.keys())}.")
@@ -215,28 +218,29 @@ class RLHyperparamTuner:
         # 📂 Logging, Model, Callback Setup
         # ----------------------
         # WandB run setup
-        run_name = f"{self.env_id}__{self.algo}_{int(time.time())}"
+        run_name = f"{self.algo}_{int(time.time())}"
+        dir = self.log_dir +"/"+ run_name
         wandb.init(
             project=self.wandb_project_name,
             entity=self.wandb_entity,
             name=run_name,
+            dir=self.log_dir+run_name,
             sync_tensorboard=True,
             config=hyperparams,
             monitor_gym=True,
             save_code=True,
         )
-        env.reset()
-        # Logging directory for TensorBoard
-        log_dir = f"/tensorboard_logs/{self.algo}/runs/{run_name}"
-        os.makedirs(log_dir, exist_ok=True)
-        model = algorithm(self.policy, env, verbose=0, tensorboard_log=log_dir, **hyperparams)
-        new_logger = configure(log_dir, ["tensorboard"])
+        os.makedirs(dir, exist_ok=True)
+        obs, info = env.reset(seed=1)
+        model = algorithm(self.policy, env, verbose=0, tensorboard_log=dir, **hyperparams, seed=1)
+        new_logger = configure(dir, ["tensorboard"])
         model.set_logger(new_logger)
         pruning_callback = TrackingCallback(trial=trial, start_tracking_step=self.start_tracking_step, mean_elements=self.mean_elements, eval_frequency=self.eval_frequency)
         # ----------------------
         # 🏃 Train the Model
         # ----------------------
-        model.learn(total_timesteps=self.total_timesteps, callback=pruning_callback)
+        
+        model.learn(total_timesteps=self.total_timesteps, log_interval=1, callback=pruning_callback)
         wandb.finish()
 
         try:
@@ -247,7 +251,8 @@ class RLHyperparamTuner:
 
     def run_optimization(self):
         """Run Optuna optimization."""
-        study = optuna.create_study(direction="maximize", pruner=self.pruner, load_if_exists=True)
+        storage = f"sqlite:///{self.storage_study}.db"
+        study = optuna.create_study(direction="maximize", pruner=self.pruner, load_if_exists=True, storage=storage, study_name=self.study_name)
         study.optimize(self.objective, n_trials=self.n_trials)
         print("✅ Best hyperparameters:", study.best_params)
 
