@@ -13,6 +13,7 @@ import sb3_contrib
 import time
 import physigym
 from gymnasium.spaces import Box
+from dataclasses import dataclass
 
 class PhysiCellModelWrapper(gym.Wrapper):
     def __init__(
@@ -143,7 +144,24 @@ class TrackingCallback(BaseCallback):
                 raise optuna.TrialPruned()
 
         return True  
-    
+
+
+@dataclass
+class TunerConfig:
+    algo: str = "TQC"
+    env_id: str = "physigym/ModelPhysiCellEnv-v0"
+    n_trials: int = 300
+    total_timesteps: int = int(1e6)
+    pruner_type: str = "median"
+    start_tracking_step: int = 50000
+    mean_elements: int = int(1e2)
+    policy: str = "CnnPolicy"
+    wandb_project_name: str = "IMAGE_TME_PHYSIGYM"
+    wandb_entity: str = "corporate-manu-sureli"
+    eval_frequency: int = int(2.5e4)
+    observation_type: str = "image"
+
+
 class RLHyperparamTuner:
     def __init__(self, algo="TQC", env_id="physigym/ModelPhysiCellEnv-v0", n_trials=300, total_timesteps=int(1e6), pruner_type="median", 
                  start_tracking_step=50000, mean_elements=int(1e2), policy="CnnPolicy", 
@@ -257,5 +275,12 @@ class RLHyperparamTuner:
         print("✅ Best hyperparameters:", study.best_params)
 
 if __name__=="__main__":
-    rlhyperparamtuner = RLHyperparamTuner()
-    rlhyperparamtuner.run_optimization()
+    import tyro
+    # Parse arguments from the command line
+    config = tyro.cli(TunerConfig)
+
+    # Initialize tuner with parsed configuration
+    tuner = RLHyperparamTuner(**config.__dict__)
+
+    # Run optimization
+    tuner.run_optimization()
