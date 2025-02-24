@@ -17,15 +17,17 @@ from dataclasses import dataclass
 
 @dataclass
 class Args:
-    algo_name: str = "TQC"
+    algo_name: str = "SAC"
     """the name of the algo"""
     wandb_project_name: str = "IMAGE_TME_PHYSIGYM"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
-    # Algorithm specific arguments
+    # Algorithm specific argumentswandb.finish()
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
     observation_type: str = "image"
+    """seed"""
+    seed: int = 1
 # ----------------------
 # 🏆 Initialize WandB
 # ----------------------
@@ -50,7 +52,7 @@ run_name = f"{args.env_id}__{args.algo_name}_{args.wandb_entity}_{int(time.time(
 wandb.init(
     project=args.wandb_project_name,
     entity=args.wandb_entity,
-    name=f"{args.algo_name}: {args.observation_type}",
+    name=f"{args.algo_name}: observation {args.observation_type}, seed {args.seed}",
     sync_tensorboard=True,  # Sync TensorBoard logs
     config=config,
     monitor_gym=True,  # Monitor Gym environment
@@ -176,7 +178,7 @@ env = PhysiCellModelWrapper(env)
 env = gym.wrappers.RescaleAction(env, min_action=-1, max_action=1)
 env = gym.wrappers.GrayscaleObservation(env)
 env = gym.wrappers.FrameStackObservation(env, stack_size=1)
-obs, info = env.reset()
+obs, info = env.reset(seed=args.seed)
 
 # ----------------------
 # 📂 Logging Setup
@@ -187,7 +189,7 @@ os.makedirs(log_dir, exist_ok=True)
 # ----------------------
 # 🏃 Train the Model (with WandB Callback)
 # ----------------------
-model = TQC("CnnPolicy", env, verbose=1, tensorboard_log=log_dir)
+model = algorithm("CnnPolicy", env, verbose=1, tensorboard_log=log_dir, seed=args.seed)
 new_logger = configure(log_dir, ["tensorboard"])
 model.set_logger(new_logger)
 model.learn(total_timesteps=int(2e6), log_interval=1, progress_bar=False, callback=TensorboardCallback())

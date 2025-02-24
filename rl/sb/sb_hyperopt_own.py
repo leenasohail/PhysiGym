@@ -160,12 +160,14 @@ class TunerConfig:
     wandb_entity: str = "corporate-manu-sureli"
     eval_frequency: int = int(2.5e4)
     observation_type: str = "image"
+    seed: int = 1 
 
 
 class RLHyperparamTuner:
     def __init__(self, algo="TQC", env_id="physigym/ModelPhysiCellEnv-v0", n_trials=300, total_timesteps=int(1e6), pruner_type="median", 
                  start_tracking_step=50000, mean_elements=int(1e2), policy="CnnPolicy", 
-                 wandb_project_name="IMAGE_TME_PHYSIGYM", wandb_entity="corporate-manu-sureli", eval_frequency=int(2.5e4), observation_type="image"):
+                 wandb_project_name="IMAGE_TME_PHYSIGYM", wandb_entity="corporate-manu-sureli", eval_frequency=int(2.5e4), observation_type="image",
+                 seed = 1):
         """
         Class to tune hyperparameters for RL algorithms using Optuna.
 
@@ -195,6 +197,7 @@ class RLHyperparamTuner:
         os.makedirs(self.log_dir, exist_ok=True)
         self.storage_study = self.log_dir +"/"+self.study_name
         os.makedirs(self.storage_study, exist_ok=True)
+        self.seed = seed
         # Validate algorithm
         if self.algo not in HYPERPARAMS_SAMPLER:
             raise ValueError(f"Algorithm {self.algo} not supported. Choose from {list(HYPERPARAMS_SAMPLER.keys())}.")
@@ -249,8 +252,8 @@ class RLHyperparamTuner:
             save_code=True,
         )
         os.makedirs(dir, exist_ok=True)
-        obs, info = env.reset(seed=1)
-        model = algorithm(self.policy, env, verbose=0, tensorboard_log=dir, **hyperparams, seed=1)
+        obs, info = env.reset(seed=self.seed)
+        model = algorithm(self.policy, env, verbose=0, tensorboard_log=dir, **hyperparams, seed=self.seed)
         new_logger = configure(dir, ["tensorboard"])
         model.set_logger(new_logger)
         pruning_callback = TrackingCallback(trial=trial, start_tracking_step=self.start_tracking_step, mean_elements=self.mean_elements, eval_frequency=self.eval_frequency)
