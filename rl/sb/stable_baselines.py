@@ -14,7 +14,14 @@ import tyro
 import time
 from gymnasium.spaces import Box
 from dataclasses import dataclass
-
+from extending import physicell #from embedding import physicell
+import matplotlib.pyplot as plt
+import pandas as pd
+# ----------------------
+# 🌟 Dataclass
+# ----------------------
+# Explication: This dataclass stores minimum elements than you can change with CLI without modifying the script
+# It is done thanks to the library tyro
 @dataclass
 class Args:
     algo_name: str = "SAC"
@@ -22,21 +29,22 @@ class Args:
     wandb_project_name: str = "IMAGE_TME_PHYSIGYM"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
-    # Algorithm specific argumentswandb.finish()
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
     observation_type: str = "image"
-    """seed"""
+    """the observation type depends on the environment"""
     seed: int = 1
+    """seed"""
+
+args = tyro.cli(Args)
+config = vars(args)
 # ----------------------
 # 🏆 Initialize WandB
 # ----------------------
-args = tyro.cli(Args)
-config = vars(args)
 
-# ----------------------
-# 🔍 Choose Algorithm (SB3 or SB3-Contrib)
-# ----------------------
+##### ----------------------
+##### 📍 Choose Algorithm (SB3 or SB3-Contrib)
+##### ----------------------
 algo_name = args.algo_name
 if algo_name  in sb3_contrib.__all__:
     algorithm = getattr(sb3_contrib,algo_name)
@@ -45,9 +53,12 @@ elif algo_name in stable_baselines3.__all__:
 else:
     raise f"Algorith name does not exist: {algo_name}"
 
-
-
+##### ----------------------
+##### 📍 Choose Algorithm (SB3 or SB3-Contrib)
+##### ----------------------
 run_name = f"{args.env_id}__{args.algo_name}_{args.wandb_entity}_{int(time.time())}"
+run_dir = f"runs/{run_name}"
+os.makedirs(run_dir, exist_ok=True)
 
 wandb.init(
     project=args.wandb_project_name,
@@ -59,16 +70,13 @@ wandb.init(
     save_code=True,  # Save the training script
 )
 
-# Define WandB logging directory
-run_dir = f"runs/{run_name}"
-os.makedirs(run_dir, exist_ok=True)
 
 class TensorboardCallback(BaseCallback):
     """
     Custom callback for logging additional values to TensorBoard.
     """
 
-    def __init__(self, verbose=0):
+    def __init__(self, verbose=0, video_frequency=50000):
         super().__init__(verbose)
         self.global_step = 0  # Track global training steps
 
@@ -113,7 +121,11 @@ class PhysiCellModelWrapper(gym.Wrapper):
                 )
 
         self.list_variable_name = list_variable_name
-
+        self.unwrapped_env = env.unwrapped
+        self.x_min = self.unwrapped_env.x_min
+        self.x_max = self.unwrapped_env.x_max
+        self.y_min = self.unwrapped_env.y_min
+        self.y_max = self.unwrapped_env.y_max
         # Flatten the action space to match the expected two values
         low = np.array(
             [
@@ -167,9 +179,78 @@ class PhysiCellModelWrapper(gym.Wrapper):
         )
         # Preprocess observation (if needed)
         o_observation = np.array(o_observation, dtype=float)
-
+        info["action"]  = d_action
+        self.info = info
         return o_observation, r_reward, b_terminated, b_truncated, info
+    
+    def render(self, path="./output/image"):
+        os.makedirs(path,exist_ok=True)
+        df_cell = pd.DataFrame(physicell.get_cell(), columns=['ID','x','y','z','dead','cell_type'])
+        fig, ax = plt.subplots(1, 3, figsize=(10, 6), gridspec_kw={'width_ratios': [1, 0.2, 0.2]})
 
+        for s_celltype, s_color in sorted({'cancer_cell': 'gray', 'nurse_cell': 'red'}.items()):
+            df_celltype = df_cell.loc[(df_cell.z == 0.0) & (df_cell.cell_type == s_celltype), :]
+            df_celltype.plot(
+                kind='scatter', x='x', y='y', c=s_color,
+                xlim=[
+                   self.x_min,
+                    self.x_max,
+                ],
+                ylim=[
+                    self.y_min,
+                    self.y_max,
+                ],
+                grid=True,
+                label = s_celltype,
+                s=100,
+                title=f"episode step {str(self.unwrapped_env.step_episode).zfill(3)}",
+                ax=ax[0],
+            ).legend(loc='lower left')
+
+
+        # Create a colormap for the color bars (from -1 to 1)
+        list_colors = ["royalblue","darkorange"]
+
+        # Function to create fluid-like color bars
+        def create_fluid_bar(ax_bar, drug_amount, title, max_amount=30, color="cyan"):
+            ax_bar.set_xlim(0, 1)
+            ax_bar.set_ylim(0, 1)  # Set y-axis from 0 to 1 for percentage representation
+            ax_bar.set_title(title, fontsize=10)
+            ax_bar.set_xticks([])
+            ax_bar.set_yticks(np.linspace(0, 1, 5))  # 0% to 100% scale
+
+            # Normalize drug amount (convert to percentage of max)
+            fill_level = drug_amount / max_amount  # Converts to a range of [0,1]
+
+            # Fill up to the corresponding level
+            ax_bar.fill_betweenx(np.linspace(0, fill_level, 100), 0, 1, color=color)
+
+            # Draw container border
+            ax_bar.spines['left'].set_visible(False)
+            ax_bar.spines['right'].set_visible(False)
+            ax_bar.spines['top'].set_visible(True)
+            ax_bar.spines['bottom'].set_visible(True)
+
+
+        action = self.info["action"]
+        for i, (key, value) in enumerate(action.items(), start=1):  # Start index from 1
+            create_fluid_bar(ax[i], value[0], f"drug_{i}", color=list_colors[i-1])
+
+        # fig.savefig(f"output_image_{self.unwrapped_env.step_episode}.png", bbox_inches='tight')
+        # Convert figure to NumPy array (store frame)
+        plt.savefig(path+f"/output_simulation_image_episode step {str(self.unwrapped_env.step_episode).zfill(3)}")
+        plt.close(fig)
+
+import subprocess
+def png_to_video_ffmpeg(image_folder, output_video, fps=10):
+    command = [
+        "ffmpeg", "-framerate", str(fps),
+        "-pattern_type", "glob", "-i", f"{image_folder}/*.png",
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        output_video
+    ]
+    subprocess.run(command, check=True)
+    print(f"✅ Video saved as {output_video}")
 # ----------------------
 # 🏗️  Environment Setup
 # ----------------------
@@ -192,15 +273,28 @@ os.makedirs(log_dir, exist_ok=True)
 model = algorithm("CnnPolicy", env, verbose=1, tensorboard_log=log_dir, seed=args.seed)
 new_logger = configure(log_dir, ["tensorboard"])
 model.set_logger(new_logger)
-model.learn(total_timesteps=int(2e6), log_interval=1, progress_bar=False, callback=TensorboardCallback())
+model.learn(total_timesteps=int(1e6), log_interval=1, progress_bar=False, callback=TensorboardCallback())
+path_saving_model = run_name+"/model" 
+model.save(path_saving_model)
+# ✅ Finish WandB run
+del model # remove to demonstrate saving and loading
+wandb.finish()  # ✅ Finish WandB run
 
 # ----------------------
 # 🎮 Run the Trained Agent
 # ----------------------
+model = algorithm.load(path_saving_model) # load model
 obs, info = env.reset()
-while True:
-    action, _states = model.predict(obs, deterministic=True)
-    obs, reward, terminated, truncated, info = env.step(action)
-    if terminated or truncated:
-        obs, info = env.reset()
-wandb.finish()  # ✅ Finish WandB run
+dictionnary = {}
+for i in range(5):
+    step = 0
+    while True:
+        action, _states = model.predict(obs, deterministic=True)
+        obs, reward, terminated, truncated, info = env.step(action)
+        step +=1
+        if terminated or truncated:
+            png_to_video_ffmpeg("./output/image", f"output_video_{i}.mp4", fps=10)
+            obs, info = env.reset()
+print("Finished")
+
+    
