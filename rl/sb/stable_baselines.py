@@ -368,15 +368,17 @@ model.set_logger(new_logger)
 # 🎮 Run the Trained Agent
 # ----------------------
 # model = algorithm.load(path_saving_model) # load model
-for i in range(10):
-    _video_save(env=env, seed=args.seed, step=(i) * 25000, wandb=wandb)
+for i in range(20):
     model.learn(
         total_timesteps=int(25000),
         log_interval=1,
         progress_bar=False,
         callback=TensorboardCallback(),
     )
-    # _video_save(env=env,seed=args.seed, step=(i+1)*25000,wandb=wandb)
+    _video_save(env=env, seed=args.seed, step=(i) * 25000, wandb=wandb)
+    _video_save(
+        env=env, seed=args.seed, step=(i) * 25000 + 1, wandb=wandb, deterministic=True
+    )
 
 path_saving_model = run_name + "/model"
 model.save(path_saving_model)
