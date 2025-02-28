@@ -70,7 +70,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         observation_type="simple",
     ):
         self.observation_type = "simple" if None else observation_type
-        if self.observation_type not in ["simple", "image"]:
+        if self.observation_type not in ["simple", "image","image_rgb_first"]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
