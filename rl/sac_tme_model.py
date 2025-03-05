@@ -208,7 +208,7 @@ list_variable_name = ["drug_apoptosis", "drug_reducing_antiapoptosis"]
 
 @dataclass
 class Args:
-    name: str = "sac_two_more_steps"
+    name: str = "sac"
     """the name of this experiment"""
     seed: int = 1
     """seed of the experiment"""
@@ -250,6 +250,8 @@ class Args:
     """Entropy regularization coefficient."""
     autotune: bool = True
     """automatic tuning of the entropy coefficient"""
+    wandb_track: bool = True
+    """track with wandb"""
 
 
 
@@ -283,7 +285,10 @@ def main():
     args = tyro.cli(Args)
     config = vars(args)
     run_name = f"{args.env_id}__{args.name}_{args.wandb_entity}_{int(time.time())}"
-    wandb.init(
+    run_dir = f"runs/{run_name}"
+
+    if args.wandb_track:
+        wandb.init(
         project=args.wandb_project_name,
         entity=args.wandb_entity,
         name=f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}",
@@ -291,10 +296,13 @@ def main():
         config=config,
         monitor_gym=True,
         save_code=True,
-    )
-    run_dir = f"runs/{run_name}"
-    os.makedirs(run_dir, exist_ok=True)
+        )
+        print("Wandb selected")
+    else:
+         print("Tensorboard selected")
 
+    os.makedirs(run_dir, exist_ok=True)
+    image_folder=run_dir+"/image"
     writer = SummaryWriter(run_dir)
     writer.add_text(
         "hyperparameters",
@@ -364,6 +372,7 @@ def main():
     obs, info = env.reset(seed=args.seed)
     df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
     n = 1
+    done_one_time = False
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
         if global_step <= args.learning_starts:
@@ -478,12 +487,14 @@ def main():
             if global_step>25000*n and global_step<30000*n and not done_one_time:
                 done_one_time = True
                 n+=1
-                output_video = f"seed_{args.seed}_step_{global_step}.mp4"
-                image_folder="./output/image"
+                output_video = f"name_{args.name}_seed_{args.seed}_step_{global_step}.mp4"
                 obs, info = env.reset(seed=args.seed)
                 done = False
                 while not done:
+                    x = [obs.item()] if args.observation_type == "simple" else obs
+                    x = torch.Tensor(x).to(device).unsqueeze(0)
                     actions, _, _ = actor.get_action(x)
+                    actions = actions.detach().squeeze(0).cpu().numpy()
                     obs, _, terminated, truncated, _ = env.step(actions)
                     env.render()
                     if terminated or truncated:
