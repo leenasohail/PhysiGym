@@ -254,8 +254,66 @@ class Args:
     """track with wandb"""
 
 
+def saving_img(image_folder:str,info:dict,step_episode:int, x_min:int,x_max:int,y_min:int,y_max:int,
+               saving_title:str="output_simulation_image_episode"):
+        
+        os.makedirs(image_folder,exist_ok=True)
+        df_cell = info["df_cell"]
+        fig, ax = plt.subplots(1, 3, figsize=(10, 6), gridspec_kw={'width_ratios': [1, 0.2, 0.2]})
+        count_cancer_cell = len(df_cell.loc[(df_cell.z == 0.0) & (df_cell.type == 'cancer_cell'), :])
+        for s_celltype, s_color in sorted({'cancer_cell': 'gray', 'nurse_cell': 'red'}.items()):
+            df_celltype = df_cell.loc[(df_cell.z == 0.0) & (df_cell.type == s_celltype), :]
+            df_celltype.plot(
+                kind='scatter', x='x', y='y', c=s_color,
+                xlim=[
+                   x_min,
+                    x_max,
+                ],
+                ylim=[
+                    y_min,
+                    y_max,
+                ],
+                grid=True,
+                label = s_celltype,
+                s=100,
+                title=f"episode step {str(step_episode).zfill(3)}, cancer cell: {count_cancer_cell}",
+                ax=ax[0],
+            ).legend(loc='lower left')
 
-def png_to_video_imageio(output_video, image_folder="./output/image", fps=10):
+
+        # Create a colormap for the color bars (from -1 to 1)
+        list_colors = ["royalblue","darkorange"]
+
+        # Function to create fluid-like color bars
+        def create_fluid_bar(ax_bar, drug_amount, title, max_amount=30, color="cyan"):
+            ax_bar.set_xlim(0, 1)
+            ax_bar.set_ylim(0, 1) 
+            ax_bar.set_title(title, fontsize=10)
+            ax_bar.set_xticks([])
+            ax_bar.set_yticks(np.linspace(0, 1, 5))  # 0% to 100% scale
+
+            # Normalize drug amount (convert to percentage of max)
+            fill_level = drug_amount / max_amount 
+
+            # Fill up to the corresponding level
+            ax_bar.fill_betweenx(np.linspace(0, fill_level, 100), 0, 1, color=color)
+
+            # Draw container border
+            ax_bar.spines['left'].set_visible(False)
+            ax_bar.spines['right'].set_visible(False)
+            ax_bar.spines['top'].set_visible(True)
+            ax_bar.spines['bottom'].set_visible(True)
+
+
+        action = info["action"]
+        for i, (key, value) in enumerate(action.items(), start=1):  # Start index from 1
+            create_fluid_bar(ax[i], value[0], f"drug_{i}", color=list_colors[i-1])
+
+        plt.savefig(image_folder+f"/{saving_title} step {str(step_episode).zfill(3)}")
+        plt.close(fig)
+
+
+def png_to_video_imageio(output_video:str, image_folder:str="./output/image", fps:int=10):
     images = sorted(glob.glob(os.path.join(image_folder, "*.png")))
 
     if not images:
@@ -303,6 +361,7 @@ def main():
 
     os.makedirs(run_dir, exist_ok=True)
     image_folder=run_dir+"/image"
+    os.makedirs(image_folder, exist_ok=True)
     writer = SummaryWriter(run_dir)
     writer.add_text(
         "hyperparameters",
@@ -322,10 +381,12 @@ def main():
     width = env.unwrapped.width
     x_min = env.unwrapped.x_min
     y_min = env.unwrapped.y_min
+    x_max = env.unwrapped.x_max
+    y_max = env.unwrapped.y_max
     color_mapping = env.unwrapped.color_mapping_255
     
     def make_gym_env(env, observation_type):
-        env = PhysiCellModelWrapper(env)
+        env = PhysiCellModelWrapper(env=env)
         if observation_type == "image":
             env = wrap_gray_env_image(env, stack_size=1, gray=True, resize_shape=(None,None))
         
@@ -484,23 +545,27 @@ def main():
             writer.add_scalar(
                 "charts/episodic_length", info["episode"]["l"], global_step
             )
-            if global_step>25000*n and global_step<30000*n and not done_one_time:
+            if global_step>=10000*n and global_step<12000*n and not done_one_time:
                 done_one_time = True
                 n+=1
                 output_video = f"name_{args.name}_seed_{args.seed}_step_{global_step}.mp4"
                 obs, info = env.reset(seed=args.seed)
                 done = False
+                step_episode = 0
                 while not done:
                     x = [obs.item()] if args.observation_type == "simple" else obs
                     x = torch.Tensor(x).to(device).unsqueeze(0)
                     actions, _, _ = actor.get_action(x)
                     actions = actions.detach().squeeze(0).cpu().numpy()
-                    obs, _, terminated, truncated, _ = env.step(actions)
-                    env.render()
+                    obs, _, terminated, truncated, info = env.step(actions)
+                    step_episode +=1
+                    saving_img(image_folder=image_folder+f"/{global_step}",info=info,step_episode=step_episode,x_max=x_max,y_max=y_max,x_min=x_min,y_min=y_min)
                     if terminated or truncated:
-                        png_to_video_imageio(output_video, image_folder, fps=10)
-                        wandb.log({"test/simulation_video": wandb.Video(output_video, fps=10, format="mp4")})
+                        png_to_video_imageio(image_folder+f"/{global_step}/"+output_video, image_folder+f"/{global_step}", fps=10)
+                        if args.wandb_track:
+                            wandb.log({"test/simulation_video": wandb.Video(image_folder+f"/{global_step}/"+output_video, fps=10, format="mp4")})
                         obs, _ = env.reset(seed=args.seed)
+                        step_episode = 0
             else:
                  obs, _ = env.reset(seed=args.seed)
     env.close()
