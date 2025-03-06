@@ -3,7 +3,7 @@ run-name: ${{ github.actor }}::test physigym on the macosx, all pytest unit test
 
 on:
   push:
-    branches: ["main"]
+    branches: ["utest"]  # main
   #pull_request:
   #  branches: ["main"]
 
