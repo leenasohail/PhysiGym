@@ -31,4 +31,4 @@ void phenotype_function(Cell* pCell, Phenotype& phenotype, double dt);
 void custom_function(Cell* pCell, Phenotype& phenotype, double dt);
 void contact_function(Cell* pMe, Phenotype& phenoMe, Cell* pOther, Phenotype& phenoOther, double dt);
 int get_celltypescount(void);
-int set_microenv(std::string s_substrate, double r_dose);
+int add_substrate(std::string s_substrate, double r_dose);

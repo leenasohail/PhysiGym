@@ -131,11 +131,11 @@ for (int i = 0 ; i < all_cells->size(); i++) {
 
 1.5 Edit the *custom_modules/custom.cpp* file.
 
-We will need a function that will update the microenvironment with the drug we add.
-At the bottom of the file, add this function to update the microenvironment.
+We will need a function that can add substrate (drug) to the microenvironment.
+At the bottom of the file, add this function.
 
 ```C++
-int set_microenv(std::string s_substrate, double r_dose) {
+int add_substrate(std::string s_substrate, double r_dose) {
     // update substrate concentration
     int k = microenvironment.find_density_index(s_substrate);
     for (unsigned int n=0; n < microenvironment.number_of_voxels(); n++) {
@@ -152,7 +152,7 @@ At the bottom of the file, add the fresh implemented function.
 
 ```C++
 // add substrate
-int set_microenv(std::string s_substrate, double r_dose);
+int add_substrate(std::string s_substrate, double r_dose);
 ```
 
 
@@ -173,7 +173,7 @@ After the commented-out action example code, at *line 259*, inserts the followin
 
 ```C++
 // add drug
-set_microenv("drug", parameters.doubles("drug_dose"));
+add_substrate("drug", parameters.doubles("drug_dose"));
 ```
 
 2.2 Edit the custom_modules/extending/physicellmodule.cpp file for observation.
