@@ -223,8 +223,8 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 
             if (action){
                 std::cout << "administer drug ... " << std::endl;
-                set_microenv("drug_apoptosis", parameters.doubles("drug_apoptosis"));
-                set_microenv("drug_reducing_antiapoptosis", parameters.doubles("drug_reducing_antiapoptosis"));
+                add_substrate("drug_apoptosis", parameters.doubles("drug_apoptosis"));
+                add_substrate("drug_reducing_antiapoptosis", parameters.doubles("drug_reducing_antiapoptosis"));
                 action = false;
             }
 

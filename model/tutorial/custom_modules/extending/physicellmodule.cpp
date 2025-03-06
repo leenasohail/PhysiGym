@@ -258,7 +258,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //}
 
                 // add drug
-                set_microenv("drug", parameters.doubles("drug_dose"));
+                add_substrate("drug", parameters.doubles("drug_dose"));
             }
 
             // do observation

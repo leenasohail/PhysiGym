@@ -169,7 +169,7 @@ int get_celltypescount() {
     return 0;
 }
 
-int set_microenv(std::string s_substrate, double r_dose) {
+int add_substrate(std::string s_substrate, double r_dose) {
     // update substrate concentration
     int k = microenvironment.find_density_index(s_substrate);
     for (unsigned int n=0; n < microenvironment.number_of_voxels(); n++) {
