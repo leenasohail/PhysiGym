@@ -431,9 +431,8 @@ def main():
 
     # TRY NOT TO MODIFY: start the game
     obs, info = env.reset(seed=args.seed)
+    episode = 1
     df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
-    n = 1
-    done_one_time = False
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
         if global_step <= args.learning_starts:
@@ -543,12 +542,11 @@ def main():
                 "charts/episodic_return", info["episode"]["r"], global_step
             )
             writer.add_scalar(
-                "charts/episodic_length", info["episode"]["l"], global_step
+                "charts/episodic_length", info["episode"]["l"],global_step
             )
-            if global_step>=10000*n and global_step<12000*n and not done_one_time:
-                done_one_time = True
-                n+=1
-                output_video = f"name_{args.name}_seed_{args.seed}_step_{global_step}.mp4"
+            episode+=1
+            if episode%64==0:
+                output_video = f"name_{args.name}_seed_{args.seed}_step_{episode}.mp4"
                 obs, info = env.reset(seed=args.seed)
                 done = False
                 step_episode = 0
@@ -559,13 +557,14 @@ def main():
                     actions = actions.detach().squeeze(0).cpu().numpy()
                     obs, _, terminated, truncated, info = env.step(actions)
                     step_episode +=1
-                    saving_img(image_folder=image_folder+f"/{global_step}",info=info,step_episode=step_episode,x_max=x_max,y_max=y_max,x_min=x_min,y_min=y_min)
+                    saving_img(image_folder=image_folder+f"/{episode}",info=info,step_episode=step_episode,x_max=x_max,y_max=y_max,x_min=x_min,y_min=y_min)
                     if terminated or truncated:
-                        png_to_video_imageio(image_folder+f"/{global_step}/"+output_video, image_folder+f"/{global_step}", fps=10)
+                        png_to_video_imageio(image_folder+f"/{episode}/"+output_video, image_folder+f"/{episode}", fps=10)
                         if args.wandb_track:
-                            wandb.log({"test/simulation_video": wandb.Video(image_folder+f"/{global_step}/"+output_video, fps=10, format="mp4")})
+                            wandb.log({"test/simulation_video": wandb.Video(image_folder+f"/{episode}/"+output_video, fps=10, format="mp4")})
                         obs, _ = env.reset(seed=args.seed)
-                        step_episode = 0
+                        
+                        
             else:
                  obs, _ = env.reset(seed=args.seed)
     env.close()
