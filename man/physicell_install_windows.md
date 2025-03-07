@@ -21,6 +21,8 @@ pacman -S mingw-w64-x86_64-gcc make mingw-w64-x86_64-imagemagick mingw-w64-x86_6
 
 ## &#x1FA9F; Basic PhyiCell installation
 
+Important: before you run the basic physicell installation, you have to install the operating system dependencies!
+
 ### &#x2728; Install PhysiCell:
 
 Open the MSYS2 MINGW64 shell ~ the one with blue MSYS2 icon, no other color!
@@ -82,7 +84,7 @@ We will name this python3 environment pcvenv (PhysiCell virtual environment).
 
 ### &#x2728; Install Python:
 
-If you not already have installed python, please go to the Microsoft Store and install the latest Python from the Python Software Foundation.
+If you not already have installed python, please go to the Microsoft Store and **install** the latest **python** from the Python Software Foundation.
 
 
 ### &#x2728; Get the Windows PowerShell ready:
@@ -93,7 +95,7 @@ If you wonder, why there is more than one PowerShell flavor, read this article. 
 + https://learn.microsoft.com/en-us/powershell/scripting/whats-new/differences-from-windows-powershell
 
 
-To activate Python environments, we have to be able to run PowerShell scripts.
+To activate python environments, we have to be able to run PowerShell scripts.
 This is why we have to change the execution policy.
 Please run the command below and confirm with Y.
 
@@ -172,7 +174,7 @@ pcstudio.exe
 
 ### &#x2728; Install Python:
 
-If you not already have installed python, please go to the Microsoft Store and install the latest Python from the Python Software Foundation.
+If you not already have installed Python, please go to the Microsoft Store and **install** the latest **Python** from the Python Software Foundation.
 
 ### &#x2728; Install PhysiCell Data Loader (pcdl) and iPython:
 
