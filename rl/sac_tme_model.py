@@ -35,31 +35,6 @@ import imageio.v3 as iio  # Newer version of imageio
 LOG_STD_MAX = 2
 LOG_STD_MIN = -5
 
-class ShiftAug(nn.Module):
-	"""
-	Random shift image augmentation.
-	Adapted from https://github.com/facebookresearch/drqv2
-	"""
-	def __init__(self, pad=3):
-		super().__init__()
-		self.pad = pad
-		self.padding = tuple([self.pad] * 4)
-
-	def forward(self, x):
-		x = x.float()
-		n, _, h, w = x.size()
-		assert h == w
-		x = F.pad(x, self.padding, 'replicate')
-		eps = 1.0 / (h + 2 * self.pad)
-		arange = torch.linspace(-1.0 + eps, 1.0 - eps, h + 2 * self.pad, device=x.device, dtype=x.dtype)[:h]
-		arange = arange.unsqueeze(0).repeat(h, 1).unsqueeze(2)
-		base_grid = torch.cat([arange, arange.transpose(1, 0)], dim=2)
-		base_grid = base_grid.unsqueeze(0).repeat(n, 1, 1, 1)
-		shift = torch.randint(0, 2 * self.pad + 1, size=(n, 1, 1, 2), device=x.device, dtype=x.dtype)
-		shift *= 2.0 / (h + 2 * self.pad)
-		grid = base_grid + shift
-		return F.grid_sample(x, grid, padding_mode='zeros', align_corners=False)
-
 
 class PixelPreprocess(nn.Module):
 	"""
@@ -95,8 +70,10 @@ class SimNorm(nn.Module):
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
-    def __init__(self, env):
+    def __init__(self, env, cfg):
         super().__init__()
+        self.cfg = cfg
+
         obs_shape = env.observation_space.shape
         self.is_image = len(obs_shape) == 3  # Check if input is an image (C, H, W)
 
@@ -104,11 +81,11 @@ class FeatureExtractor(nn.Module):
             # CNN feature extractor
             num_channels = 8
             layers = [
-                # ShiftAug(), PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2), nn.ReLU(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 5, stride=2), nn.ReLU(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=2), nn.ReLU(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=1), nn.Flatten(), SimNorm()]
+                PixelPreprocess(),
+                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2), nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 5, stride=2), nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=2), nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=1), nn.Flatten()]
             self.feature_extractor = nn.Sequential(*layers)
             self.feature_size = self._get_feature_size(obs_shape)
         else:
@@ -133,10 +110,10 @@ class FeatureExtractor(nn.Module):
 class QNetwork(nn.Module):
     """Critic network (Q-function)"""
 
-    def __init__(self, env):
+    def __init__(self, env, cfg):
         super().__init__()
-
-        self.feature_extractor = FeatureExtractor(env)
+        self.cfg = cfg
+        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
 
         # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
@@ -157,10 +134,10 @@ class QNetwork(nn.Module):
 class Actor(nn.Module):
     """Policy network (Actor)"""
 
-    def __init__(self, env):
+    def __init__(self, env, cfg):
         super().__init__()
-
-        self.feature_extractor = FeatureExtractor(env)
+        self.cfg = cfg
+        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
         action_dim = np.prod(env.action_space.shape)
 
         # Fully connected layers
@@ -230,17 +207,17 @@ class Args:
     """the learning rate of the optimizer"""
     buffer_size: int = int(1e6)
     """the replay memory buffer size"""
-    gamma: float = 0.995
+    gamma: float = 0.99
     """the discount factor gamma"""
     tau: float = 0.005
     """target smoothing coefficient (default: 0.005)"""
     batch_size: int = 256
     """the batch size of sample from the reply memory"""
-    learning_starts: float = 1e3
+    learning_starts: float = 5e3
     """timestep to start learning"""
-    policy_lr: float = 3e-4
+    policy_lr: float = 1e-4
     """the learning rate of the policy network optimizer"""
-    q_lr: float = 1e-3
+    q_lr: float = 5e-4
     """the learning rate of the Q network network optimizer"""
     policy_frequency: int = 2
     """the frequency of training policy (delayed)"""
@@ -252,6 +229,8 @@ class Args:
     """automatic tuning of the entropy coefficient"""
     wandb_track: bool = True
     """track with wandb"""
+    video: bool = True
+    """save video"""
 
 
 def saving_img(image_folder:str,info:dict,step_episode:int, x_min:int,x_max:int,y_min:int,y_max:int,
@@ -260,9 +239,9 @@ def saving_img(image_folder:str,info:dict,step_episode:int, x_min:int,x_max:int,
         os.makedirs(image_folder,exist_ok=True)
         df_cell = info["df_cell"]
         fig, ax = plt.subplots(1, 3, figsize=(10, 6), gridspec_kw={'width_ratios': [1, 0.2, 0.2]})
-        count_cancer_cell = len(df_cell.loc[(df_cell.z == 0.0) & (df_cell.type == 'cancer_cell'), :])
+        count_cancer_cell = info["number_cancer_cells"]
         for s_celltype, s_color in sorted({'cancer_cell': 'gray', 'nurse_cell': 'red'}.items()):
-            df_celltype = df_cell.loc[(df_cell.z == 0.0) & (df_cell.type == s_celltype), :]
+            df_celltype = df_cell.loc[(df_cell.dead == 0.0) & (df_cell.type == s_celltype), :]
             df_celltype.plot(
                 kind='scatter', x='x', y='y', c=s_color,
                 xlim=[
@@ -396,13 +375,13 @@ def main():
     shape_observation_space_env = env.observation_space.shape
     is_image = True if args.observation_type == "image" else False
     is_rgb_first = True if args.observation_type == "image_rgb_first" else False
-    
-    actor = Actor(env).to(device)
-    qf1 = QNetwork(env).to(device)
-    qf2 = QNetwork(env).to(device)
-    qf1_target = QNetwork(env).to(device)
-    qf2_target = QNetwork(env).to(device)
-    target_actor = Actor(env).to(device)
+    cfg = {"cfg_FeatureExtractor":{}}
+    actor = Actor(env, cfg).to(device)
+    qf1 = QNetwork(env, cfg).to(device)
+    qf2 = QNetwork(env, cfg).to(device)
+    qf1_target = QNetwork(env, cfg).to(device)
+    qf2_target = QNetwork(env, cfg).to(device)
+    target_actor = Actor(env, cfg).to(device)
     target_actor.load_state_dict(actor.state_dict())
     qf1_target.load_state_dict(qf1.state_dict())
     qf2_target.load_state_dict(qf2.state_dict())
@@ -545,7 +524,7 @@ def main():
                 "charts/episodic_length", info["episode"]["l"],global_step
             )
             episode+=1
-            if episode%64==0:
+            if episode%128==0:
                 output_video = f"name_{args.name}_seed_{args.seed}_step_{episode}.mp4"
                 obs, info = env.reset(seed=args.seed)
                 done = False
@@ -553,15 +532,19 @@ def main():
                 while not done:
                     x = [obs.item()] if args.observation_type == "simple" else obs
                     x = torch.Tensor(x).to(device).unsqueeze(0)
-                    actions, _, _ = actor.get_action(x)
+                    with torch.no_grad():  # Disable gradients for inference
+                        actions, _, _ = actor.get_action(x)
                     actions = actions.detach().squeeze(0).cpu().numpy()
                     obs, _, terminated, truncated, info = env.step(actions)
                     step_episode +=1
-                    saving_img(image_folder=image_folder+f"/{episode}",info=info,step_episode=step_episode,x_max=x_max,y_max=y_max,x_min=x_min,y_min=y_min)
-                    if terminated or truncated:
-                        png_to_video_imageio(image_folder+f"/{episode}/"+output_video, image_folder+f"/{episode}", fps=10)
-                        if args.wandb_track:
-                            wandb.log({"test/simulation_video": wandb.Video(image_folder+f"/{episode}/"+output_video, fps=10, format="mp4")})
+                    if args.video:
+                        saving_img(image_folder=image_folder+f"/{episode}",info=info,step_episode=step_episode,x_max=x_max,y_max=y_max,x_min=x_min,y_min=y_min)
+                    done = terminated or truncated
+                    if done:
+                        if args.video:
+                            png_to_video_imageio(image_folder+f"/{episode}/"+output_video, image_folder+f"/{episode}", fps=10)
+                            if args.wandb_track:
+                                wandb.log({"test/simulation_video": wandb.Video(image_folder+f"/{episode}/"+output_video, fps=10, format="mp4")})
                         obs, _ = env.reset(seed=args.seed)
                         
                         
