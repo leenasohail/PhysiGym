@@ -1,71 +1,102 @@
 # Physigym and Reinforcement Learning with Gymnasium
+
 In this tutorial, you will learn how to use reinforcement learning for your controllable biological model.
-We will take tme model as example [tme](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tme) model.
-First, we have to recall somme important elements in Reinforcement Learning.
+We will take the TME model as an example: [tme](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tme) model.
 
-## Reinforcement Learning theory and example
-In reinforcement learning, our aim is to maximize the expected cumulative reward. In the name expected cumulative reward, there is reward which is a function which helps the learning agent to have a feed back. Because in reinforcement learning, it is mostly trial and erros, besides, the learning agent see the env that can be scalars but in our case of having an agent based model , we can feed to our agent images for instance images are fed to our learning agent. Given the image, the data recieverd coming from tumor environment or the environment in general. Given it, the learning agent would output an action and given this action a reward would be recieved by the agent to know if its action given the state was great or not.
-The action in the case of our tme is a set of two drugs.
+First, we have to recall some important elements in Reinforcement Learning.
 
-## Installation tme
+## Reinforcement Learning Theory and Example
 
-0. Install and load the model (Bash).
+In reinforcement learning, our aim is to maximize the expected cumulative reward. The reward function provides feedback to the learning agent. Since reinforcement learning primarily involves trial and error, the agent observes the environment (which may consist of scalar values or images, in the case of agent-based models). For instance, images can be fed to the learning agent as input. 
 
-Install tme model:
+Given the received data from the tumor environment (or the environment in general), the learning agent outputs an action. Based on this action, a reward is given to the agent to indicate whether its action was beneficial or not.
+
+In the case of our TME model, the action consists of administering a set of two drugs.
+
+## Installation TME
+
+### 0. Install and Load the Model (Bash)
+
+#### Install the TME model:
 
 ```bash
 cd path/to/PhysiGym
 python3 install_physigym.py tme -f
 ```
 
-Load the model:
+#### Load the model:
 
 ```bash
 cd ../PhysiCell
 make clean data-cleanup reset
 make list-user-projects
-make load PROJ=physigym_episode
+make load PROJ=physigym_tme
 ```
 
-2. Compile the embedded way (Bash).
+### 1. Compile the Embedded Way (Bash)
 
 ```bash
 make
 ```
-## Applying Deep Reinforcement Learning on tme
-The state space is an image, thus we would use Deep Reinforcement Learning in order to 
 
-4. Reinforcement learn a policy for the model.
+## Applying Deep Reinforcement Learning on TME
 
-4.1 Introduction
-In Reinforcement Learning (RL), the aim is to maxmize the expected cumulative reward with $\gamma$ (discount factor), $r_t$ the reward function, $\pi$ the policy which can be seen as the strategy, $s_0$ the initial state given by ``cells.csv``.
+### 2. Reinforcement Learning a Policy for the Model
+
+#### 2.1 Introduction
+
+In Reinforcement Learning (RL), the objective is to maximize the expected cumulative reward:
+
 ```math
 \underset{<constraints>}{\operatorname{<argmax>}}_{\pi}\mathbb{E}\left[\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
-The aim of an agent is to maximizes it, in the next chapter, we would use a deep reinforcement learning algorithm to solve our problem.
 
-4.2 Description folder rl
-We applied a Deep Reinforcement Learning Algorithm called [SAC](https://arxiv.org/pdf/1812.05905) is adapted for continous action space. To Launch SAC on tme model you just need to install libraries, but before in your PhysiGym launch:
-```
+where:
+- \(\gamma\) is the discount factor,
+- \(r_t\) is the reward function,
+- \(\pi\) represents the policy (strategy),
+- \(s_0\) is the initial state derived from `cells.csv`.
+
+The agent aims to maximize this reward function. In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem. Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
+
+Why use a neural network instead of polynomial functions? Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them. Therefore, we will use Deep Reinforcement Learning. For neural network implementation, we will use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
+
+### 2.2 Description of the RL Folder
+
+We applied a Deep Reinforcement Learning Algorithm called [SAC (Soft Actor-Critic)](https://arxiv.org/pdf/1812.05905), which is adapted for continuous action spaces.
+
+To launch SAC on the TME model, you need to install the required libraries. Before applying RL, install the `rl` folder contained in PhysiGym by running:
+
+```bash
 python3 install_rl_folder.py
 ```
-The `rl`folder from PhysiGym will be installed into PhysiCell, but you can use your own Reinforcement Learning Algorithms, you have to keep it mind than the python script related to Reinforcemetn Learning should be launched since PhysiCell because PhysiCell is the main tool to compute the microenvironment.
 
-If you have selected to use the current work you can keep follow the steps, we only focus on launching the SAC reinforcement learning algorithm on TME model.
+The `rl` folder from PhysiGym will be installed into PhysiCell. However, you can use your own reinforcement learning algorithms, provided that the Python scripts related to reinforcement learning are executed from within the PhysiCell environment, since PhysiCell is responsible for computing the microenvironment and handling the integration.
 
-In the sac folder there are three files, the [`sac_requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt) in order to install the libraries needed, [`launch_sac.sh`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/launch_sac.sh) a script to launch [`sac.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) multiple times with multiple different seeds. [`sac.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) contains almost all the code needed to launch a SAC algorithm the other important files are in the folder [`rl/utils`](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/utils), in this folder, there is a replay buffer mainly used in Deep Reinforcement Learning Algorithms but also a wrapper file called [`wrapper_physicell_tme.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/utils/wrappers/wrapper_physicell_tme.py) contains wrapper for [`physicell_model.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/custom_modules/physigym/physicell_model.py).
+If you decide to use the current implementation, follow the next steps to launch the SAC reinforcement learning algorithm on the TME model.
 
-4.3 Launch SAC
+In the `sac` folder, you will find three important files:
+- [`requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/requirements.txt) – Contains the required libraries.
+- [`launch_sac.sh`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/launch_sac.sh) – A script to launch [`sac.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) multiple times with different random seeds.
+- [`sac.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac.py) – Contains most of the code needed to launch a SAC algorithm.
 
-First install the libraries needed by:
+Additionally, the `rl/utils` folder contains:
+- A **replay buffer**, mainly used in deep reinforcement learning algorithms.
+- [`wrapper_physicell_tme.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/utils/wrappers/wrapper_physicell_tme.py) – A wrapper for [`physicell_model.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/custom_modules/physigym/physicell_model.py).
+
+### 2.3 Launch SAC
+
+First, install the necessary libraries:
+
 ```bash
-pip install -r rl/sac/sac_requirements.txt
+pip install -r rl/requirements.txt
 ```
-In the [`sac_requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt), you may figure out a library called [wandb](https://wandb.ai/site). This popular library allows you to save results in the cloud. To use it, you need to create an account before launching SAC and saving results.
 
-Depending on your available resources, you can run multiple seeds in parallel. In reinforcement learning, it is recommended to run multiple seeds to ensure consistency regardless of the seed used.
+In the [`requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt) file, you will notice a library called [wandb](https://wandb.ai/site). This library allows you to save results in the cloud. To use it, create an account before launching SAC and saving results.
 
-Finally, navigate to the root of your PhysiCell folder.
+Since reinforcement learning can be sensitive to random seeds, it is recommended to run multiple seeds in parallel to ensure consistency across different runs.
+
+Finally, navigate to the root of your PhysiCell folder and run:
+
 ```bash
-./rl/sac/launch_sac.sh
-```
+./rl/launch_sac.sh
