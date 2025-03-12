@@ -3,7 +3,7 @@
 # Number of instances to launch
 NUM_INSTANCES_IMAGES=4
 # Path to the Python file
-SCRIPT_PATH="rl/sac_tme_model.py"
+SCRIPT_PATH="rl/sac.py"
 
 
 for ((i=1; i<=NUM_INSTANCES_IMAGES; i++)); do
