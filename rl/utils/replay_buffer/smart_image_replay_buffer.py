@@ -5,7 +5,25 @@ import pandas as pd
 from tensordict import TensorDict
 
 class ImgReplayBuffer(object):
-    def __init__(self, action_dim, device, buffer_size, batch_size, height, width, x_min, y_min, color_mapping):
+    """
+    A replay buffer for storing and sampling experiences, where states and next states are stored as pickled Pandas DataFrames
+    and converted to image representations when sampled.
+    """
+    def __init__(self, action_dim:int, device:torch.device, buffer_size:int, batch_size:int, height:int, width:int, x_min:int, y_min:int, color_mapping:dict):
+        """
+        Initializes the replay buffer.
+        
+        Parameters:
+        - action_dim (int): Dimensionality of the action space.
+        - device (torch.device): Device where tensors should be stored.
+        - buffer_size (int): Maximum size of the replay buffer.
+        - batch_size (int): Number of samples per batch.
+        - height (int): Height of the reconstructed image.
+        - width (int): Width of the reconstructed image.
+        - x_min (int): Minimum x-coordinate for normalization.
+        - y_min (int): Minimum y-coordinate for normalization.
+        - color_mapping (dict): Mapping of cell IDs to colors.
+        """
         self.device = device
         self.buffer_size = int(buffer_size)
 
@@ -28,10 +46,22 @@ class ImgReplayBuffer(object):
         self.color_mapping = color_mapping
 
     def __len__(self):
+        """
+        Returns the current number of stored experiences.
+        """
         return self.buffer_size if self.full else self.buffer_index
 
     def add(self, df_cell, action, reward, next_df_cell, done):
-        """Serialize df_cell and store it in the buffer."""
+        """
+        Adds a new experience to the replay buffer.
+        
+        Parameters:
+        - df_cell (pd.DataFrame): Current state as a DataFrame.
+        - action (np.ndarray): Action taken.
+        - reward (float): Reward received.
+        - next_df_cell (pd.DataFrame): Next state as a DataFrame.
+        - done (bool): Whether the episode is done.
+        """
         self.state[self.buffer_index] = pickle.dumps(df_cell)
         self.next_state[self.buffer_index] = pickle.dumps(next_df_cell)
         self.action[self.buffer_index] = action
@@ -42,7 +72,12 @@ class ImgReplayBuffer(object):
         self.full = self.full or self.buffer_index == 0
 
     def sample(self):
-        """Sample a batch of experiences from the replay buffer."""
+        """
+        Samples a batch of experiences from the replay buffer.
+        
+        Returns:
+        - TensorDict containing sampled states, actions, rewards, next states, and done flags.
+        """
         batch_size = self.batch_size
         assert self.full or (self.buffer_index > batch_size), "Buffer does not have enough samples"
 
@@ -78,18 +113,26 @@ class ImgReplayBuffer(object):
         return sample
 
     def df_to_image(self, df_cell):
-        """Reconstruct the image from df_cell."""
+        """
+        Converts a DataFrame representation of cell states into an image tensor.
+        
+        Parameters:
+        - df_cell (pd.DataFrame): DataFrame containing cell state information with columns 'x', 'y', 'ID', and 'color'.
+        
+        Returns:
+        - np.ndarray: Image representation of the cell states with shape (3, height, width).
+        """
         x = df_cell["x"].to_numpy()
         y = df_cell["y"].to_numpy()
         cell_id = df_cell["ID"].to_numpy()
         
         o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
 
-        # Normalizing the coordinates to fit into the image grid
+        # Normalize coordinates to fit into the image grid
         x_normalized = (x - self.x_min).astype(int)
         y_normalized = (y - self.y_min).astype(int)
 
-            # Assign colors to the image grid
+        # Assign colors to the image grid
         for i in range(len(cell_id)):
             o_observation[:, x_normalized[i], y_normalized[i]] = df_cell["color"].iloc[i]
 
