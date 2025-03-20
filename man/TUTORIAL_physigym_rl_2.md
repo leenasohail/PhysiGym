@@ -48,7 +48,7 @@ make
 In Reinforcement Learning (RL), the objective is to maximize the expected cumulative reward:
 
 ```math
-\underset{<constraints>}{\operatorname{<argmax>}}_{\pi}\mathbb{E}\left[\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
+\underset{\pi}{\arg\max} \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
 
 where:
