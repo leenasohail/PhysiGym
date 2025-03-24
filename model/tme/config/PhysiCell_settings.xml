@@ -442,6 +442,8 @@
         <cell_count_cancer_cell_target type="int" units="none" description="">128</cell_count_cancer_cell_target>
         <count_cancer_cell type="int" units="none" description="">0</count_cancer_cell>
         <count_nurse_cell type="int" units="none" description="">0</count_nurse_cell>
+        <init_nurse_cells type="int" units="none" description="">100</init_nurse_cells>
+        <init_cancer_cells type="int" units="none" description="">64</init_cancer_cells>
         <time type="double" units="min" description="PhysiGym never delete!">0.0</time>
         <dt_gym type="double" units="min" description="PhysiGym never delete!">15.0</dt_gym>
     </user_parameters>
