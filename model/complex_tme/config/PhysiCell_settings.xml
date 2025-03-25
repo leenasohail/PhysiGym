@@ -1623,7 +1623,8 @@
         <number_of_exhausted_T_cell type="int" units="" description="">0</number_of_exhausted_T_cell>
         <number_of_M0_macrophage type="int" units="" description="">256</number_of_M0_macrophage>
         <number_of_naive_T_cell type="int" units="" description="">128</number_of_naive_T_cell>
-        <dt_gym type="double" units="min" description="">60</dt_gym>
+        <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60</dt_gym>
+        <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
         <anti_M2 type="double" units="" description="">0</anti_M2>
         <anti_pd1 type="double" units="" description="">0</anti_pd1>
     </user_parameters>
