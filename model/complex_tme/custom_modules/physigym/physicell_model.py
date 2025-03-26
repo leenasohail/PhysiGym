@@ -71,7 +71,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         observation_type="simple",
     ):
         self.observation_type = "simple" if None else observation_type
-        if self.observation_type not in ["simple", "image", "image_rgb_first"]:
+        if self.observation_type not in [
+            "simple",
+            "image",
+            "image_rgb_first",
+            "image_gray",
+        ]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
@@ -163,6 +168,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation_space = spaces.Box(
                 low=0, high=255, shape=(3, self.height, self.width), dtype=np.uint8
             )
+        elif self.observation_type == "image_gray":
+            # Define the Box space for the image
+            o_observation_space = spaces.Box(
+                low=0, high=255, shape=(1, self.height, self.width), dtype=np.uint8
+            )
+
         elif self.observation_type == "graph":
             node_feature_space = spaces.Box(
                 low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32
@@ -216,11 +227,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         # model dependent observation processing logic goes here!
         if self.observation_type == "simple":
-            o_observation = self.np_ratio_nb_cancer_cells
+            o_observation = self.np_ratio_nb_cancer_cells -1
 
         elif (
             self.observation_type == "image"
-            or self.observation_type == "image_rgb_first"
+            or self.observation_type == "image_rgb_first" or self.observation_type == "image_gray"
         ):
             x = self.df_cell["x"].to_numpy()
             y = self.df_cell["y"].to_numpy()
@@ -244,13 +255,23 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                         "color"
                     ].iloc[i]
 
-            elif self.observation_type == "image_rgb_first":
+            elif (
+                self.observation_type == "image_rgb_first"
+                or self.observation_type == "image_gray"
+            ):
                 o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
                 # Assign colors to the image grid
                 for i in range(len(cell_id)):
                     o_observation[:, x_normalized[i], y_normalized[i]] = self.df_cell[
                         "color"
                     ].iloc[i]
+                if self.observation_type == "image_gray":
+                    grayscale_image = (
+                        0.29 * o_observation[0]
+                        + 0.57 * o_observation[1]
+                        + 0.14 * o_observation[2]
+                    ).astype(np.uint8)
+                    o_observation = grayscale_image[np.newaxis, :, :]
             else:
                 raise f"Observation type: {self.observation_type} does not exist"
 

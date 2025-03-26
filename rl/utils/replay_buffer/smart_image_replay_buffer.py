@@ -4,15 +4,29 @@ import pickle
 import pandas as pd
 from tensordict import TensorDict
 
+
 class ImgReplayBuffer(object):
     """
     A replay buffer for storing and sampling experiences, where states and next states are stored as pickled Pandas DataFrames
     and converted to image representations when sampled.
     """
-    def __init__(self, action_dim:int, device:torch.device, buffer_size:int, batch_size:int, height:int, width:int, x_min:int, y_min:int, color_mapping:dict):
+
+    def __init__(
+        self,
+        action_dim: int,
+        device: torch.device,
+        buffer_size: int,
+        batch_size: int,
+        height: int,
+        width: int,
+        x_min: int,
+        y_min: int,
+        color_mapping: dict,
+        image_gray: bool,
+    ):
         """
         Initializes the replay buffer.
-        
+
         Parameters:
         - action_dim (int): Dimensionality of the action space.
         - device (torch.device): Device where tensors should be stored.
@@ -23,6 +37,7 @@ class ImgReplayBuffer(object):
         - x_min (int): Minimum x-coordinate for normalization.
         - y_min (int): Minimum y-coordinate for normalization.
         - color_mapping (dict): Mapping of cell IDs to colors.
+        - image_gray (bool): If the image wanted is gray.
         """
         self.device = device
         self.buffer_size = int(buffer_size)
@@ -44,6 +59,7 @@ class ImgReplayBuffer(object):
         self.x_min = x_min
         self.y_min = y_min
         self.color_mapping = color_mapping
+        self.image_gray = image_gray
 
     def __len__(self):
         """
@@ -54,7 +70,7 @@ class ImgReplayBuffer(object):
     def add(self, df_cell, action, reward, next_df_cell, done):
         """
         Adds a new experience to the replay buffer.
-        
+
         Parameters:
         - df_cell (pd.DataFrame): Current state as a DataFrame.
         - action (np.ndarray): Action taken.
@@ -74,14 +90,18 @@ class ImgReplayBuffer(object):
     def sample(self):
         """
         Samples a batch of experiences from the replay buffer.
-        
+
         Returns:
         - TensorDict containing sampled states, actions, rewards, next states, and done flags.
         """
         batch_size = self.batch_size
-        assert self.full or (self.buffer_index > batch_size), "Buffer does not have enough samples"
+        assert self.full or (self.buffer_index > batch_size), (
+            "Buffer does not have enough samples"
+        )
 
-        sample_index = np.random.randint(0, self.buffer_size if self.full else self.buffer_index, batch_size)
+        sample_index = np.random.randint(
+            0, self.buffer_size if self.full else self.buffer_index, batch_size
+        )
 
         # Deserialize df_cell for sampled indices
         state_df_list = [pickle.loads(self.state[i]) for i in sample_index]
@@ -91,12 +111,22 @@ class ImgReplayBuffer(object):
         done = torch.as_tensor(self.done[sample_index])
 
         # Convert DataFrames to images
-        state_images = [self.df_to_image(df) for df in state_df_list]
-        next_state_images = [self.df_to_image(df) for df in next_state_df_list]
+        state_images = (
+            [self.df_to_grayscale(df) for df in state_df_list]
+            if self.image_gray
+            else [self.df_to_image(df) for df in state_df_list]
+        )
+        next_state_images = (
+            [self.df_to_grayscale(df) for df in next_state_df_list]
+            if self.image_gray
+            else [self.df_to_image(df) for df in next_state_df_list]
+        )
 
         # Convert images to tensors
         state_tensor = torch.tensor(np.array(state_images), dtype=torch.float32)
-        next_state_tensor = torch.tensor(np.array(next_state_images), dtype=torch.float32)
+        next_state_tensor = torch.tensor(
+            np.array(next_state_images), dtype=torch.float32
+        )
 
         # Create a dictionary of the sampled experiences
         sample = TensorDict(
@@ -115,25 +145,53 @@ class ImgReplayBuffer(object):
     def df_to_image(self, df_cell):
         """
         Converts a DataFrame representation of cell states into an image tensor.
-        
+
         Parameters:
         - df_cell (pd.DataFrame): DataFrame containing cell state information with columns 'x', 'y', 'ID', and 'color'.
-        
+
         Returns:
         - np.ndarray: Image representation of the cell states with shape (3, height, width).
         """
         x = df_cell["x"].to_numpy()
         y = df_cell["y"].to_numpy()
         cell_id = df_cell["ID"].to_numpy()
-        
+
         o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
 
         # Normalize coordinates to fit into the image grid
         x_normalized = (x - self.x_min).astype(int)
         y_normalized = (y - self.y_min).astype(int)
 
+        # Extracting the x, y coordinates and cell id into a numpy array
+        df_cell["color"] = df_cell["type"].map(
+            lambda t: self.color_mapping.get(t, (0, 0, 0))
+        )  # Default to black if type not found
+        df_cell["color"] = df_cell.apply(
+            lambda row: [0, 0, 0] if row["dead"] != 0.0 else row["color"], axis=1
+        )
+
         # Assign colors to the image grid
         for i in range(len(cell_id)):
-            o_observation[:, x_normalized[i], y_normalized[i]] = df_cell["color"].iloc[i]
+            o_observation[:, x_normalized[i], y_normalized[i]] = df_cell["color"].iloc[
+                i
+            ]
 
         return o_observation
+
+    def df_to_grayscale(self, df_cell):
+        """
+        Converts a DataFrame representation of cell states into an image tensor.
+
+        Parameters:
+        - df_cell (pd.DataFrame): DataFrame containing cell state information with columns 'x', 'y', 'ID', and 'color'.
+
+        Returns:
+        - np.ndarray: Image representation of the cell states with shape (1, height, width).
+        """
+        o_observation = self.df_to_image(df_cell)
+        # Apply the grayscale conversion formula
+        grayscale_image = (
+            0.29 * o_observation[0] + 0.57 * o_observation[1] + 0.14 * o_observation[2]
+        ).astype(np.uint8)
+
+        return grayscale_image[np.newaxis, :, :]  # Shape (1, height, width)

@@ -85,7 +85,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
 
 def wrap_env_with_rescale_stats(
-    env: gym.Env, min_action: float = 0, max_action: float = 1
+    env: gym.Env, min_action: float = -1, max_action: float = 1
 ):
     """
     Applies RescaleAction to normalize actions between -1 and 1,
@@ -93,22 +93,4 @@ def wrap_env_with_rescale_stats(
     """
     env = gym.wrappers.RescaleAction(env, min_action=min_action, max_action=max_action)
     env = gym.wrappers.RecordEpisodeStatistics(env)
-    return env
-
-
-def wrap_gray_env_image(env, resize_shape=(None, None), stack_size=1, gray=True):
-    if resize_shape != (None, None):
-        env = gym.wrappers.ResizeObservation(env, resize_shape)
-    if gray:
-        env = gym.wrappers.GrayscaleObservation(env)
-
-    class UInt8Wrapper(gym.ObservationWrapper):
-        def observation(self, obs):
-            return obs.astype(np.uint8)
-
-    env = UInt8Wrapper(env)
-    env = gym.wrappers.FrameStackObservation(env, stack_size=stack_size)
-    if not gray:
-        C, H, W, S = env.observation_space.shape
-        env = gym.wrappers.ReshapeObservation(env, shape=(C * S, H, W))
     return env
