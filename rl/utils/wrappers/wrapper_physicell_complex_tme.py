@@ -80,7 +80,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         # Preprocess observation (if needed)
         o_observation = np.array(o_observation, dtype=float)
         info["action"] = d_action
-        r_reward += -(np.sum(action))
+        r_reward += -(2 * np.sum(action) - 2)
         return o_observation, r_reward, b_terminated, b_truncated, info
 
 
