@@ -421,6 +421,7 @@ def main():
     is_image = True if args.observation_type == "image" else False
     is_rgb_first = True if args.observation_type == "image_rgb_first" else False
     is_gray = True if args.observation_type == "image_gray" else False
+    use_intelligent_buffer = is_rgb_first or is_gray
     cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -454,7 +455,7 @@ def main():
             batch_size=args.batch_size,
             state_type=env.observation_space.dtype,
         )
-        if not is_rgb_first
+        if not use_intelligent_buffer 
         else ImgReplayBuffer(
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
@@ -486,7 +487,7 @@ def main():
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
-        if is_rgb_first:
+        if use_intelligent_buffer:
             rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done)
         else:
             rb.add(
@@ -498,8 +499,8 @@ def main():
             )
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
-        obs = next_obs
-
+        obs = next_obs.copy()
+        df_cell_obs = next_df_cell_obs.copy() if "image" in args.observation_type else None
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
             data = rb.sample()
