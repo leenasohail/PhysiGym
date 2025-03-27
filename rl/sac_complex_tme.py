@@ -413,10 +413,10 @@ def main():
 
     def make_gym_env(env):
         env = PhysiCellModelWrapper(env=env)
-        env = wrap_env_with_rescale_stats(env)
+        env = gym.wrappers.RecordEpisodeStatistics(env)
         return env
 
-    env = make_gym_env(env, observation_type=args.observation_type)
+    env = make_gym_env(env)
     shape_observation_space_env = env.observation_space.shape
     is_image = True if args.observation_type == "image" else False
     is_rgb_first = True if args.observation_type == "image_rgb_first" else False
