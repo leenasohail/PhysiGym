@@ -1612,11 +1612,11 @@
 
     <user_parameters>
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">0</number_of_cells>
-        <min_position_cells type="double" units="" description="">300</min_position_cells>
-        <max_position_cells type="double" units="" description="">350</max_position_cells>
+        <min_position_cells type="double" units="" description="">0</min_position_cells>
+        <max_position_cells type="double" units="" description="">250</max_position_cells>
         <number_of_tumor type="int" units="" description="">256</number_of_tumor>
-        <min_position_tumor type="double" units="" description="">0.0</min_position_tumor>
-        <max_position_tumor type="double" units="" description="">250</max_position_tumor>
+        <min_position_tumor type="double" units="" description="">300</min_position_tumor>
+        <max_position_tumor type="double" units="" description="">350</max_position_tumor>
         <number_of_M1_macrophage type="int" units="" description="">0</number_of_M1_macrophage>
         <number_of_M2_macrophage type="int" units="" description="">0</number_of_M2_macrophage>
         <number_of_CD8_T_cell type="int" units="" description="">0</number_of_CD8_T_cell>
