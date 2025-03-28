@@ -207,11 +207,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # model dependent observation processing logic goes here!
         if self.observation_type == "simple":
             normalized_concentration_cells = np.zeros((len(self.unique_cell_types),))
-            for i in range(self.unique_types):
+            for i in range(self.unique_cell_types):
                 normalized_concentration_cells[i] = len(
                     self.df_cell.loc[
                         (self.df_cell.dead == 0.0)
-                        & (self.df_cell.type == self.unique_types[i]),
+                        & (self.df_cell.type == self.unique_cell_types[i]),
                         :,
                     ]
                 )
