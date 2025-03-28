@@ -190,8 +190,11 @@ class ImgReplayBuffer(object):
         """
         o_observation = self.df_to_image(df_cell)
         # Apply the grayscale conversion formula
-        grayscale_image = (
-            0.29 * o_observation[0] + 0.57 * o_observation[1] + 0.14 * o_observation[2]
+        grayscale_image = np.dot(
+            o_observation.transpose(
+                1, 2, 0
+            ),  # Move channels last to (height, width, 3)
+            [0.2989, 0.5870, 0.1140],  # Weights for RGB to grayscale
         ).astype(np.uint8)
 
         return grayscale_image[np.newaxis, :, :]  # Shape (1, height, width)
