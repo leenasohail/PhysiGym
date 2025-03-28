@@ -24,8 +24,7 @@ absolute_path = os.path.abspath(__file__)[
 ]
 sys.path.append(absolute_path)
 from rl.utils.wrappers.wrapper_physicell_complex_tme import (
-    PhysiCellModelWrapper,
-    wrap_env_with_rescale_stats
+    PhysiCellModelWrapper
 )
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 from rl.utils.replay_buffer.smart_image_replay_buffer import ImgReplayBuffer
@@ -370,7 +369,7 @@ def main():
     config = vars(args)
     run_name = f"{args.env_id}__{args.name}_{args.wandb_entity}_{int(time.time())}"
     run_dir = f"runs/{run_name}"
-
+    args.seed = None
     if args.wandb_track:
         wandb.init(
             project=args.wandb_project_name,
