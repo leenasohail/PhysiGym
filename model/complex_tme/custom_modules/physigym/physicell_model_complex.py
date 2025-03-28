@@ -92,6 +92,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.init_cancer_cells = int(
             self.x_root.xpath("//user_parameters/number_of_tumor")[0].text
         )
+        self.nb_cell_types = len(self.unique_cell_types)
 
     def get_action_space(self):
         """
@@ -156,7 +157,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # model dependent observation_space processing logic goes here!
         if self.observation_type == "simple":
             o_observation_space = spaces.Box(
-                low=0, high=2**4, shape=(1,), dtype=np.float32
+                low=0,
+                high=2**16,
+                shape=(self.nb_cell_types,),
+                dtype=np.float32,
             )
         elif self.observation_type == "image":
             # Define the Box space for the image
@@ -226,8 +230,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         )
         # model dependent observation processing logic goes here!
         if self.observation_type == "simple":
-            normalized_concentration_cells = np.zeros((len(self.unique_cell_types),))
-            for i in range(self.unique_cell_types):
+            normalized_concentration_cells = np.zeros((self.nb_cell_types,))
+            for i in range(self.nb_cell_types):
                 normalized_concentration_cells[i] = len(
                     self.df_cell.loc[
                         (self.df_cell.dead == 0.0)
