@@ -18,11 +18,16 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 import tyro
 import sys, os
+
 absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
-from rl.utils.wrappers.wrapper_physicell_tme import PhysiCellModelWrapper, wrap_env_with_rescale_stats, wrap_gray_env_image
+from rl.utils.wrappers.wrapper_physicell_tme import (
+    PhysiCellModelWrapper,
+    wrap_env_with_rescale_stats,
+    wrap_gray_env_image,
+)
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 from rl.utils.replay_buffer.smart_image_replay_buffer import ImgReplayBuffer
 import mpld3
@@ -37,34 +42,35 @@ LOG_STD_MIN = -5
 
 
 class PixelPreprocess(nn.Module):
-	"""
-	Normalizes pixel observations to [-0.5, 0.5].
-	"""
+    """
+    Normalizes pixel observations to [-0.5, 0.5].
+    """
 
-	def __init__(self):
-		super().__init__()
+    def __init__(self):
+        super().__init__()
 
-	def forward(self, x):
-		return x.div(255.).sub(0.5)
+    def forward(self, x):
+        return x.div(255.0).sub(0.5)
+
 
 class SimNorm(nn.Module):
-	"""
-	Simplicial normalization.
-	Adapted from https://arxiv.org/abs/2204.00616.
-	"""
+    """
+    Simplicial normalization.
+    Adapted from https://arxiv.org/abs/2204.00616.
+    """
 
-	def __init__(self, simnorm_dim:int =8):
-		super().__init__()
-		self.dim = simnorm_dim
+    def __init__(self, simnorm_dim: int = 8):
+        super().__init__()
+        self.dim = simnorm_dim
 
-	def forward(self, x):
-		shp = x.shape
-		x = x.view(*shp[:-1], -1, self.dim)
-		x = F.softmax(x, dim=-1)
-		return x.view(*shp)
+    def forward(self, x):
+        shp = x.shape
+        x = x.view(*shp[:-1], -1, self.dim)
+        x = F.softmax(x, dim=-1)
+        return x.view(*shp)
 
-	def __repr__(self):
-		return f"SimNorm(dim={self.dim})"
+    def __repr__(self):
+        return f"SimNorm(dim={self.dim})"
 
 
 class FeatureExtractor(nn.Module):
@@ -82,10 +88,15 @@ class FeatureExtractor(nn.Module):
             num_channels = 8
             layers = [
                 PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2), nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 5, stride=2), nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=2), nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=1), nn.Flatten()]
+                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
+                nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 5, stride=2),
+                nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=2),
+                nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=1),
+                nn.Flatten(),
+            ]
             self.feature_extractor = nn.Sequential(*layers)
             self.feature_size = self._get_feature_size(obs_shape)
         else:
@@ -147,8 +158,20 @@ class Actor(nn.Module):
         self.fc_logstd = nn.LazyLinear(action_dim)
         self.relu = nn.ReLU()
         # Action scaling
-        self.register_buffer("action_scale", torch.tensor((env.action_space.high - env.action_space.low) / 2.0, dtype=torch.float32))
-        self.register_buffer("action_bias", torch.tensor((env.action_space.high + env.action_space.low) / 2.0, dtype=torch.float32))
+        self.register_buffer(
+            "action_scale",
+            torch.tensor(
+                (env.action_space.high - env.action_space.low) / 2.0,
+                dtype=torch.float32,
+            ),
+        )
+        self.register_buffer(
+            "action_bias",
+            torch.tensor(
+                (env.action_space.high + env.action_space.low) / 2.0,
+                dtype=torch.float32,
+            ),
+        )
 
     def forward(self, x):
         x = self.feature_extractor(x)  # Extract features
@@ -159,7 +182,9 @@ class Actor(nn.Module):
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
         log_std = torch.tanh(log_std)
-        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)  # Stable variance scaling
+        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (
+            log_std + 1
+        )  # Stable variance scaling
 
         return mean, log_std
 
@@ -178,6 +203,7 @@ class Actor(nn.Module):
 
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
         return action, log_prob, mean
+
 
 # Wrap the environment
 list_variable_name = ["drug_apoptosis", "drug_reducing_antiapoptosis"]
@@ -233,72 +259,88 @@ class Args:
     """save video"""
 
 
-def saving_img(image_folder:str,info:dict,step_episode:int, x_min:int,x_max:int,y_min:int,y_max:int,
-               saving_title:str="output_simulation_image_episode"):
-        
-        os.makedirs(image_folder,exist_ok=True)
-        df_cell = info["df_cell"]
-        fig, ax = plt.subplots(1, 3, figsize=(10, 6), gridspec_kw={'width_ratios': [1, 0.2, 0.2]})
-        count_cancer_cell = info["number_cancer_cells"]
-        for s_celltype, s_color in sorted({'cancer_cell': 'gray', 'nurse_cell': 'red'}.items()):
-            df_celltype = df_cell.loc[(df_cell.dead == 0.0) & (df_cell.type == s_celltype), :]
-            df_celltype.plot(
-                kind='scatter', x='x', y='y', c=s_color,
-                xlim=[
-                   x_min,
-                    x_max,
-                ],
-                ylim=[
-                    y_min,
-                    y_max,
-                ],
-                grid=True,
-                label = s_celltype,
-                s=100,
-                title=f"episode step {str(step_episode).zfill(3)}, cancer cell: {count_cancer_cell}",
-                ax=ax[0],
-            ).legend(loc='lower left')
+def saving_img(
+    image_folder: str,
+    info: dict,
+    step_episode: int,
+    x_min: int,
+    x_max: int,
+    y_min: int,
+    y_max: int,
+    saving_title: str = "output_simulation_image_episode",
+):
+    os.makedirs(image_folder, exist_ok=True)
+    df_cell = info["df_cell"]
+    fig, ax = plt.subplots(
+        1, 3, figsize=(10, 6), gridspec_kw={"width_ratios": [1, 0.2, 0.2]}
+    )
+    count_cancer_cell = info["number_cancer_cells"]
+    for s_celltype, s_color in sorted(
+        {"cancer_cell": "gray", "nurse_cell": "red"}.items()
+    ):
+        df_celltype = df_cell.loc[
+            (df_cell.dead == 0.0) & (df_cell.type == s_celltype), :
+        ]
+        df_celltype.plot(
+            kind="scatter",
+            x="x",
+            y="y",
+            c=s_color,
+            xlim=[
+                x_min,
+                x_max,
+            ],
+            ylim=[
+                y_min,
+                y_max,
+            ],
+            grid=True,
+            label=s_celltype,
+            s=100,
+            title=f"episode step {str(step_episode).zfill(3)}, cancer cell: {count_cancer_cell}",
+            ax=ax[0],
+        ).legend(loc="lower left")
+
+    # Create a colormap for the color bars (from -1 to 1)
+    list_colors = ["royalblue", "darkorange"]
+
+    # Function to create fluid-like color bars
+    def create_fluid_bar(ax_bar, drug_amount, title, max_amount=30, color="cyan"):
+        ax_bar.set_xlim(0, 1)
+        ax_bar.set_ylim(0, 1)
+        ax_bar.set_title(title, fontsize=10)
+        ax_bar.set_xticks([])
+        ax_bar.set_yticks(np.linspace(0, 1, 5))  # 0% to 100% scale
+
+        # Normalize drug amount (convert to percentage of max)
+        fill_level = drug_amount / max_amount
+
+        # Fill up to the corresponding level
+        ax_bar.fill_betweenx(np.linspace(0, fill_level, 100), 0, 1, color=color)
+
+        # Draw container border
+        ax_bar.spines["left"].set_visible(False)
+        ax_bar.spines["right"].set_visible(False)
+        ax_bar.spines["top"].set_visible(True)
+        ax_bar.spines["bottom"].set_visible(True)
+
+    action = info["action"]
+    for i, (key, value) in enumerate(action.items(), start=1):  # Start index from 1
+        create_fluid_bar(ax[i], value[0], f"drug_{i}", color=list_colors[i - 1])
+
+    plt.savefig(image_folder + f"/{saving_title} step {str(step_episode).zfill(3)}")
+    plt.close(fig)
 
 
-        # Create a colormap for the color bars (from -1 to 1)
-        list_colors = ["royalblue","darkorange"]
-
-        # Function to create fluid-like color bars
-        def create_fluid_bar(ax_bar, drug_amount, title, max_amount=30, color="cyan"):
-            ax_bar.set_xlim(0, 1)
-            ax_bar.set_ylim(0, 1) 
-            ax_bar.set_title(title, fontsize=10)
-            ax_bar.set_xticks([])
-            ax_bar.set_yticks(np.linspace(0, 1, 5))  # 0% to 100% scale
-
-            # Normalize drug amount (convert to percentage of max)
-            fill_level = drug_amount / max_amount 
-
-            # Fill up to the corresponding level
-            ax_bar.fill_betweenx(np.linspace(0, fill_level, 100), 0, 1, color=color)
-
-            # Draw container border
-            ax_bar.spines['left'].set_visible(False)
-            ax_bar.spines['right'].set_visible(False)
-            ax_bar.spines['top'].set_visible(True)
-            ax_bar.spines['bottom'].set_visible(True)
-
-
-        action = info["action"]
-        for i, (key, value) in enumerate(action.items(), start=1):  # Start index from 1
-            create_fluid_bar(ax[i], value[0], f"drug_{i}", color=list_colors[i-1])
-
-        plt.savefig(image_folder+f"/{saving_title} step {str(step_episode).zfill(3)}")
-        plt.close(fig)
-
-
-def png_to_video_imageio(output_video:str, image_folder:str="./output/image", fps:int=10):
+def png_to_video_imageio(
+    output_video: str, image_folder: str = "./output/image", fps: int = 10
+):
     images = sorted(glob.glob(os.path.join(image_folder, "*.png")))
 
     if not images:
         print("❌ No images found in the directory:", image_folder)
         return
-    
+
     print(f"🖼️ Found {len(images)} images. First image: {images[0]}")
 
     # Read first image to get size
@@ -306,8 +348,9 @@ def png_to_video_imageio(output_video:str, image_folder:str="./output/image", fp
     height, width, _ = frame.shape
     print(f"📏 Image size: {width}x{height}")
 
-
-    writer = imageio.get_writer(output_video, fps=fps, codec="libx264", format="FFMPEG", pixelformat="yuv420p")
+    writer = imageio.get_writer(
+        output_video, fps=fps, codec="libx264", format="FFMPEG", pixelformat="yuv420p"
+    )
 
     for img in images:
         frame = iio.imread(img)
@@ -315,7 +358,6 @@ def png_to_video_imageio(output_video:str, image_folder:str="./output/image", fp
 
     writer.close()
     print(f"✅ Video saved as {output_video}")
-
 
 
 def main():
@@ -326,20 +368,20 @@ def main():
 
     if args.wandb_track:
         wandb.init(
-        project=args.wandb_project_name,
-        entity=args.wandb_entity,
-        name=f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}",
-        sync_tensorboard=True,
-        config=config,
-        monitor_gym=True,
-        save_code=True,
+            project=args.wandb_project_name,
+            entity=args.wandb_entity,
+            name=f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}",
+            sync_tensorboard=True,
+            config=config,
+            monitor_gym=True,
+            save_code=True,
         )
         print("Wandb selected")
     else:
-         print("Tensorboard selected")
+        print("Tensorboard selected")
 
     os.makedirs(run_dir, exist_ok=True)
-    image_folder=run_dir+"/image"
+    image_folder = run_dir + "/image"
     os.makedirs(image_folder, exist_ok=True)
     writer = SummaryWriter(run_dir)
     writer.add_text(
@@ -355,7 +397,7 @@ def main():
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
-    env = gym.make(args.env_id,observation_type=args.observation_type)
+    env = gym.make(args.env_id, observation_type=args.observation_type)
     height = env.unwrapped.height
     width = env.unwrapped.width
     x_min = env.unwrapped.x_min
@@ -363,19 +405,22 @@ def main():
     x_max = env.unwrapped.x_max
     y_max = env.unwrapped.y_max
     color_mapping = env.unwrapped.color_mapping_255
-    
+
     def make_gym_env(env, observation_type):
         env = PhysiCellModelWrapper(env=env)
         if observation_type == "image":
-            env = wrap_gray_env_image(env, stack_size=1, gray=True, resize_shape=(None,None))
-        
+            env = wrap_gray_env_image(
+                env, stack_size=1, gray=True, resize_shape=(None, None)
+            )
+
         env = wrap_env_with_rescale_stats(env)
         return env
-    env = make_gym_env(env, observation_type = args.observation_type)
+
+    env = make_gym_env(env, observation_type=args.observation_type)
     shape_observation_space_env = env.observation_space.shape
     is_image = True if args.observation_type == "image" else False
     is_rgb_first = True if args.observation_type == "image_rgb_first" else False
-    cfg = {"cfg_FeatureExtractor":{}}
+    cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
     qf2 = QNetwork(env, cfg).to(device)
@@ -399,14 +444,28 @@ def main():
         a_optimizer = optim.Adam([log_alpha], lr=args.q_lr)
     else:
         alpha = args.alpha
-    rb = ReplayBuffer(
-        state_dim=np.array(env.observation_space.shape).prod(),
-        action_dim=np.array(env.action_space.shape).prod(),
-        device=device,
-        buffer_size=args.buffer_size,
-        batch_size=args.batch_size,
-        state_type=env.observation_space.dtype
-    ) if not is_rgb_first else ImgReplayBuffer(action_dim=np.array(env.action_space.shape).prod(),device=device,buffer_size=args.buffer_size,batch_size=args.batch_size,height=height,width=width,x_min=x_min,y_min=y_min,color_mapping=color_mapping)
+    rb = (
+        ReplayBuffer(
+            state_dim=np.array(env.observation_space.shape).prod(),
+            action_dim=np.array(env.action_space.shape).prod(),
+            device=device,
+            buffer_size=args.buffer_size,
+            batch_size=args.batch_size,
+            state_type=env.observation_space.dtype,
+        )
+        if not is_rgb_first
+        else ImgReplayBuffer(
+            action_dim=np.array(env.action_space.shape).prod(),
+            device=device,
+            buffer_size=args.buffer_size,
+            batch_size=args.batch_size,
+            height=height,
+            width=width,
+            x_min=x_min,
+            y_min=y_min,
+            color_mapping=color_mapping,
+        )
+    )
 
     # TRY NOT TO MODIFY: start the game
     obs, info = env.reset(seed=args.seed)
@@ -426,11 +485,15 @@ def main():
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
         if is_rgb_first:
-            rb.add(df_cell_obs, actions, 
-               rewards, next_df_cell_obs, done)
+            rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done)
         else:
-            rb.add(obs.flatten() if is_image else obs, actions, 
-               rewards, next_obs.flatten() if is_image else next_obs, done)
+            rb.add(
+                obs.flatten() if is_image else obs,
+                actions,
+                rewards,
+                next_obs.flatten() if is_image else next_obs,
+                done,
+            )
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs
@@ -439,8 +502,18 @@ def main():
         if global_step > args.learning_starts:
             data = rb.sample()
             with torch.no_grad():
-                data_next_state = data["next_state"].reshape(args.batch_size, *shape_observation_space_env) if is_image else data["next_state"]
-                data_state = data["state"].reshape(args.batch_size, *shape_observation_space_env) if is_image else data["state"]
+                data_next_state = (
+                    data["next_state"].reshape(
+                        args.batch_size, *shape_observation_space_env
+                    )
+                    if is_image
+                    else data["next_state"]
+                )
+                data_state = (
+                    data["state"].reshape(args.batch_size, *shape_observation_space_env)
+                    if is_image
+                    else data["state"]
+                )
                 next_state_actions, next_state_log_pi, _ = actor.get_action(
                     data_next_state
                 )
@@ -521,10 +594,10 @@ def main():
                 "charts/episodic_return", info["episode"]["r"], global_step
             )
             writer.add_scalar(
-                "charts/episodic_length", info["episode"]["l"],global_step
+                "charts/episodic_length", info["episode"]["l"], global_step
             )
-            episode+=1
-            if episode%128==0:
+            episode += 1
+            if episode % 128 == 0:
                 output_video = f"name_{args.name}_seed_{args.seed}_step_{episode}.mp4"
                 obs, info = env.reset(seed=args.seed)
                 done = False
@@ -536,20 +609,37 @@ def main():
                         actions, _, _ = actor.get_action(x)
                     actions = actions.detach().squeeze(0).cpu().numpy()
                     obs, _, terminated, truncated, info = env.step(actions)
-                    step_episode +=1
+                    step_episode += 1
                     if args.video:
-                        saving_img(image_folder=image_folder+f"/{episode}",info=info,step_episode=step_episode,x_max=x_max,y_max=y_max,x_min=x_min,y_min=y_min)
+                        saving_img(
+                            image_folder=image_folder + f"/{episode}",
+                            info=info,
+                            step_episode=step_episode,
+                            x_max=x_max,
+                            y_max=y_max,
+                            x_min=x_min,
+                            y_min=y_min,
+                        )
                     done = terminated or truncated
                     if done:
                         if args.video:
-                            png_to_video_imageio(image_folder+f"/{episode}/"+output_video, image_folder+f"/{episode}", fps=10)
+                            png_to_video_imageio(
+                                image_folder + f"/{episode}/" + output_video,
+                                image_folder + f"/{episode}",
+                                fps=10,
+                            )
                             if args.wandb_track:
-                                wandb.log({"test/simulation_video": wandb.Video(image_folder+f"/{episode}/"+output_video, fps=10, format="mp4")})
-                        obs, _ = env.reset(seed=args.seed)
-                        
-                        
-            else:
-                 obs, _ = env.reset(seed=args.seed)
+                                wandb.log(
+                                    {
+                                        "test/simulation_video": wandb.Video(
+                                            image_folder
+                                            + f"/{episode}/"
+                                            + output_video,
+                                            fps=10,
+                                            format="mp4",
+                                        )
+                                    }
+                                )
     env.close()
     writer.close()
 

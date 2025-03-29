@@ -643,10 +643,6 @@ def main():
                                         )
                                     }
                                 )
-                        obs, _ = env.reset(seed=args.seed)
-
-            else:
-                obs, _ = env.reset(seed=args.seed)
     env.close()
     writer.close()
 
