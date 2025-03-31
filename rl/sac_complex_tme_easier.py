@@ -412,7 +412,7 @@ def main():
     env = gym.wrappers.RecordEpisodeStatistics(env)
     shape_observation_space_env = env.observation_space.shape
     is_gray = True if args.observation_type == "image_gray" else False
-
+    test_step = 0
     cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -568,14 +568,13 @@ def main():
             info["number_cancer_cells"],
             global_step,
         )
-        print(f"Number of cancer cells {info['number_cancer_cells']}")
         writer.add_scalar(
             "env/number_m2",
             info["number_m2"],
             global_step,
         )
-        writer.add_scalar("env/drug_apoptosis", actions[0], global_step)
-        writer.add_scalar("env/drug_reducing_antiapoptosis", actions[1], global_step)
+        writer.add_scalar("env/anti_M2", actions[0], global_step)
+        writer.add_scalar("env/anti_pd1", actions[1], global_step)
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
             print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
@@ -586,6 +585,7 @@ def main():
                 "charts/episodic_length", info["episode"]["l"], global_step
             )
             episode += 1
+            test_step += 1
             if episode % 128 == 0:
                 output_video = f"name_{args.name}_seed_{args.seed}_step_{episode}.mp4"
                 obs, info = env.reset()
@@ -598,6 +598,19 @@ def main():
                         actions, _, _ = actor.get_action(x)
                     actions = actions.detach().squeeze(0).cpu().numpy()
                     obs, _, terminated, truncated, info = env.step(actions)
+                    writer.add_scalar("env/test/reward_value", rewards, test_step)
+                    writer.add_scalar(
+                        "env/test/number_cancer_cells",
+                        info["number_cancer_cells"],
+                        test_step,
+                    )
+                    writer.add_scalar(
+                        "env/test/number_m2",
+                        info["number_m2"],
+                        test_step,
+                    )
+                    writer.add_scalar("env/test/anti_M2", actions[0], test_step)
+                    writer.add_scalar("env/test/anti_pd1", actions[1], test_step)
                     step_episode += 1
                     if args.video:
                         saving_img(
@@ -612,6 +625,16 @@ def main():
                         )
                     done = terminated or truncated
                     if done:
+                        writer.add_scalar(
+                            "charts/test/episodic_return",
+                            info["episode"]["r"],
+                            test_step,
+                        )
+                        writer.add_scalar(
+                            "charts/test/episodic_length",
+                            info["episode"]["l"],
+                            test_step,
+                        )
                         if args.video:
                             png_to_video_imageio(
                                 image_folder + f"/{episode}/" + output_video,
