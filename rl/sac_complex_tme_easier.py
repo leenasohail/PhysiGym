@@ -250,7 +250,7 @@ class Args:
     """automatic tuning of the entropy coefficient"""
     wandb_track: bool = True
     """track with wandb"""
-    video: bool = True
+    video: bool = False
     """save video"""
 
 
