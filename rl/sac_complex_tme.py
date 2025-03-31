@@ -23,9 +23,7 @@ absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
-from rl.utils.wrappers.wrapper_physicell_complex_tme import (
-    PhysiCellModelWrapper
-)
+from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 from rl.utils.replay_buffer.smart_image_replay_buffer import ImgReplayBuffer
 import mpld3
@@ -454,7 +452,7 @@ def main():
             batch_size=args.batch_size,
             state_type=env.observation_space.dtype,
         )
-        if not use_intelligent_buffer 
+        if not use_intelligent_buffer
         else ImgReplayBuffer(
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
@@ -465,7 +463,7 @@ def main():
             x_min=x_min,
             y_min=y_min,
             color_mapping=color_mapping,
-            image_gray=is_gray
+            image_gray=is_gray,
         )
     )
 
@@ -499,7 +497,9 @@ def main():
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs.copy()
-        df_cell_obs = next_df_cell_obs.copy() if "image" in args.observation_type else None
+        df_cell_obs = (
+            next_df_cell_obs.copy() if "image" in args.observation_type else None
+        )
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
             data = rb.sample()
@@ -585,6 +585,11 @@ def main():
         writer.add_scalar(
             "env/cancer_cell_count",
             info["number_cancer_cells"],
+            global_step,
+        )
+        writer.add_scalar(
+            "env/cancer_cell_count",
+            info["number_m2"],
             global_step,
         )
         writer.add_scalar("env/drug_apoptosis", actions[0], global_step)

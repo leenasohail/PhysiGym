@@ -568,6 +568,11 @@ def main():
             info["number_cancer_cells"],
             global_step,
         )
+        writer.add_scalar(
+            "env/cancer_cell_count",
+            info["number_m2"],
+            global_step,
+        )
         writer.add_scalar("env/drug_apoptosis", actions[0], global_step)
         writer.add_scalar("env/drug_reducing_antiapoptosis", actions[1], global_step)
         if done:

@@ -198,6 +198,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"), :
             ]
         )
+        self.nb_m2 = len(
+            self.df_cell.loc[
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2 macrophage"), :
+            ]
+        )
         _nb_cancer_cells = np.array([self.nb_cancer_cells])
         _ratio_nb_cancer_cells = (
             _nb_cancer_cells.astype(float)[0] / self.init_cancer_cells
@@ -267,7 +272,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             the number of hearts (lives left) from our character.
         """
         # model dependent info processing logic goes here!
-        info = {"number_cancer_cells": self.nb_cancer_cells, "df_cell": self.df_cell}
+        info = {
+            "number_cancer_cells": self.nb_cancer_cells,
+            "df_cell": self.df_cell,
+            "number_m2": self.nb_m2,
+        }
 
         # output
         return info
