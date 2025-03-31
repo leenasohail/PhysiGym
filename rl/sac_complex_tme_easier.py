@@ -470,7 +470,7 @@ def main():
         if global_step <= args.learning_starts:
             actions = np.array(env.action_space.sample())
         else:
-            x = [obs.item()] if args.observation_type == "simple" else obs
+            x = obs
             x = torch.Tensor(x).to(device).unsqueeze(0)
             actions, _, _ = actor.get_action(x)
             actions = actions.detach().squeeze(0).cpu().numpy()
@@ -564,12 +564,13 @@ def main():
 
         writer.add_scalar("env/reward_value", rewards, global_step)
         writer.add_scalar(
-            "env/cancer_cell_count",
+            "env/number_cancer_cells",
             info["number_cancer_cells"],
             global_step,
         )
+        print(f"Number of cancer cells {info['number_cancer_cells']}")
         writer.add_scalar(
-            "env/cancer_cell_count",
+            "env/number_m2",
             info["number_m2"],
             global_step,
         )
