@@ -228,15 +228,19 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.y_max = int(self.x_root.xpath("//domain/y_max")[0].text)
         self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
         self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
-        self.width = self.x_max + 2*self.dx  - self.x_min
-        self.height = self.y_max + 2*self.dy - self.y_min
+        self.width = self.x_max + 2 * self.dx - self.x_min
+        self.height = self.y_max + 2 * self.dy - self.y_min
 
         cell_definitions = self.x_root.xpath("//cell_definitions/cell_definition")
         self.color_mapping = {}  # This will map type IDs to specific colors
 
         # Get the list of unique cell types
-        self.unique_cell_types = sorted([cell_def.xpath('./@name')[0] for cell_def in cell_definitions])
-        self.type_to_idx = {cell_type: idx for idx, cell_type in enumerate(self.unique_cell_types)}
+        self.unique_cell_types = sorted(
+            [cell_def.xpath("./@name")[0] for cell_def in cell_definitions]
+        )
+        self.type_to_idx = {
+            cell_type: idx for idx, cell_type in enumerate(self.unique_cell_types)
+        }
 
         for i, cell_type in enumerate(self.unique_cell_types):
             self.color_mapping[cell_type] = COLORS[i]
