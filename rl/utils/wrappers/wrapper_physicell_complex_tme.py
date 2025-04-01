@@ -11,11 +11,13 @@ class PhysiCellModelWrapper(gym.Wrapper):
             "anti_M2",
             "anti_pd1",
         ],
+        weight: float = 0.7,
     ):
         """
         Args:
             env (gym.Env): The environment to wrap.
             list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
+            weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
         """
         super().__init__(env)
 
@@ -41,6 +43,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
             ]
         )
         self._action_space = Box(low=low, high=high, dtype=np.float64)
+        self.weight = weight
 
     @property
     def action_space(self):
@@ -80,6 +83,5 @@ class PhysiCellModelWrapper(gym.Wrapper):
         # Preprocess observation (if needed)
         o_observation = np.array(o_observation, dtype=float)
         info["action"] = d_action
-        r_reward += -(2 * np.sum(action) - 2)
+        r_reward = (1 - self.weight) * np.sum(action) / 2 + r_reward * self.weight
         return o_observation, r_reward, b_terminated, b_truncated, info
-
