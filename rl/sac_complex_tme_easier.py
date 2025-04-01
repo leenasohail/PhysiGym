@@ -578,7 +578,7 @@ def main():
         writer.add_scalar("env/anti_pd1", actions[1], global_step)
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
-            print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
+            print(f"global_step={global_step}, episodic_return={cumulative_return}")
             writer.add_scalar("charts/episodic_return", cumulative_return, global_step)
             writer.add_scalar("charts/episodic_length", length, global_step)
             cumulative_return = 0
