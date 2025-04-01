@@ -407,9 +407,9 @@ def main():
     x_max = env.unwrapped.x_max
     y_max = env.unwrapped.y_max
     color_mapping = env.unwrapped.color_mapping
-
+    cumulative_return = 0
+    length = 0
     env = PhysiCellModelWrapper(env=env)
-    env = gym.wrappers.RecordEpisodeStatistics(env)
     shape_observation_space_env = env.observation_space.shape
     is_gray = True if args.observation_type == "image_gray" else False
     test_step = 0
@@ -478,7 +478,8 @@ def main():
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
-
+        cumulative_return += rewards
+        length += 1
         if args.observation_type == "simple":
             rb.add(obs, actions, rewards, next_obs, done)
         else:
@@ -578,12 +579,10 @@ def main():
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
             print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
-            writer.add_scalar(
-                "charts/episodic_return", info["episode"]["r"], global_step
-            )
-            writer.add_scalar(
-                "charts/episodic_length", info["episode"]["l"], global_step
-            )
+            writer.add_scalar("charts/episodic_return", cumulative_return, global_step)
+            writer.add_scalar("charts/episodic_length", length, global_step)
+            cumulative_return = 0
+            length = 0
             episode += 1
             test_step += 1
             if episode % 128 == 0:
@@ -627,14 +626,15 @@ def main():
                     if done:
                         writer.add_scalar(
                             "charts/test/episodic_return",
-                            info["episode"]["r"],
+                            cumulative_return,
                             test_step,
                         )
                         writer.add_scalar(
                             "charts/test/episodic_length",
-                            info["episode"]["l"],
+                            step_episode,
                             test_step,
                         )
+                        cumulative_return = 0
                         if args.video:
                             png_to_video_imageio(
                                 image_folder + f"/{episode}/" + output_video,
