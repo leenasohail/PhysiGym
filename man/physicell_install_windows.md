@@ -21,6 +21,8 @@ pacman -S mingw-w64-x86_64-gcc make mingw-w64-x86_64-imagemagick mingw-w64-x86_6
 
 ## &#x1FA9F; Basic PhyiCell installation
 
+Important: before you run the basic physicell installation, you have to install the operating system dependencies!
+
 ### &#x2728; Install PhysiCell:
 
 Open the MSYS2 MINGW64 shell ~ the one with blue MSYS2 icon, no other color!
@@ -75,6 +77,25 @@ make movie
 ```
 
 
+### &#x2728; Optional: make a shortcut from your MSYS2 home to your Windows home folder.
+
+Run as Administrator a PowerShell (v7.x) or WindowsPowerShell (v5.1) ~ the regular one, not the ISE and not the x86 one!
+
+Note that this time you have to run the shell as an administrator.
+Usually, you do not have to do this!
+
+```powershell
+Set-Location C:\msys64\home\$USER
+New-Item -ItemType SymbolicLink -Path C:\msys64\home\$USER\shortcut -Target C:\Users\$USER
+```
+
+Now, when you have opened a MSYS2 MINGW64 shell (e.g., to run PhysiCell), to change to your Windows home directory, you can simply do:
+```bash
+cd ~
+cd shortcut
+```
+
+
 ## &#x1FA9F; Essential installation
 
 We will generate a python3 environment with the default python installation, where we will install all PhysiCell modelling related python libraries.
@@ -82,18 +103,17 @@ We will name this python3 environment pcvenv (PhysiCell virtual environment).
 
 ### &#x2728; Install Python:
 
-If you not already have installed python, please go to the Microsoft Store and install the latest Python from the Python Software Foundation.
+If you not already have installed python, please go to the Microsoft Store and **install** the latest **python** from the Python Software Foundation.
 
 
 ### &#x2728; Get the Windows PowerShell ready:
 
-Open a PowerShell (v7.x) or WindowsPowerShell ~ the regular one, not the ISE and not the x86 one (v5.1)!
+Open a PowerShell (v7.x) or WindowsPowerShell (v5.1) ~ the regular one, not the ISE and not the x86 one!
 
 If you wonder, why there is more than one PowerShell flavor, read this article. Our script will run on both flavors.
 + https://learn.microsoft.com/en-us/powershell/scripting/whats-new/differences-from-windows-powershell
 
-
-To activate Python environments, we have to be able to run PowerShell scripts.
+To activate python environments, we have to be able to run PowerShell scripts.
 This is why we have to change the execution policy.
 Please run the command below and confirm with Y.
 
@@ -172,7 +192,7 @@ pcstudio.exe
 
 ### &#x2728; Install Python:
 
-If you not already have installed python, please go to the Microsoft Store and install the latest Python from the Python Software Foundation.
+If you not already have installed Python, please go to the Microsoft Store and **install** the latest **Python** from the Python Software Foundation.
 
 ### &#x2728; Install PhysiCell Data Loader (pcdl) and iPython:
 

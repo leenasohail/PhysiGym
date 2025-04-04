@@ -41,6 +41,8 @@ brew install gcc imagemagick ffmpeg
 
 ## &#x1F34E; Basic PhyiCell installation
 
+Important: before you run the basic physicell installation, you have to install the operating system dependencies!
+
 ### &#x2728; Install PhysiCell:
 
 Copy the installation command, paste it into the Terminal (found at Applications / Utilities), and press the enter key.
