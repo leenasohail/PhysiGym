@@ -1,19 +1,23 @@
 import numpy as np
 import gymnasium as gym
 from gymnasium.spaces import Box
+
+
 class PhysiCellModelWrapper(gym.Wrapper):
     def __init__(
         self,
         env: gym.Env,
         list_variable_name: list[str] = [
-            "drug_apoptosis",
-            "drug_reducing_antiapoptosis",
-        ]
+            "anti_M2",
+            "anti_pd1",
+        ],
+        weight: float = 0.7,
     ):
         """
         Args:
             env (gym.Env): The environment to wrap.
             list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
+            weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
         """
         super().__init__(env)
 
@@ -39,6 +43,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
             ]
         )
         self._action_space = Box(low=low, high=high, dtype=np.float64)
+        self.weight = weight
 
     @property
     def action_space(self):
@@ -77,33 +82,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
         )
         # Preprocess observation (if needed)
         o_observation = np.array(o_observation, dtype=float)
-        info["action"]  = d_action
+        info["action"] = d_action
+        r_reward = (1 - self.weight) * np.sum(action) / 2 + r_reward * self.weight
         return o_observation, r_reward, b_terminated, b_truncated, info
-
-
-
-
-def wrap_env_with_rescale_stats(env: gym.Env, min_action:float=-1, max_action:float=1):
-    """
-    Applies RescaleAction to normalize actions between -1 and 1,
-    Records Episode Statistics for the environment.
-    """
-    env = gym.wrappers.RescaleAction(env, min_action=min_action, max_action=max_action)
-    env = gym.wrappers.RecordEpisodeStatistics(env)
-    return env
-
-def wrap_gray_env_image(env,resize_shape=(None,None), stack_size=1, gray=True):
-    if resize_shape != (None, None):
-        env = gym.wrappers.ResizeObservation(env,resize_shape)
-    if gray:
-        env = gym.wrappers.GrayscaleObservation(env)
-    class UInt8Wrapper(gym.ObservationWrapper):
-        def observation(self, obs):
-            return obs.astype(np.uint8)
-    
-    env = UInt8Wrapper(env)
-    env = gym.wrappers.FrameStackObservation(env, stack_size=stack_size)
-    if not gray:
-        C,H,W,S = env.observation_space.shape
-        env = gym.wrappers.ReshapeObservation(env, shape=(C*S, H, W))
-    return env

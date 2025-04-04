@@ -23,11 +23,7 @@ absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
-from rl.utils.wrappers.wrapper_physicell_tme import (
-    PhysiCellModelWrapper,
-    wrap_env_with_rescale_stats,
-    wrap_gray_env_image,
-)
+from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 from rl.utils.replay_buffer.smart_image_replay_buffer import ImgReplayBuffer
 import mpld3
@@ -206,7 +202,7 @@ class Actor(nn.Module):
 
 
 # Wrap the environment
-list_variable_name = ["drug_apoptosis", "drug_reducing_antiapoptosis"]
+list_variable_name = ["anti_M2", "anti_pd1"]
 
 
 @dataclass
@@ -220,14 +216,14 @@ class Args:
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
     track: bool = False
-    wandb_project_name: str = "SAC_IMAGE_SIMPLE_PHYSIGYM"
+    wandb_project_name: str = "SAC_IMAGE_COMPLEX_TME"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
 
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "image"
+    observation_type: str = "image_gray"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
@@ -268,24 +264,30 @@ def saving_img(
     y_min: int,
     y_max: int,
     saving_title: str = "output_simulation_image_episode",
+    color_mapping: dict = {},
 ):
+    def rgb_to_hex(rgb):
+        return "#{:02x}{:02x}{:02x}".format(
+            int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255)
+        )
+
     os.makedirs(image_folder, exist_ok=True)
     df_cell = info["df_cell"]
     fig, ax = plt.subplots(
         1, 3, figsize=(10, 6), gridspec_kw={"width_ratios": [1, 0.2, 0.2]}
     )
     count_cancer_cell = info["number_cancer_cells"]
-    for s_celltype, s_color in sorted(
-        {"cancer_cell": "gray", "nurse_cell": "red"}.items()
-    ):
+    unique_cell_types = df_cell["type"].unique().tolist()
+    for cell_type in unique_cell_types:
+        tuple_color = color_mapping[cell_type]
         df_celltype = df_cell.loc[
-            (df_cell.dead == 0.0) & (df_cell.type == s_celltype), :
+            (df_cell.dead == 0.0) & (df_cell.type == cell_type), :
         ]
         df_celltype.plot(
             kind="scatter",
             x="x",
             y="y",
-            c=s_color,
+            c=rgb_to_hex(tuple_color),
             xlim=[
                 x_min,
                 x_max,
@@ -295,7 +297,7 @@ def saving_img(
                 y_max,
             ],
             grid=True,
-            label=s_celltype,
+            label=cell_type,
             s=100,
             title=f"episode step {str(step_episode).zfill(3)}, cancer cell: {count_cancer_cell}",
             ax=ax[0],
@@ -305,7 +307,7 @@ def saving_img(
     list_colors = ["royalblue", "darkorange"]
 
     # Function to create fluid-like color bars
-    def create_fluid_bar(ax_bar, drug_amount, title, max_amount=30, color="cyan"):
+    def create_fluid_bar(ax_bar, drug_amount, title, max_amount=1, color="cyan"):
         ax_bar.set_xlim(0, 1)
         ax_bar.set_ylim(0, 1)
         ax_bar.set_title(title, fontsize=10)
@@ -365,7 +367,7 @@ def main():
     config = vars(args)
     run_name = f"{args.env_id}__{args.name}_{args.wandb_entity}_{int(time.time())}"
     run_dir = f"runs/{run_name}"
-
+    args.seed = None
     if args.wandb_track:
         wandb.init(
             project=args.wandb_project_name,
@@ -404,22 +406,19 @@ def main():
     y_min = env.unwrapped.y_min
     x_max = env.unwrapped.x_max
     y_max = env.unwrapped.y_max
-    color_mapping = env.unwrapped.color_mapping_255
+    color_mapping = env.unwrapped.color_mapping
 
-    def make_gym_env(env, observation_type):
+    def make_gym_env(env):
         env = PhysiCellModelWrapper(env=env)
-        if observation_type == "image":
-            env = wrap_gray_env_image(
-                env, stack_size=1, gray=True, resize_shape=(None, None)
-            )
-
-        env = wrap_env_with_rescale_stats(env)
+        env = gym.wrappers.RecordEpisodeStatistics(env)
         return env
 
-    env = make_gym_env(env, observation_type=args.observation_type)
+    env = make_gym_env(env)
     shape_observation_space_env = env.observation_space.shape
     is_image = True if args.observation_type == "image" else False
     is_rgb_first = True if args.observation_type == "image_rgb_first" else False
+    is_gray = True if args.observation_type == "image_gray" else False
+    use_intelligent_buffer = is_rgb_first or is_gray
     cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -453,7 +452,7 @@ def main():
             batch_size=args.batch_size,
             state_type=env.observation_space.dtype,
         )
-        if not is_rgb_first
+        if not use_intelligent_buffer
         else ImgReplayBuffer(
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
@@ -464,6 +463,7 @@ def main():
             x_min=x_min,
             y_min=y_min,
             color_mapping=color_mapping,
+            image_gray=is_gray,
         )
     )
 
@@ -484,7 +484,7 @@ def main():
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
-        if is_rgb_first:
+        if use_intelligent_buffer:
             rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done)
         else:
             rb.add(
@@ -496,8 +496,10 @@ def main():
             )
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
-        obs = next_obs
-
+        obs = next_obs.copy()
+        df_cell_obs = (
+            next_df_cell_obs.copy() if "image" in args.observation_type else None
+        )
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
             data = rb.sample()
@@ -585,6 +587,11 @@ def main():
             info["number_cancer_cells"],
             global_step,
         )
+        writer.add_scalar(
+            "env/cancer_cell_count",
+            info["number_m2"],
+            global_step,
+        )
         writer.add_scalar("env/drug_apoptosis", actions[0], global_step)
         writer.add_scalar("env/drug_reducing_antiapoptosis", actions[1], global_step)
         if done:
@@ -619,6 +626,7 @@ def main():
                             y_max=y_max,
                             x_min=x_min,
                             y_min=y_min,
+                            color_mapping=color_mapping,
                         )
                     done = terminated or truncated
                     if done:

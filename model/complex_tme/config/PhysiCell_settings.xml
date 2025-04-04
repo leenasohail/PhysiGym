@@ -1,20 +1,29 @@
 <PhysiCell_settings version="devel-version">
 
+    <cell_rules>
+        <rulesets>
+            <ruleset protocol="CBHG" version="3.0" format="csv" enabled="true">
+                <folder>./config</folder>
+                <filename>cell_rules.csv</filename>
+            </ruleset>
+        </rulesets>
+    </cell_rules>
+
     <domain>
-        <x_min>-550</x_min>
-        <x_max>550</x_max>
-        <y_min>-550</y_min>
-        <y_max>550</y_max>
+        <x_min>-512</x_min>
+        <x_max>512</x_max>
+        <y_min>-512</y_min>
+        <y_max>512</y_max>
         <z_min>-10</z_min>
         <z_max>10</z_max>
-        <dx>20</dx>
-        <dy>20</dy>
+        <dx>30</dx>
+        <dy>30</dy>
         <dz>20</dz>
         <use_2D>true</use_2D>
     </domain>
 
     <overall>
-        <max_time units="min">7200</max_time>
+        <max_time units="min">12000.0</max_time>
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -23,17 +32,17 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>6</omp_num_threads>
+        <omp_num_threads>4</omp_num_threads>
     </parallel>
 
     <save>
-        <folder>outputs/</folder>
+        <folder>outputs/tumor_immune_extended</folder>
         <full_data>
-            <interval units="min">30</interval>
+            <interval units="min">60</interval>
             <enable>true</enable>
         </full_data>
         <SVG>
-            <interval units="min">30</interval>
+            <interval units="min">60</interval>
             <enable>true</enable>
             <plot_substrate enabled="false" limits="false">
                 <substrate>debris</substrate>
@@ -43,14 +52,14 @@
             </plot_substrate>
         </SVG>
         <legacy_data>
-            <enable>true</enable>
+            <enable>false</enable>
         </legacy_data>
     </save>
 
     <options>
+        <random_seed>100</random_seed>
         <legacy_random_points_on_sphere_in_divide>false</legacy_random_points_on_sphere_in_divide>
         <virtual_wall_at_domain_edge>true</virtual_wall_at_domain_edge>
-        <random_seed>0</random_seed>
     </options>
 
     <microenvironment_setup>
@@ -73,15 +82,15 @@
         <variable name="oxygen" units="dimensionless" ID="1">
             <physical_parameter_set>
                 <diffusion_coefficient units="micron^2/min">100000.0</diffusion_coefficient>
-                <decay_rate units="1/min">0</decay_rate>
+                <decay_rate units="1/min">0.1</decay_rate>
             </physical_parameter_set>
-            <initial_condition units="mmHg">20</initial_condition>
-            <Dirichlet_boundary_condition units="mmHg" enabled="True">20</Dirichlet_boundary_condition>
+            <initial_condition units="mmHg">38.0</initial_condition>
+            <Dirichlet_boundary_condition units="mmHg" enabled="True">38.0</Dirichlet_boundary_condition>
             <Dirichlet_options>
-                <boundary_value ID="xmin" enabled="True">20</boundary_value>
-                <boundary_value ID="xmax" enabled="True">20</boundary_value>
-                <boundary_value ID="ymin" enabled="True">20</boundary_value>
-                <boundary_value ID="ymax" enabled="True">20</boundary_value>
+                <boundary_value ID="xmin" enabled="True">38.0</boundary_value>
+                <boundary_value ID="xmax" enabled="True">38.0</boundary_value>
+                <boundary_value ID="ymin" enabled="True">38.0</boundary_value>
+                <boundary_value ID="ymax" enabled="True">38.0</boundary_value>
                 <boundary_value ID="zmin" enabled="True">20</boundary_value>
                 <boundary_value ID="zmax" enabled="True">20</boundary_value>
             </Dirichlet_options>
@@ -105,7 +114,7 @@
         <variable name="IL-10" units="dimensionless" ID="3">
             <physical_parameter_set>
                 <diffusion_coefficient units="micron^2/min">1000</diffusion_coefficient>
-                <decay_rate units="1/min">10</decay_rate>
+                <decay_rate units="1/min">0.1</decay_rate>
             </physical_parameter_set>
             <initial_condition units="mmHg">0.0</initial_condition>
             <Dirichlet_boundary_condition units="mmHg" enabled="False">0.0</Dirichlet_boundary_condition>
@@ -116,6 +125,38 @@
                 <boundary_value ID="ymax" enabled="False">0.0</boundary_value>
                 <boundary_value ID="zmin" enabled="False">0.0</boundary_value>
                 <boundary_value ID="zmax" enabled="False">0.0</boundary_value>
+            </Dirichlet_options>
+        </variable>
+        <variable name="anti_M2" units="dimensionless" ID="4">
+            <physical_parameter_set>
+                <diffusion_coefficient units="micron^2/min">10000.0</diffusion_coefficient>
+                <decay_rate units="1/min">0.016667</decay_rate>
+            </physical_parameter_set>
+            <initial_condition units="dimensionless">0.0</initial_condition>
+            <Dirichlet_boundary_condition units="dimensionless" enabled="True">0.0</Dirichlet_boundary_condition>
+            <Dirichlet_options>
+                <boundary_value ID="xmin" enabled="True">0</boundary_value>
+                <boundary_value ID="xmax" enabled="True">0</boundary_value>
+                <boundary_value ID="ymin" enabled="True">0</boundary_value>
+                <boundary_value ID="ymax" enabled="True">0</boundary_value>
+                <boundary_value ID="zmin" enabled="False" />
+                <boundary_value ID="zmax" enabled="False" />
+            </Dirichlet_options>
+        </variable>
+        <variable name="anti_pd1" units="dimensionless" ID="5">
+            <physical_parameter_set>
+                <diffusion_coefficient units="micron^2/min">100000.0</diffusion_coefficient>
+                <decay_rate units="1/min">0.016667</decay_rate>
+            </physical_parameter_set>
+            <initial_condition units="dimensionless">0</initial_condition>
+            <Dirichlet_boundary_condition units="dimensionless" enabled="True">0</Dirichlet_boundary_condition>
+            <Dirichlet_options>
+                <boundary_value ID="xmin" enabled="True">0</boundary_value>
+                <boundary_value ID="xmax" enabled="True">0</boundary_value>
+                <boundary_value ID="ymin" enabled="True">0</boundary_value>
+                <boundary_value ID="ymax" enabled="True">0</boundary_value>
+                <boundary_value ID="zmin" enabled="False" />
+                <boundary_value ID="zmax" enabled="False" />
             </Dirichlet_options>
         </variable>
         <options>
@@ -135,13 +176,16 @@
             <phenotype>
                 <cycle code="5" name="live">
                     <phase_transition_rates units="1/min">
-                        <rate start_index="0" end_index="0" fixed_duration="false">0</rate>
+                        <rate start_index="0" end_index="0" fixed_duration="false">0.00072</rate>
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">1.0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
                         <asymmetric_division_probability name="naive T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="CD8 T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="exhausted T cell" units="dimensionless">0</asymmetric_division_probability>
@@ -149,7 +193,7 @@
                 </cycle>
                 <death>
                     <model code="100" name="apoptosis">
-                        <death_rate units="1/min">7.2e-5</death_rate>
+                        <death_rate units="1/min">5.31667e-5</death_rate>
                         <phase_durations units="min">
                             <duration index="0" fixed_duration="true">516</duration>
                         </phase_durations>
@@ -192,7 +236,7 @@
                 <mechanics>
                     <cell_cell_adhesion_strength units="micron/min">0.4</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
-                    <relative_maximum_adhesion_distance units="dimensionless">1.5</relative_maximum_adhesion_distance>
+                    <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1</cell_adhesion_affinity>
                         <cell_adhesion_affinity name="M0 macrophage">1.0</cell_adhesion_affinity>
@@ -207,12 +251,12 @@
                         <set_absolute_equilibrium_distance enabled="false" units="micron">15.12</set_absolute_equilibrium_distance>
                     </options>
                     <attachment_elastic_constant units="1/min">0.01</attachment_elastic_constant>
-                    <attachment_rate units="1/min">10.0</attachment_rate>
+                    <attachment_rate units="1/min">0.0</attachment_rate>
                     <detachment_rate units="1/min">0.0</detachment_rate>
                     <maximum_number_of_attachments>12</maximum_number_of_attachments>
                 </mechanics>
                 <motility>
-                    <speed units="micron/min">0.5</speed>
+                    <speed units="micron/min">0</speed>
                     <persistence_time units="min">5</persistence_time>
                     <migration_bias units="dimensionless">0</migration_bias>
                     <options>
@@ -232,6 +276,8 @@
                                 <chemotactic_sensitivity substrate="IFN-gamma">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="IL-10">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_M2">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_pd1">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
@@ -261,6 +307,18 @@
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
+                    <substrate name="anti_M2">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_pd1">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
                 </secretion>
                 <cell_interactions>
                     <apoptotic_phagocytosis_rate units="1/min">0</apoptotic_phagocytosis_rate>
@@ -285,7 +343,7 @@
                         <attack_rate name="exhausted T cell" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
-                    <attack_duration units="min">0.1</attack_duration>
+                    <attack_duration units="min">30</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0</fusion_rate>
                         <fusion_rate name="M0 macrophage" units="1/min">0.0</fusion_rate>
@@ -322,13 +380,16 @@
             <phenotype>
                 <cycle code="5" name="live">
                     <phase_transition_rates units="1/min">
-                        <rate start_index="0" end_index="0" fixed_duration="false">7.2e-5</rate>
+                        <rate start_index="0" end_index="0" fixed_duration="false">0.0</rate>
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">1.0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">
+              1.0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
                         <asymmetric_division_probability name="naive T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="CD8 T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="exhausted T cell" units="dimensionless">0</asymmetric_division_probability>
@@ -377,9 +438,9 @@
                     <relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.0</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
-                    <relative_maximum_adhesion_distance units="dimensionless">1.5</relative_maximum_adhesion_distance>
+                    <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
                         <cell_adhesion_affinity name="M0 macrophage">1.0</cell_adhesion_affinity>
@@ -394,7 +455,7 @@
                         <set_absolute_equilibrium_distance enabled="false" units="micron">15.12</set_absolute_equilibrium_distance>
                     </options>
                     <attachment_elastic_constant units="1/min">0.01</attachment_elastic_constant>
-                    <attachment_rate units="1/min">10.0</attachment_rate>
+                    <attachment_rate units="1/min">0.0</attachment_rate>
                     <detachment_rate units="1/min">0.0</detachment_rate>
                     <maximum_number_of_attachments>12</maximum_number_of_attachments>
                 </mechanics>
@@ -419,6 +480,8 @@
                                 <chemotactic_sensitivity substrate="IFN-gamma">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="IL-10">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_M2">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_pd1">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
@@ -433,7 +496,7 @@
                     <substrate name="oxygen">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">5</uptake_rate>
+                        <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0</net_export_rate>
                     </substrate>
                     <substrate name="IFN-gamma">
@@ -448,10 +511,22 @@
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
+                    <substrate name="anti_M2">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_pd1">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
                 </secretion>
                 <cell_interactions>
-                    <apoptotic_phagocytosis_rate units="1/min">0.01</apoptotic_phagocytosis_rate>
-                    <necrotic_phagocytosis_rate units="1/min">0.01</necrotic_phagocytosis_rate>
+                    <apoptotic_phagocytosis_rate units="1/min">0.1</apoptotic_phagocytosis_rate>
+                    <necrotic_phagocytosis_rate units="1/min">0.017</necrotic_phagocytosis_rate>
                     <other_dead_phagocytosis_rate units="1/min">0.01</other_dead_phagocytosis_rate>
                     <live_phagocytosis_rates>
                         <phagocytosis_rate name="tumor" units="1/min">0.0</phagocytosis_rate>
@@ -472,7 +547,7 @@
                         <attack_rate name="exhausted T cell" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
-                    <attack_duration units="min">0.1</attack_duration>
+                    <attack_duration units="min">30</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
                         <fusion_rate name="M0 macrophage" units="1/min">0.0</fusion_rate>
@@ -509,13 +584,16 @@
             <phenotype>
                 <cycle code="5" name="live">
                     <phase_transition_rates units="1/min">
-                        <rate start_index="0" end_index="0" fixed_duration="false">7.2e-5</rate>
+                        <rate start_index="0" end_index="0" fixed_duration="false">0.0</rate>
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">1.0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">
+              1.0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
                         <asymmetric_division_probability name="naive T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="CD8 T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="exhausted T cell" units="dimensionless">0</asymmetric_division_probability>
@@ -564,9 +642,9 @@
                     <relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.0</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
-                    <relative_maximum_adhesion_distance units="dimensionless">1.5</relative_maximum_adhesion_distance>
+                    <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
                         <cell_adhesion_affinity name="M0 macrophage">1.0</cell_adhesion_affinity>
@@ -581,7 +659,7 @@
                         <set_absolute_equilibrium_distance enabled="false" units="micron">15.12</set_absolute_equilibrium_distance>
                     </options>
                     <attachment_elastic_constant units="1/min">0.01</attachment_elastic_constant>
-                    <attachment_rate units="1/min">10.0</attachment_rate>
+                    <attachment_rate units="1/min">0.0</attachment_rate>
                     <detachment_rate units="1/min">0.0</detachment_rate>
                     <maximum_number_of_attachments>12</maximum_number_of_attachments>
                 </mechanics>
@@ -606,6 +684,8 @@
                                 <chemotactic_sensitivity substrate="IFN-gamma">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="IL-10">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_M2">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_pd1">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
@@ -620,13 +700,13 @@
                     <substrate name="oxygen">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">5</uptake_rate>
+                        <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0</net_export_rate>
                     </substrate>
                     <substrate name="IFN-gamma">
                         <secretion_rate units="1/min">10</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">1</uptake_rate>
+                        <uptake_rate units="1/min">1.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="IL-10">
@@ -635,10 +715,22 @@
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
+                    <substrate name="anti_M2">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_pd1">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
                 </secretion>
                 <cell_interactions>
-                    <apoptotic_phagocytosis_rate units="1/min">0.01</apoptotic_phagocytosis_rate>
-                    <necrotic_phagocytosis_rate units="1/min">0.01</necrotic_phagocytosis_rate>
+                    <apoptotic_phagocytosis_rate units="1/min">0.1</apoptotic_phagocytosis_rate>
+                    <necrotic_phagocytosis_rate units="1/min">0.017</necrotic_phagocytosis_rate>
                     <other_dead_phagocytosis_rate units="1/min">0.01</other_dead_phagocytosis_rate>
                     <live_phagocytosis_rates>
                         <phagocytosis_rate name="tumor" units="1/min">0.0</phagocytosis_rate>
@@ -659,7 +751,7 @@
                         <attack_rate name="exhausted T cell" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
-                    <attack_duration units="min">0.1</attack_duration>
+                    <attack_duration units="min">30</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
                         <fusion_rate name="M0 macrophage" units="1/min">0.0</fusion_rate>
@@ -696,13 +788,16 @@
             <phenotype>
                 <cycle code="5" name="live">
                     <phase_transition_rates units="1/min">
-                        <rate start_index="0" end_index="0" fixed_duration="false">7.2e-5</rate>
+                        <rate start_index="0" end_index="0" fixed_duration="false">0.0</rate>
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">1.0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">
+              1.0</asymmetric_division_probability>
                         <asymmetric_division_probability name="naive T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="CD8 T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="exhausted T cell" units="dimensionless">0</asymmetric_division_probability>
@@ -751,9 +846,9 @@
                     <relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.0</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
-                    <relative_maximum_adhesion_distance units="dimensionless">1.5</relative_maximum_adhesion_distance>
+                    <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
                         <cell_adhesion_affinity name="M0 macrophage">1.0</cell_adhesion_affinity>
@@ -768,7 +863,7 @@
                         <set_absolute_equilibrium_distance enabled="false" units="micron">15.12</set_absolute_equilibrium_distance>
                     </options>
                     <attachment_elastic_constant units="1/min">0.01</attachment_elastic_constant>
-                    <attachment_rate units="1/min">10.0</attachment_rate>
+                    <attachment_rate units="1/min">0.0</attachment_rate>
                     <detachment_rate units="1/min">0.0</detachment_rate>
                     <maximum_number_of_attachments>12</maximum_number_of_attachments>
                 </mechanics>
@@ -793,6 +888,8 @@
                                 <chemotactic_sensitivity substrate="IFN-gamma">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="IL-10">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_M2">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_pd1">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
@@ -807,13 +904,13 @@
                     <substrate name="oxygen">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">5</uptake_rate>
+                        <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0</net_export_rate>
                     </substrate>
                     <substrate name="IFN-gamma">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">1</uptake_rate>
+                        <uptake_rate units="1/min">1.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="IL-10">
@@ -822,10 +919,22 @@
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
+                    <substrate name="anti_M2">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">1.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_pd1">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
                 </secretion>
                 <cell_interactions>
-                    <apoptotic_phagocytosis_rate units="1/min">0.01</apoptotic_phagocytosis_rate>
-                    <necrotic_phagocytosis_rate units="1/min">0.01</necrotic_phagocytosis_rate>
+                    <apoptotic_phagocytosis_rate units="1/min">0.1</apoptotic_phagocytosis_rate>
+                    <necrotic_phagocytosis_rate units="1/min">0.017</necrotic_phagocytosis_rate>
                     <other_dead_phagocytosis_rate units="1/min">0.01</other_dead_phagocytosis_rate>
                     <live_phagocytosis_rates>
                         <phagocytosis_rate name="tumor" units="1/min">0.0</phagocytosis_rate>
@@ -846,7 +955,7 @@
                         <attack_rate name="exhausted T cell" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
-                    <attack_duration units="min">0.1</attack_duration>
+                    <attack_duration units="min">30</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
                         <fusion_rate name="M0 macrophage" units="1/min">0.0</fusion_rate>
@@ -887,10 +996,14 @@
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="naive T cell" units="dimensionless">1.0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="naive T cell" units="dimensionless">
+              1.0</asymmetric_division_probability>
                         <asymmetric_division_probability name="CD8 T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="exhausted T cell" units="dimensionless">0</asymmetric_division_probability>
                     </standard_asymmetric_division>
@@ -938,9 +1051,9 @@
                     <relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.0</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
-                    <relative_maximum_adhesion_distance units="dimensionless">1.5</relative_maximum_adhesion_distance>
+                    <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
                         <cell_adhesion_affinity name="M0 macrophage">1.0</cell_adhesion_affinity>
@@ -955,7 +1068,7 @@
                         <set_absolute_equilibrium_distance enabled="false" units="micron">15.12</set_absolute_equilibrium_distance>
                     </options>
                     <attachment_elastic_constant units="1/min">0.01</attachment_elastic_constant>
-                    <attachment_rate units="1/min">10.0</attachment_rate>
+                    <attachment_rate units="1/min">0.0</attachment_rate>
                     <detachment_rate units="1/min">0.0</detachment_rate>
                     <maximum_number_of_attachments>12</maximum_number_of_attachments>
                 </mechanics>
@@ -980,6 +1093,8 @@
                                 <chemotactic_sensitivity substrate="IFN-gamma">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="IL-10">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_M2">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_pd1">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
@@ -994,7 +1109,7 @@
                     <substrate name="oxygen">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">5</uptake_rate>
+                        <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0</net_export_rate>
                     </substrate>
                     <substrate name="IFN-gamma">
@@ -1007,6 +1122,18 @@
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
                         <uptake_rate units="1/min">1</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_M2">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_pd1">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                 </secretion>
@@ -1033,7 +1160,7 @@
                         <attack_rate name="exhausted T cell" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
-                    <attack_duration units="min">0.1</attack_duration>
+                    <attack_duration units="min">30</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
                         <fusion_rate name="M0 macrophage" units="1/min">0.0</fusion_rate>
@@ -1074,9 +1201,12 @@
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
                         <asymmetric_division_probability name="naive T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="CD8 T cell" units="dimensionless">1.0</asymmetric_division_probability>
                         <asymmetric_division_probability name="exhausted T cell" units="dimensionless">0</asymmetric_division_probability>
@@ -1125,9 +1255,9 @@
                     <relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.0</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
-                    <relative_maximum_adhesion_distance units="dimensionless">1.5</relative_maximum_adhesion_distance>
+                    <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
                         <cell_adhesion_affinity name="M0 macrophage">1.0</cell_adhesion_affinity>
@@ -1142,7 +1272,7 @@
                         <set_absolute_equilibrium_distance enabled="false" units="micron">15.12</set_absolute_equilibrium_distance>
                     </options>
                     <attachment_elastic_constant units="1/min">0.01</attachment_elastic_constant>
-                    <attachment_rate units="1/min">10.0</attachment_rate>
+                    <attachment_rate units="1/min">0.0</attachment_rate>
                     <detachment_rate units="1/min">0.0</detachment_rate>
                     <maximum_number_of_attachments>12</maximum_number_of_attachments>
                 </mechanics>
@@ -1167,6 +1297,8 @@
                                 <chemotactic_sensitivity substrate="IFN-gamma">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="IL-10">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_M2">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_pd1">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
@@ -1181,7 +1313,7 @@
                     <substrate name="oxygen">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">5</uptake_rate>
+                        <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0</net_export_rate>
                     </substrate>
                     <substrate name="IFN-gamma">
@@ -1194,6 +1326,18 @@
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
                         <uptake_rate units="1/min">1</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_M2">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_pd1">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                 </secretion>
@@ -1211,7 +1355,7 @@
                         <phagocytosis_rate name="exhausted T cell" units="1/min">0.0</phagocytosis_rate>
                     </live_phagocytosis_rates>
                     <attack_rates>
-                        <attack_rate name="tumor" units="1/min">0.01</attack_rate>
+                        <attack_rate name="tumor" units="1/min">0.1</attack_rate>
                         <attack_rate name="M0 macrophage" units="1/min">0.0</attack_rate>
                         <attack_rate name="M1 macrophage" units="1/min">0.0</attack_rate>
                         <attack_rate name="M2 macrophage" units="1/min">0.0</attack_rate>
@@ -1220,7 +1364,7 @@
                         <attack_rate name="exhausted T cell" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
-                    <attack_duration units="min">0.1</attack_duration>
+                    <attack_duration units="min">15.0</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
                         <fusion_rate name="M0 macrophage" units="1/min">0.0</fusion_rate>
@@ -1261,9 +1405,12 @@
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M0 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M1 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="M2 macrophage" units="dimensionless">
+              0</asymmetric_division_probability>
                         <asymmetric_division_probability name="naive T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="CD8 T cell" units="dimensionless">0</asymmetric_division_probability>
                         <asymmetric_division_probability name="exhausted T cell" units="dimensionless">1.0</asymmetric_division_probability>
@@ -1271,7 +1418,7 @@
                 </cycle>
                 <death>
                     <model code="100" name="apoptosis">
-                        <death_rate units="1/min">8.2e-3</death_rate>
+                        <death_rate units="1/min">7.2e-5</death_rate>
                         <phase_durations units="min">
                             <duration index="0" fixed_duration="true">516</duration>
                         </phase_durations>
@@ -1312,9 +1459,9 @@
                     <relative_rupture_volume units="dimensionless">2.0</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.0</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
-                    <relative_maximum_adhesion_distance units="dimensionless">1.5</relative_maximum_adhesion_distance>
+                    <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
                         <cell_adhesion_affinity name="M0 macrophage">1.0</cell_adhesion_affinity>
@@ -1329,7 +1476,7 @@
                         <set_absolute_equilibrium_distance enabled="false" units="micron">15.12</set_absolute_equilibrium_distance>
                     </options>
                     <attachment_elastic_constant units="1/min">0.01</attachment_elastic_constant>
-                    <attachment_rate units="1/min">10.0</attachment_rate>
+                    <attachment_rate units="1/min">0.0</attachment_rate>
                     <detachment_rate units="1/min">0.0</detachment_rate>
                     <maximum_number_of_attachments>12</maximum_number_of_attachments>
                 </mechanics>
@@ -1354,6 +1501,8 @@
                                 <chemotactic_sensitivity substrate="IFN-gamma">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="IL-10">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_M2">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti_pd1">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
                         </advanced_chemotaxis>
                     </options>
@@ -1368,7 +1517,7 @@
                     <substrate name="oxygen">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
-                        <uptake_rate units="1/min">5</uptake_rate>
+                        <uptake_rate units="1/min">1.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0</net_export_rate>
                     </substrate>
                     <substrate name="IFN-gamma">
@@ -1381,6 +1530,18 @@
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1</secretion_target>
                         <uptake_rate units="1/min">1</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_M2">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <net_export_rate units="total substrate/min">0.0</net_export_rate>
+                    </substrate>
+                    <substrate name="anti_pd1">
+                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_target units="substrate density">1.0</secretion_target>
+                        <uptake_rate units="1/min">1.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                 </secretion>
@@ -1407,7 +1568,7 @@
                         <attack_rate name="exhausted T cell" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
-                    <attack_duration units="min">0.1</attack_duration>
+                    <attack_duration units="min">30</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
                         <fusion_rate name="M0 macrophage" units="1/min">0.0</fusion_rate>
@@ -1425,7 +1586,7 @@
                         <transformation_rate name="M1 macrophage" units="1/min">0.0</transformation_rate>
                         <transformation_rate name="M2 macrophage" units="1/min">0.0</transformation_rate>
                         <transformation_rate name="naive T cell" units="1/min">0.0</transformation_rate>
-                        <transformation_rate name="CD8 T cell" units="1/min">0.0</transformation_rate>
+                        <transformation_rate name="CD8 T cell" units="1/min">0.001</transformation_rate>
                         <transformation_rate name="exhausted T cell" units="1/min">0.0</transformation_rate>
                     </transformation_rates>
                 </cell_transformations>
@@ -1443,33 +1604,28 @@
     </cell_definitions>
 
     <initial_conditions>
-        <cell_positions type="csv" enabled="true">
+        <cell_positions type="csv" enabled="false">
             <folder>./config</folder>
             <filename>cells.csv</filename>
         </cell_positions>
     </initial_conditions>
 
-    <cell_rules>
-        <rulesets>
-            <ruleset protocol="CBHG" version="3.0" format="csv" enabled="true">
-                <folder>./config</folder>
-                <filename>cell_rules.csv</filename>
-            </ruleset>
-        </rulesets>
-        <settings />
-    </cell_rules>
-
     <user_parameters>
-        <random_seed type="int" units="dimensionless" description="">0</random_seed>
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">0</number_of_cells>
         <min_position_cells type="double" units="" description="">0</min_position_cells>
-        <max_position_cells type="double" units="" description="">0</max_position_cells>
-        <number_of_tumor type="int" units="" description="">0</number_of_tumor>
-        <min_position_tumor type="double" units="" description="">0.0</min_position_tumor>
-        <max_position_tumor type="double" units="" description="">0</max_position_tumor>
+        <max_position_cells type="double" units="" description="">250</max_position_cells>
+        <number_of_tumor type="int" units="" description="">256</number_of_tumor>
+        <min_position_tumor type="double" units="" description="">300</min_position_tumor>
+        <max_position_tumor type="double" units="" description="">350</max_position_tumor>
         <number_of_M1_macrophage type="int" units="" description="">0</number_of_M1_macrophage>
         <number_of_M2_macrophage type="int" units="" description="">0</number_of_M2_macrophage>
         <number_of_CD8_T_cell type="int" units="" description="">0</number_of_CD8_T_cell>
         <number_of_exhausted_T_cell type="int" units="" description="">0</number_of_exhausted_T_cell>
+        <number_of_M0_macrophage type="int" units="" description="">256</number_of_M0_macrophage>
+        <number_of_naive_T_cell type="int" units="" description="">128</number_of_naive_T_cell>
+        <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60</dt_gym>
+        <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
+        <anti_M2 type="double" units="" description="">0</anti_M2>
+        <anti_pd1 type="double" units="" description="">0</anti_pd1>
     </user_parameters>
 </PhysiCell_settings>

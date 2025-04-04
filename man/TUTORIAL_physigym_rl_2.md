@@ -48,14 +48,14 @@ make
 In Reinforcement Learning (RL), the objective is to maximize the expected cumulative reward:
 
 ```math
-\underset{<constraints>}{\operatorname{<argmax>}}_{\pi}\mathbb{E}\left[\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
+\underset{\pi}{\arg\max} \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
 
 where:
-- \(\gamma\) is the discount factor,
-- \(r_t\) is the reward function,
-- \(\pi\) represents the policy (strategy),
-- \(s_0\) is the initial state derived from `cells.csv`.
+- $\gamma$ is the discount factor,
+- $r_t$ is the reward function,
+- $\pi$ represents the policy (strategy),
+- $s_0$ is the initial state derived from `cells.csv`.
 
 The agent aims to maximize this reward function. In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem. Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
 

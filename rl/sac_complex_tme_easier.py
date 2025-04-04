@@ -23,14 +23,9 @@ absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
 ]
 sys.path.append(absolute_path)
-from rl.utils.wrappers.wrapper_physicell_tme import (
-    PhysiCellModelWrapper,
-    wrap_env_with_rescale_stats,
-    wrap_gray_env_image,
-)
+from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
 from rl.utils.replay_buffer.smart_image_replay_buffer import ImgReplayBuffer
-import mpld3
 import matplotlib.pyplot as plt
 import os
 import glob
@@ -206,7 +201,7 @@ class Actor(nn.Module):
 
 
 # Wrap the environment
-list_variable_name = ["drug_apoptosis", "drug_reducing_antiapoptosis"]
+list_variable_name = ["anti_M2", "anti_pd1"]
 
 
 @dataclass
@@ -220,14 +215,14 @@ class Args:
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
     track: bool = False
-    wandb_project_name: str = "SAC_IMAGE_SIMPLE_PHYSIGYM"
+    wandb_project_name: str = "SAC_IMAGE_COMPLEX_TME"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
 
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "image"
+    observation_type: str = "simple"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
@@ -255,7 +250,7 @@ class Args:
     """automatic tuning of the entropy coefficient"""
     wandb_track: bool = True
     """track with wandb"""
-    video: bool = True
+    video: bool = False
     """save video"""
 
 
@@ -268,24 +263,32 @@ def saving_img(
     y_min: int,
     y_max: int,
     saving_title: str = "output_simulation_image_episode",
+    color_mapping: dict = {},
 ):
+    def rgb_to_hex(rgb):
+        return "#{:02x}{:02x}{:02x}".format(
+            int(rgb[0] * 255) if rgb[0] <= 1 else int(rgb[0]),
+            int(rgb[1] * 255) if rgb[1] <= 1 else int(rgb[1]),
+            int(rgb[2] * 255) if rgb[2] <= 1 else int(rgb[2]),
+        )
+
     os.makedirs(image_folder, exist_ok=True)
     df_cell = info["df_cell"]
     fig, ax = plt.subplots(
         1, 3, figsize=(10, 6), gridspec_kw={"width_ratios": [1, 0.2, 0.2]}
     )
     count_cancer_cell = info["number_cancer_cells"]
-    for s_celltype, s_color in sorted(
-        {"cancer_cell": "gray", "nurse_cell": "red"}.items()
-    ):
+    unique_cell_types = df_cell["type"].unique().tolist()
+    for cell_type in unique_cell_types:
+        tuple_color = color_mapping[cell_type]
         df_celltype = df_cell.loc[
-            (df_cell.dead == 0.0) & (df_cell.type == s_celltype), :
+            (df_cell.dead == 0.0) & (df_cell.type == cell_type), :
         ]
         df_celltype.plot(
             kind="scatter",
             x="x",
             y="y",
-            c=s_color,
+            c=rgb_to_hex(tuple_color),
             xlim=[
                 x_min,
                 x_max,
@@ -295,7 +298,7 @@ def saving_img(
                 y_max,
             ],
             grid=True,
-            label=s_celltype,
+            label=cell_type,
             s=100,
             title=f"episode step {str(step_episode).zfill(3)}, cancer cell: {count_cancer_cell}",
             ax=ax[0],
@@ -305,7 +308,7 @@ def saving_img(
     list_colors = ["royalblue", "darkorange"]
 
     # Function to create fluid-like color bars
-    def create_fluid_bar(ax_bar, drug_amount, title, max_amount=30, color="cyan"):
+    def create_fluid_bar(ax_bar, drug_amount, title, max_amount=1, color="cyan"):
         ax_bar.set_xlim(0, 1)
         ax_bar.set_ylim(0, 1)
         ax_bar.set_title(title, fontsize=10)
@@ -365,7 +368,6 @@ def main():
     config = vars(args)
     run_name = f"{args.env_id}__{args.name}_{args.wandb_entity}_{int(time.time())}"
     run_dir = f"runs/{run_name}"
-
     if args.wandb_track:
         wandb.init(
             project=args.wandb_project_name,
@@ -404,22 +406,13 @@ def main():
     y_min = env.unwrapped.y_min
     x_max = env.unwrapped.x_max
     y_max = env.unwrapped.y_max
-    color_mapping = env.unwrapped.color_mapping_255
-
-    def make_gym_env(env, observation_type):
-        env = PhysiCellModelWrapper(env=env)
-        if observation_type == "image":
-            env = wrap_gray_env_image(
-                env, stack_size=1, gray=True, resize_shape=(None, None)
-            )
-
-        env = wrap_env_with_rescale_stats(env)
-        return env
-
-    env = make_gym_env(env, observation_type=args.observation_type)
+    color_mapping = env.unwrapped.color_mapping
+    cumulative_return = 0
+    length = 0
+    env = PhysiCellModelWrapper(env=env)
     shape_observation_space_env = env.observation_space.shape
-    is_image = True if args.observation_type == "image" else False
-    is_rgb_first = True if args.observation_type == "image_rgb_first" else False
+    is_gray = True if args.observation_type == "image_gray" else False
+    test_step = 0
     cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -453,7 +446,7 @@ def main():
             batch_size=args.batch_size,
             state_type=env.observation_space.dtype,
         )
-        if not is_rgb_first
+        if args.observation_type == "simple"
         else ImgReplayBuffer(
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
@@ -464,11 +457,12 @@ def main():
             x_min=x_min,
             y_min=y_min,
             color_mapping=color_mapping,
+            image_gray=is_gray,
         )
     )
 
     # TRY NOT TO MODIFY: start the game
-    obs, info = env.reset(seed=args.seed)
+    obs, info = env.reset()
     episode = 1
     df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
     for global_step in range(args.total_timesteps):
@@ -476,7 +470,7 @@ def main():
         if global_step <= args.learning_starts:
             actions = np.array(env.action_space.sample())
         else:
-            x = [obs.item()] if args.observation_type == "simple" else obs
+            x = obs
             x = torch.Tensor(x).to(device).unsqueeze(0)
             actions, _, _ = actor.get_action(x)
             actions = actions.detach().squeeze(0).cpu().numpy()
@@ -484,36 +478,26 @@ def main():
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
-        if is_rgb_first:
-            rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done)
+        cumulative_return += rewards
+        length += 1
+        if args.observation_type == "simple":
+            rb.add(obs, actions, rewards, next_obs, done)
         else:
-            rb.add(
-                obs.flatten() if is_image else obs,
-                actions,
-                rewards,
-                next_obs.flatten() if is_image else next_obs,
-                done,
-            )
+            rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
-        obs = next_obs
-
+        obs = next_obs.copy()
+        df_cell_obs = (
+            next_df_cell_obs.copy() if "image" in args.observation_type else None
+        )
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
             data = rb.sample()
             with torch.no_grad():
-                data_next_state = (
-                    data["next_state"].reshape(
-                        args.batch_size, *shape_observation_space_env
-                    )
-                    if is_image
-                    else data["next_state"]
-                )
-                data_state = (
-                    data["state"].reshape(args.batch_size, *shape_observation_space_env)
-                    if is_image
-                    else data["state"]
-                )
+                data_next_state = data["next_state"]
+
+                data_state = data["state"]
+
                 next_state_actions, next_state_log_pi, _ = actor.get_action(
                     data_next_state
                 )
@@ -581,34 +565,51 @@ def main():
 
         writer.add_scalar("env/reward_value", rewards, global_step)
         writer.add_scalar(
-            "env/cancer_cell_count",
+            "env/number_cancer_cells",
             info["number_cancer_cells"],
             global_step,
         )
-        writer.add_scalar("env/drug_apoptosis", actions[0], global_step)
-        writer.add_scalar("env/drug_reducing_antiapoptosis", actions[1], global_step)
+        writer.add_scalar(
+            "env/number_m2",
+            info["number_m2"],
+            global_step,
+        )
+        writer.add_scalar("env/anti_M2", actions[0], global_step)
+        writer.add_scalar("env/anti_pd1", actions[1], global_step)
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
-            print(f"global_step={global_step}, episodic_return={info['episode']['r']}")
-            writer.add_scalar(
-                "charts/episodic_return", info["episode"]["r"], global_step
-            )
-            writer.add_scalar(
-                "charts/episodic_length", info["episode"]["l"], global_step
-            )
+            print(f"global_step={global_step}, episodic_return={cumulative_return}")
+            writer.add_scalar("charts/episodic_return", cumulative_return, global_step)
+            writer.add_scalar("charts/episodic_length", length, global_step)
+            cumulative_return = 0
+            length = 0
             episode += 1
+            test_step += 1
             if episode % 128 == 0:
                 output_video = f"name_{args.name}_seed_{args.seed}_step_{episode}.mp4"
-                obs, info = env.reset(seed=args.seed)
+                obs, info = env.reset()
                 done = False
                 step_episode = 0
                 while not done:
-                    x = [obs.item()] if args.observation_type == "simple" else obs
+                    x = obs
                     x = torch.Tensor(x).to(device).unsqueeze(0)
                     with torch.no_grad():  # Disable gradients for inference
                         actions, _, _ = actor.get_action(x)
                     actions = actions.detach().squeeze(0).cpu().numpy()
                     obs, _, terminated, truncated, info = env.step(actions)
+                    writer.add_scalar("env/test/reward_value", rewards, test_step)
+                    writer.add_scalar(
+                        "env/test/number_cancer_cells",
+                        info["number_cancer_cells"],
+                        test_step,
+                    )
+                    writer.add_scalar(
+                        "env/test/number_m2",
+                        info["number_m2"],
+                        test_step,
+                    )
+                    writer.add_scalar("env/test/anti_M2", actions[0], test_step)
+                    writer.add_scalar("env/test/anti_pd1", actions[1], test_step)
                     step_episode += 1
                     if args.video:
                         saving_img(
@@ -619,9 +620,21 @@ def main():
                             y_max=y_max,
                             x_min=x_min,
                             y_min=y_min,
+                            color_mapping=color_mapping,
                         )
                     done = terminated or truncated
                     if done:
+                        writer.add_scalar(
+                            "charts/test/episodic_return",
+                            cumulative_return,
+                            test_step,
+                        )
+                        writer.add_scalar(
+                            "charts/test/episodic_length",
+                            step_episode,
+                            test_step,
+                        )
+                        cumulative_return = 0
                         if args.video:
                             png_to_video_imageio(
                                 image_folder + f"/{episode}/" + output_video,
