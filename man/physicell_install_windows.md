@@ -81,7 +81,7 @@ make movie
 
 Run as Administrator a PowerShell (v7.x) or WindowsPowerShell (v5.1) ~ the regular one, not the ISE and not the x86 one!
 
-Note, this time you have to run the shell as an administrator.
+Note that this time you have to run the shell as an administrator.
 Usually, you do not have to do this!
 
 ```powershell
