@@ -77,6 +77,25 @@ make movie
 ```
 
 
+### &#x2728; Optional: make a shortcut from your MSYS2 home to your Windows home folder.
+
+Run as Administrator a PowerShell (v7.x) or WindowsPowerShell (v5.1) ~ the regular one, not the ISE and not the x86 one!
+
+Note, this time you have to run the shell as an administrator.
+Usually, you do not have to do this!
+
+```powershell
+Set-Location C:\msys64\home\$USER
+New-Item -ItemType SymbolicLink -Path C:\msys64\home\$USER\shortcut -Target C:\Users\$USER
+```
+
+Now, when you have opened a MSYS2 MINGW64 shell (e.g., to run PhysiCell), to change to your Windows home directory, you can simply do:
+```bash
+cd ~
+cd shortcut
+```
+
+
 ## &#x1FA9F; Essential installation
 
 We will generate a python3 environment with the default python installation, where we will install all PhysiCell modelling related python libraries.
@@ -89,11 +108,10 @@ If you not already have installed python, please go to the Microsoft Store and *
 
 ### &#x2728; Get the Windows PowerShell ready:
 
-Open a PowerShell (v7.x) or WindowsPowerShell ~ the regular one, not the ISE and not the x86 one (v5.1)!
+Open a PowerShell (v7.x) or WindowsPowerShell (v5.1) ~ the regular one, not the ISE and not the x86 one!
 
 If you wonder, why there is more than one PowerShell flavor, read this article. Our script will run on both flavors.
 + https://learn.microsoft.com/en-us/powershell/scripting/whats-new/differences-from-windows-powershell
-
 
 To activate python environments, we have to be able to run PowerShell scripts.
 This is why we have to change the execution policy.
