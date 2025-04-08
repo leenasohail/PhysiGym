@@ -462,7 +462,7 @@ def main():
     )
 
     # TRY NOT TO MODIFY: start the game
-    obs, info = env.reset()
+    obs, info = env.reset(seed=args.seed)
     episode = 1
     df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
     for global_step in range(args.total_timesteps):
@@ -547,6 +547,14 @@ def main():
                         alpha_loss.backward()
                         a_optimizer.step()
                         alpha = log_alpha.exp().item()
+                writer.add_scalar("losses/min_qf_next_target", min_qf_next_target.mean().item(), global_step=global_step)
+                writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), global_step=global_step)
+                writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), global_step)
+                writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
+                writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
+                writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
+                writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
+                
 
             # update the target networks
             if global_step % args.target_network_frequency == 0:
@@ -562,8 +570,11 @@ def main():
                     target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
+        writer.add_scalar("env/anti_M2", actions[0], global_step)
+        writer.add_scalar("env/anti_pd1", actions[1], global_step)
 
         writer.add_scalar("env/reward_value", rewards, global_step)
+
         writer.add_scalar(
             "env/number_cancer_cells",
             info["number_cancer_cells"],
@@ -574,15 +585,28 @@ def main():
             info["number_m2"],
             global_step,
         )
-        writer.add_scalar("env/anti_M2", actions[0], global_step)
-        writer.add_scalar("env/anti_pd1", actions[1], global_step)
+
+        writer.add_scalar(
+            "env/number_cd8",
+            info["number_cd8"],
+            global_step,
+        )
+
+        writer.add_scalar(
+            "env/number_cd8exhausted",
+            info["number_cd8exhausted"],
+            global_step,
+        )
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
             print(f"global_step={global_step}, episodic_return={cumulative_return}")
             writer.add_scalar("charts/episodic_return", cumulative_return, global_step)
             writer.add_scalar("charts/episodic_length", length, global_step)
+            
             cumulative_return = 0
             length = 0
+            obs, info = env.reset(seed=None)
+            """
             episode += 1
             test_step += 1
             if episode % 128 == 0:
@@ -653,6 +677,7 @@ def main():
                                         )
                                     }
                                 )
+                """
     env.close()
     writer.close()
 
