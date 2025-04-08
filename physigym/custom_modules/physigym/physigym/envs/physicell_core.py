@@ -257,7 +257,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.observation_space = self.get_observation_space()
 
         # set autoreset flag
-        self.autoreset = False
+        # self.autoreset = False
 
         # set global physigym enviroment flag
         physicell.flag_envphysigym = True
@@ -370,7 +370,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # rewrite setting xml file
         self.x_tree.write(self.settingxml, pretty_print=True)
-
         # seed self.np_random number generator
         super().reset(seed=i_seed)
         if self.verbose:
@@ -511,13 +510,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: action.")
 
-        if self.autoreset:
-            o_observation, d_info = self.reset()
-            r_reward = self.get_reward()
-            b_terminated = False
-            b_truncated = False
-            self.autoreset = False
-            return o_observation, r_reward, b_terminated, b_truncated, d_info
+        #if self.autoreset:
+        #    o_observation, d_info = self.reset()
+        #    r_reward = self.get_reward()
+        #    b_terminated = False
+        #    b_truncated = False
+        #    self.autoreset = False
+        #    return o_observation, r_reward, b_terminated, b_truncated, d_info
 
         for (
             s_action,
@@ -608,7 +607,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         b_terminated = self.get_terminated()
         b_truncated = self.get_truncated()
         d_info = self.get_info()
-        self.autoreset = b_terminated or b_truncated
+        # self.autoreset = b_terminated or b_truncated
 
         # get revard
         r_reward = self.get_reward()
@@ -624,12 +623,12 @@ class CorePhysiCellEnv(gymnasium.Env):
                 plt.pause(1 / self.metadata["render_fps"])
 
         # check if episode finish
-        if self.autoreset:
-            if self.verbose:
-                print(
-                    f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
-                )
-            physicell.stop()
+        # if self.autoreset:
+        #    if self.verbose:
+        #        print(
+        #            f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
+        #        )
+        #    physicell.stop()
 
         # output
         if self.verbose:

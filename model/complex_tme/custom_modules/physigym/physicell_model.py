@@ -199,10 +199,21 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             ]
         )
         self.nb_m2 = len(
-            self.df_cell.loc[
-                (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2 macrophage"), :
-            ]
-        )
+             self.df_cell.loc[
+                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2 macrophage"), :
+             ]
+         )
+        self.nb_cd8 = len(
+             self.df_cell.loc[
+                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "CD8 T cell"), :
+             ]
+         )
+        
+        self.nb_cd8exhausted = len(
+             self.df_cell.loc[
+                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "exhausted T cell"), :
+             ]
+         )
         _nb_cancer_cells = np.array([self.nb_cancer_cells])
         _ratio_nb_cancer_cells = (
             _nb_cancer_cells.astype(float)[0] / self.init_cancer_cells
@@ -273,10 +284,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent info processing logic goes here!
         info = {
-            "number_cancer_cells": self.nb_cancer_cells,
-            "df_cell": self.df_cell,
-            "number_m2": self.nb_m2,
-        }
+             "number_cancer_cells": self.nb_cancer_cells,
+             "df_cell": self.df_cell,
+             "number_m2": self.nb_m2,
+             "number_cd8":self.nb_cd8,
+             "number_cd8exhausted":self.nb_cd8exhausted
+         }
 
         # output
         return info
