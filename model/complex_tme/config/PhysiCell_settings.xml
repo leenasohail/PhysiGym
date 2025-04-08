@@ -23,7 +23,7 @@
     </domain>
 
     <overall>
-        <max_time units="min">12000.0</max_time>
+        <max_time units="min">13536.0</max_time>
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -32,7 +32,7 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>4</omp_num_threads>
+        <omp_num_threads>10</omp_num_threads>
     </parallel>
 
     <save>
@@ -46,9 +46,9 @@
             <enable>true</enable>
             <plot_substrate enabled="false" limits="false">
                 <substrate>debris</substrate>
-                <min_conc />
-                <max_conc />
-                <colormap />
+                <min_conc/>
+                <max_conc/>
+                <colormap/>
             </plot_substrate>
         </SVG>
         <legacy_data>
@@ -57,7 +57,7 @@
     </save>
 
     <options>
-        <random_seed>100</random_seed>
+        <random_seed>system_clock</random_seed>
         <legacy_random_points_on_sphere_in_divide>false</legacy_random_points_on_sphere_in_divide>
         <virtual_wall_at_domain_edge>true</virtual_wall_at_domain_edge>
     </options>
@@ -139,8 +139,8 @@
                 <boundary_value ID="xmax" enabled="True">0</boundary_value>
                 <boundary_value ID="ymin" enabled="True">0</boundary_value>
                 <boundary_value ID="ymax" enabled="True">0</boundary_value>
-                <boundary_value ID="zmin" enabled="False" />
-                <boundary_value ID="zmax" enabled="False" />
+                <boundary_value ID="zmin" enabled="False"/>
+                <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
         <variable name="anti_pd1" units="dimensionless" ID="5">
@@ -155,8 +155,8 @@
                 <boundary_value ID="xmax" enabled="True">0</boundary_value>
                 <boundary_value ID="ymin" enabled="True">0</boundary_value>
                 <boundary_value ID="ymax" enabled="True">0</boundary_value>
-                <boundary_value ID="zmin" enabled="False" />
-                <boundary_value ID="zmax" enabled="False" />
+                <boundary_value ID="zmin" enabled="False"/>
+                <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
         <options>
@@ -1355,7 +1355,7 @@
                         <phagocytosis_rate name="exhausted T cell" units="1/min">0.0</phagocytosis_rate>
                     </live_phagocytosis_rates>
                     <attack_rates>
-                        <attack_rate name="tumor" units="1/min">0.1</attack_rate>
+                        <attack_rate name="tumor" units="1/min">0.5</attack_rate>
                         <attack_rate name="M0 macrophage" units="1/min">0.0</attack_rate>
                         <attack_rate name="M1 macrophage" units="1/min">0.0</attack_rate>
                         <attack_rate name="M2 macrophage" units="1/min">0.0</attack_rate>
