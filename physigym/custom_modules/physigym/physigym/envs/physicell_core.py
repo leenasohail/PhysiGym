@@ -115,6 +115,8 @@ class CorePhysiCellEnv(gymnasium.Env):
     def get_img(self):
         sys.exit("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
 
+    def get_reset_values(self):
+        return None
     ### end dummy functions ###
 
     # metadata
@@ -395,7 +397,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output folder
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
         physicell.start(self.settingxml, self.episode != 0)
-
+        self.get_reset_values()
         # observe domain
         if self.verbose:
             print(f"physigym: domain observation.")

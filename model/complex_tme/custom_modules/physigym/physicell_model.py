@@ -91,6 +91,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             self.x_root.xpath("//user_parameters/number_of_tumor")[0].text
         )
         self.nb_cell_types = len(self.unique_cell_types)
+        self.np_ratio_nb_cancer_cells = None
+        self.np_ratio_old_nb_cancer_cells = None
 
     def get_action_space(self):
         """
@@ -198,6 +200,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"), :
             ]
         )
+        
         self.nb_m2 = len(
              self.df_cell.loc[
                  (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2 macrophage"), :
@@ -214,14 +217,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                  (self.df_cell.dead == 0.0) & (self.df_cell.type == "exhausted T cell"), :
              ]
          )
-        _nb_cancer_cells = np.array([self.nb_cancer_cells])
-        _ratio_nb_cancer_cells = (
-            _nb_cancer_cells.astype(float)[0] / self.init_cancer_cells
-        )
+        self.np_ratio_old_nb_cancer_cells = self.np_ratio_nb_cancer_cells if self.np_ratio_nb_cancer_cells is not None else None
         self.np_ratio_nb_cancer_cells = np.array(
-            [_ratio_nb_cancer_cells], dtype=np.float64
+            [self.nb_cancer_cells / self.init_cancer_cells], dtype=np.float64
         )
+
+        self.np_ratio_old_nb_cancer_cells = self.np_ratio_nb_cancer_cells if self.np_ratio_old_nb_cancer_cells is None else self.np_ratio_old_nb_cancer_cells
         # model dependent observation processing logic goes here!
+
         if self.observation_type == "simple":
             normalized_concentration_cells = np.zeros((self.nb_cell_types,))
             for i in range(self.nb_cell_types):
@@ -263,7 +266,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation = grayscale_image[np.newaxis, :, :]
         else:
             raise f"Observation type: {self.observation_type} does not exist"
-
         return o_observation
 
     def get_info(self):
@@ -312,8 +314,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             truncated (the episode reached the max time limit).
         """
         # model dependent terminated processing logic goes here!
-        b_terminated = False
-        return b_terminated
+        return True if self.nb_cancer_cells == 0 else False
 
     def get_reward(self):
         """
@@ -332,4 +333,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        return -self.np_ratio_nb_cancer_cells
+        # idea of using this new reward self.np_ratio_old_nb_cancer_cells - self.np_ratio_nb_cancer_cells when we do the cumulative return 
+        # we have at the end the number of cancer cells at the end of the episode if we do the assumption gamma = 1
+        return (self.np_ratio_old_nb_cancer_cells - self.np_ratio_nb_cancer_cells)# /(self.np_ratio_old_nb_cancer_cells) # that should only be -self.np_ratio_nb_cancer_cells overleaf
+    
+    def get_reset_values(self):
+        self.np_ratio_old_nb_cancer_cells = None
+        self.np_ratio_nb_cancer_cells = None
+        return None
