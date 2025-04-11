@@ -464,6 +464,7 @@ def main():
     # TRY NOT TO MODIFY: start the game
     obs, info = env.reset(seed=args.seed)
     episode = 1
+    step_episode = 0
     df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
@@ -476,6 +477,17 @@ def main():
             actions = actions.detach().squeeze(0).cpu().numpy()
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
+        step_episode +=1
+        saving_img(
+                            image_folder=image_folder + f"/{episode}",
+                            info=info,
+                            step_episode=step_episode,
+                            x_max=x_max,
+                            y_max=y_max,
+                            x_min=x_min,
+                            y_min=y_min,
+                            color_mapping=color_mapping,
+                        )
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
         cumulative_return += rewards
@@ -602,82 +614,12 @@ def main():
             print(f"global_step={global_step}, episodic_return={cumulative_return}")
             writer.add_scalar("charts/episodic_return", cumulative_return, global_step)
             writer.add_scalar("charts/episodic_length", length, global_step)
-            
+            episode += 1
+            step_episode = 0
             cumulative_return = 0
             length = 0
             obs, info = env.reset(seed=None)
-            """
-            episode += 1
-            test_step += 1
-            if episode % 128 == 0:
-                output_video = f"name_{args.name}_seed_{args.seed}_step_{episode}.mp4"
-                obs, info = env.reset()
-                done = False
-                step_episode = 0
-                while not done:
-                    x = obs
-                    x = torch.Tensor(x).to(device).unsqueeze(0)
-                    with torch.no_grad():  # Disable gradients for inference
-                        actions, _, _ = actor.get_action(x)
-                    actions = actions.detach().squeeze(0).cpu().numpy()
-                    obs, _, terminated, truncated, info = env.step(actions)
-                    writer.add_scalar("env/test/reward_value", rewards, test_step)
-                    writer.add_scalar(
-                        "env/test/number_cancer_cells",
-                        info["number_cancer_cells"],
-                        test_step,
-                    )
-                    writer.add_scalar(
-                        "env/test/number_m2",
-                        info["number_m2"],
-                        test_step,
-                    )
-                    writer.add_scalar("env/test/anti_M2", actions[0], test_step)
-                    writer.add_scalar("env/test/anti_pd1", actions[1], test_step)
-                    step_episode += 1
-                    if args.video:
-                        saving_img(
-                            image_folder=image_folder + f"/{episode}",
-                            info=info,
-                            step_episode=step_episode,
-                            x_max=x_max,
-                            y_max=y_max,
-                            x_min=x_min,
-                            y_min=y_min,
-                            color_mapping=color_mapping,
-                        )
-                    done = terminated or truncated
-                    if done:
-                        writer.add_scalar(
-                            "charts/test/episodic_return",
-                            cumulative_return,
-                            test_step,
-                        )
-                        writer.add_scalar(
-                            "charts/test/episodic_length",
-                            step_episode,
-                            test_step,
-                        )
-                        cumulative_return = 0
-                        if args.video:
-                            png_to_video_imageio(
-                                image_folder + f"/{episode}/" + output_video,
-                                image_folder + f"/{episode}",
-                                fps=10,
-                            )
-                            if args.wandb_track:
-                                wandb.log(
-                                    {
-                                        "test/simulation_video": wandb.Video(
-                                            image_folder
-                                            + f"/{episode}/"
-                                            + output_video,
-                                            fps=10,
-                                            format="mp4",
-                                        )
-                                    }
-                                )
-                """
+
     env.close()
     writer.close()
 
