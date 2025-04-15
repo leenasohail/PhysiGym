@@ -11,7 +11,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
             "anti_M2",
             "anti_pd1",
         ],
-        weight: float = 1.0,
+        weight: float = 0.8,
     ):
         """
         Args:
@@ -44,6 +44,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         )
         self._action_space = Box(low=low, high=high, dtype=np.float64)
         self.weight = weight
+        self.max_steps   = env.unwrapped.max_steps
 
     @property
     def action_space(self):
@@ -83,9 +84,9 @@ class PhysiCellModelWrapper(gym.Wrapper):
         # Preprocess observation (if needed)
         o_observation = np.array(o_observation, dtype=float)
         info["action"] = d_action
-
+        r_reward = (1-self.weight)*np.mean(action)/self.max_steps + r_reward*self.weight
         
-        # r_reward = (1 - self.weight) * np.sum(action) / 2 + r_reward * self.weight
+
 
         # corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/run-cqtzu9b8-history:v1
         # r_reward = -1

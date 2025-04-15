@@ -251,6 +251,12 @@ class CorePhysiCellEnv(gymnasium.Env):
             key: tuple(np.array(value) * 255)
             for key, value in self.color_mapping.items()
         }
+        # max time
+        # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
+        r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
+        r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
+        self.r_time_max = r_time_max - r_dt_gym
+        self.max_steps = r_time_max//r_dt_gym
 
         # handle spaces
         if self.verbose:
@@ -388,11 +394,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: declare PhysiCell model instance.")
 
-        # max time
-        # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
-        r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
-        r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
-        self.r_time_max = r_time_max - r_dt_gym
 
         # output folder
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
