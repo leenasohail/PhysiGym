@@ -18,6 +18,9 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 import tyro
 import sys, os
+import os
+
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
 absolute_path = os.path.abspath(__file__)[
     : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
@@ -83,11 +86,11 @@ class FeatureExtractor(nn.Module):
             num_channels = 8
             layers = [
                 PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
+                nn.Conv2d(obs_shape[0], num_channels, 7 * 8, stride=5),
                 nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 5, stride=2),
+                nn.Conv2d(num_channels, num_channels, 8, stride=5),
                 nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=2),
+                nn.Conv2d(num_channels, num_channels, 3, stride=3),
                 nn.Mish(inplace=False),
                 nn.Conv2d(num_channels, num_channels, 3, stride=1),
                 nn.Flatten(),
@@ -222,7 +225,7 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "simple"
+    observation_type: str = "image_gray"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
@@ -232,9 +235,9 @@ class Args:
     """the discount factor gamma"""
     tau: float = 0.005
     """target smoothing coefficient (default: 0.005)"""
-    batch_size: int = 256
+    batch_size: int = 128
     """the batch size of sample from the reply memory"""
-    learning_starts: float = 5e3
+    learning_starts: float = 25e3
     """timestep to start learning"""
     policy_lr: float = 1e-4
     """the learning rate of the policy network optimizer"""
@@ -477,17 +480,17 @@ def main():
             actions = actions.detach().squeeze(0).cpu().numpy()
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
-        step_episode +=1
+        step_episode += 1
         saving_img(
-                            image_folder=image_folder + f"/{episode}",
-                            info=info,
-                            step_episode=step_episode,
-                            x_max=x_max,
-                            y_max=y_max,
-                            x_min=x_min,
-                            y_min=y_min,
-                            color_mapping=color_mapping,
-                        )
+            image_folder=image_folder + f"/{episode}",
+            info=info,
+            step_episode=step_episode,
+            x_max=x_max,
+            y_max=y_max,
+            x_min=x_min,
+            y_min=y_min,
+            color_mapping=color_mapping,
+        )
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
         cumulative_return += rewards
@@ -502,6 +505,25 @@ def main():
         df_cell_obs = (
             next_df_cell_obs.copy() if "image" in args.observation_type else None
         )
+        if global_step == args.batch_size:
+            data = rb.sample()
+            with torch.no_grad():
+                data_next_state = data["next_state"]
+
+                data_state = data["state"]
+
+                next_state_actions, next_state_log_pi, _ = actor.get_action(
+                    data_next_state
+                )
+                qf1, qf2 = (
+                    qf1(data_next_state, next_state_actions),
+                    qf2(data_next_state, next_state_actions),
+                )
+                qf1_next_target, qf2_next_target = (
+                    qf1_target(data_next_state, next_state_actions),
+                    qf2_target(data_next_state, next_state_actions),
+                )
+
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
             data = rb.sample()
@@ -559,14 +581,23 @@ def main():
                         alpha_loss.backward()
                         a_optimizer.step()
                         alpha = log_alpha.exp().item()
-                writer.add_scalar("losses/min_qf_next_target", min_qf_next_target.mean().item(), global_step=global_step)
-                writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), global_step=global_step)
-                writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), global_step)
+                writer.add_scalar(
+                    "losses/min_qf_next_target",
+                    min_qf_next_target.mean().item(),
+                    global_step=global_step,
+                )
+                writer.add_scalar(
+                    "losses/qf1_values",
+                    qf1_a_values.mean().item(),
+                    global_step=global_step,
+                )
+                writer.add_scalar(
+                    "losses/qf2_values", qf2_a_values.mean().item(), global_step
+                )
                 writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
                 writer.add_scalar("losses/qf2_loss", qf2_loss.item(), global_step)
                 writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, global_step)
                 writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
-                
 
             # update the target networks
             if global_step % args.target_network_frequency == 0:
