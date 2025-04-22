@@ -507,31 +507,28 @@ def main():
         )
         if global_step == args.batch_size:
             data = rb.sample()
+            data_next_state = data["next_state"]
+            data_state = data["state"]
+
             with torch.no_grad():
-                data_next_state = data["next_state"]
-
-                data_state = data["state"]
-
-                next_state_actions, next_state_log_pi, _ = actor.get_action(
-                    data_next_state
-                )
-                qf1, qf2 = (
+                next_state_actions, _, _ = actor.get_action(data_next_state)
+                _, _ = (
                     qf1(data_next_state, next_state_actions),
                     qf2(data_next_state, next_state_actions),
                 )
-                qf1_next_target, qf2_next_target = (
+                _, _ = (
                     qf1_target(data_next_state, next_state_actions),
                     qf2_target(data_next_state, next_state_actions),
                 )
+            del next_state_actions, data_next_state, data_state, data_next_state, data
 
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
             data = rb.sample()
+            data_next_state = data["next_state"]
+            data_state = data["state"]
+
             with torch.no_grad():
-                data_next_state = data["next_state"]
-
-                data_state = data["state"]
-
                 next_state_actions, next_state_log_pi, _ = actor.get_action(
                     data_next_state
                 )
