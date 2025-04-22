@@ -520,7 +520,7 @@ def main():
                     qf1_target(data_next_state, next_state_actions),
                     qf2_target(data_next_state, next_state_actions),
                 )
-            del next_state_actions, data_next_state, data_state, data_next_state, data
+            del next_state_actions, data_next_state, data_state, data
 
         # ALGO LOGIC: training.
         if global_step > args.learning_starts:
