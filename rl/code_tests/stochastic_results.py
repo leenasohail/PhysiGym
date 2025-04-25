@@ -7,70 +7,87 @@ import matplotlib.pyplot as plt
 import os
 import time
 import pandas as pd
+import tyro
+from dataclasses import dataclass, field
 
-env = gym.make("physigym/ModelPhysiCellEnv", observation_type="simple")
-env = PhysiCellModelWrapper(env, list_variable_name=["anti_M2", "anti_pd1"])
-env = gym.wrappers.RecordEpisodeStatistics(env)
-_, info = env.reset(seed=1)
-df = info["df_cell"]  # To delete
-episode = 1
-color_mapping = env.unwrapped.color_mapping
-cumulative_reward = 0
-step = 1
-liste = []
-while episode < 50:
-    begin_time = time.time()
-    actions = np.array(env.action_space.sample())
-    o, r, t, ter, info = env.step(actions)
-    nb_cancer_cells = info["number_cancer_cells"]
-    nb_number_m2 = info["number_m2"]
-    nb_cd8 = info["number_cd8"]
-    nb_cd8exhausted = info["number_cd8exhausted"]
-    end_time = time.time()
-    time_step = end_time - begin_time
-    # end time
-    liste.append(
-        [
-            episode,
-            step,
-            actions[0],
-            actions[1],
-            nb_cancer_cells,
-            nb_number_m2,
-            nb_cd8,
-            nb_cd8exhausted,
-            r[0],
-            time_step,
-        ]
+liste = [round(x * 0.1, 1) for x in range(11)] + [-1]
+list_pairs_drugs = [[a, b] for a, b in zip(liste, liste)]
+
+
+@dataclass
+class Args:
+    list_actions_value: list[list[float]] = field(
+        default_factory=lambda: list_pairs_drugs
     )
-    step += 1
-
-    # print(o)
-    if t or ter:
-        episode += 1
-        liste.append(cumulative_reward)
-        step = 0
-        o, info = env.reset()
-
-# Create the DataFrame with appropriate column names
-df = pd.DataFrame(
-    liste,
-    columns=[
-        "episode",
-        "step",
-        "anti_M2",
-        "anti_pd1",
-        "number_cancer_cells",
-        "number_m2",
-        "number_cd8",
-        "number_cd8exhausted",
-        "reward",
-        "cumulative_reward",
-        "time_step_seconds",
-    ],
-)
-df_sorted = df.sort_values(by=["episode", "step"])
-df_sorted.to_csv("stochastic_results.csv", index=False)
+    """Actions applied on the TME"""
+    seed: int = 1
+    """seed of the experiment"""
+    maximum_episode: int = 50
+    """maximum number of trajectories"""
+    observation_type: str = "image"
+    """the type of observation"""
+    path_save: str = "code_tests"
+    """path save"""
+    name_file: str = "stochastic_results"
 
 
-print(df.head())
+def main(args):
+    os.makedirs(args.path_save, exist_ok=True)
+    env = gym.make("physigym/ModelPhysiCellEnv", observation_type="simple")
+    env = PhysiCellModelWrapper(env, list_variable_name=["anti_M2", "anti_pd1"])
+    _, info = env.reset(seed=args.seed)
+    episode = 1
+    step = 1
+    liste = []
+    list_actions_value = args.list_actions_value
+    for actions_value in list_actions_value:
+        while episode < args.maximum_episode:
+            begin_time = time.time()
+            random_actions = np.array(env.action_space.sample())
+            actions = np.array(
+                [
+                    random_actions[0] if actions_value[0] == -1 else actions_value[0],
+                    random_actions[1] if actions_value[1] == -1 else actions_value[1],
+                ]
+            )
+            o, r, t, ter, info = env.step(actions)
+            nb_cancer_cells = info["number_cancer_cells"]
+            end_time = time.time()
+            time_step = end_time - begin_time
+            liste.append(
+                [
+                    episode,
+                    step,
+                    actions[0],
+                    actions[1],
+                    nb_cancer_cells,
+                    r[0],
+                    time_step,
+                ]
+            )
+            step += 1
+            if t or ter:
+                episode += 1
+                step = 0
+                o, info = env.reset()
+
+    df = pd.DataFrame(
+        liste,
+        columns=[
+            "episode",
+            "step",
+            "anti_M2",
+            "anti_pd1",
+            "number_cancer_cells",
+            "reward",
+            "time_step_seconds",
+        ],
+    )
+    df_sorted = df.sort_values(by=["episode", "step"])
+    df_sorted.to_csv(
+        os.path.join(args.path_save, "stochastic_results_1.csv"), index=False
+    )
+
+
+if __name__ == "__main__":
+    main(tyro.cli(Args))
