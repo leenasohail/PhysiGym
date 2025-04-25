@@ -84,9 +84,7 @@ def main(args):
         ],
     )
     df_sorted = df.sort_values(by=["episode", "step"])
-    df_sorted.to_csv(
-        os.path.join(args.path_save, "stochastic_results_1.csv"), index=False
-    )
+    df_sorted.to_csv(os.path.join(args.path_save, f"{args.name_file}.csv"), index=False)
 
 
 if __name__ == "__main__":
