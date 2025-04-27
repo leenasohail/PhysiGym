@@ -17,3 +17,18 @@
 - PPO (Algorithm)
 - Transformer (Neural Architecture)
 - Replay Buffer in Rust
+
+## Tasks
+- Analyze [result_11](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/code_tests/stochastic_results_sureli11.csv) and [result_9](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/code_tests/stochastic_results_sureli9.csv)
+
+For the current learned policy:
+- Based on the results, conclude if the policy learned with scalar state space is one of the best.
+- Find a dummy strategy and compare it to other strategies.
+- Perform Behavior Cloning (BC) and use PPO/SAC to improve the policy.
+
+For image-based state space:
+- Debug the Replay Buffer in Rust and compare it to the pure Python implementation.
+- Launch with image state space on Sureli11.
+- Integrate a Transformer and launch on Sureli9.
+
+
