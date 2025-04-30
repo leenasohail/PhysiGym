@@ -36,11 +36,11 @@ def main(args):
     env = gym.make("physigym/ModelPhysiCellEnv", observation_type="simple")
     env = PhysiCellModelWrapper(env, list_variable_name=["anti_M2", "anti_pd1"])
     _, info = env.reset(seed=args.seed)
-    episode = 1
-    step = 1
     liste = []
     list_actions_value = args.list_actions_value
     for actions_value in list_actions_value:
+        episode = 1
+        step = 1
         while episode < args.maximum_episode:
             begin_time = time.time()
             random_actions = np.array(env.action_space.sample())
@@ -84,7 +84,9 @@ def main(args):
         ],
     )
     df_sorted = df.sort_values(by=["episode", "step"])
-    df_sorted.to_csv(os.path.join(args.path_save, f"{args.name_file}.csv"), index=False)
+    df_sorted.to_csv(
+        os.path.join(args.path_save, "stochastic_results_1.csv"), index=False
+    )
 
 
 if __name__ == "__main__":
