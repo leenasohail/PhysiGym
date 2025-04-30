@@ -23,7 +23,7 @@ class Args:
     """Actions applied on the TME"""
     seed: int = 1
     """seed of the experiment"""
-    maximum_episode: int = 2
+    maximum_episode: int = 50
     """maximum number of trajectories"""
     observation_type: str = "image"
     """the type of observation"""
@@ -37,7 +37,6 @@ def main(args):
     env = PhysiCellModelWrapper(env, list_variable_name=["anti_M2", "anti_pd1"])
     _, info = env.reset(seed=args.seed)
     list_actions_value = args.list_actions_value
-    list_actions_value = [[-1, -1]]
     for actions_value in list_actions_value:
         episode = 1
         step = 1
