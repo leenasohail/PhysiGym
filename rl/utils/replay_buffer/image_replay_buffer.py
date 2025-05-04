@@ -202,7 +202,6 @@ class ImgReplayBuffer(object):
         return grayscale_image[np.newaxis, :, :]  # Shape (1, height, width)
 
 
-# --- Add this function outside the class ---
 @njit(parallel=True)
 def colorize(x_valid, y_valid, types_valid, type_to_color_array, o_observation):
     for i in prange(len(x_valid)):
@@ -212,11 +211,17 @@ def colorize(x_valid, y_valid, types_valid, type_to_color_array, o_observation):
         else:
             r, g, b = 0, 0, 0
 
-        o_observation[0, x_valid[i], y_valid[i]] = r
-        o_observation[1, x_valid[i], y_valid[i]] = g
-        o_observation[2, x_valid[i], y_valid[i]] = b
+        x = x_valid[i]
+        y = y_valid[i]
+
+        # Numba doesn't like writing to global memory from multiple threads,
+        # but we assume no collisions here because each (x, y) is unique.
+        o_observation[0, x, y] = r
+        o_observation[1, x, y] = g
+        o_observation[2, x, y] = b
 
 
+# --- Your class ---
 class MinimalImgReplayBuffer(object):
     """
     A lighter replay buffer that only stores (x, y, type_int) points per state,
@@ -235,12 +240,12 @@ class MinimalImgReplayBuffer(object):
         y_min: int,
         type_to_color: dict,
         image_gray: bool,
-        num_workers: int = 4,
+        num_workers: int = 12,
     ):
         self.device = device
         self.buffer_size = int(buffer_size)
 
-        self.state = [None] * self.buffer_size  # List of np.arrays of (N_cells, 3)
+        self.state = [None] * self.buffer_size
         self.next_state = [None] * self.buffer_size
         self.action = np.empty((self.buffer_size, action_dim), dtype=np.float32)
         self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
@@ -254,18 +259,23 @@ class MinimalImgReplayBuffer(object):
         self.width = width
         self.x_min = x_min
         self.y_min = y_min
-        self.type_to_color = type_to_color  # int -> (r, g, b)
         self.image_gray = image_gray
         self.num_workers = num_workers
+
+        # --- Precompute the type_to_color_array for fast lookup ---
+        self.type_to_color_array = self._make_type_to_color_array(type_to_color)
+
+    def _make_type_to_color_array(self, type_to_color):
+        max_type = max(type_to_color.keys())
+        color_array = np.zeros((max_type + 1, 3), dtype=np.uint8)
+        for t, color in type_to_color.items():
+            color_array[t] = np.array(color, dtype=np.uint8)
+        return color_array
 
     def __len__(self):
         return self.buffer_size if self.full else self.buffer_index
 
     def add(self, df_cell, action, reward, next_df_cell, done, type_to_int):
-        """
-        df_cell: original DataFrame with 'x', 'y', 'type'
-        type_to_int: dict mapping 'tumor' → 0, etc.
-        """
         state_array = self.extract_minimal_array(df_cell, type_to_int)
         next_state_array = self.extract_minimal_array(next_df_cell, type_to_int)
 
@@ -283,7 +293,7 @@ class MinimalImgReplayBuffer(object):
         y = df_cell["y"].to_numpy()
         type_labels = df_cell["type"].map(type_to_int).to_numpy()
 
-        minimal_array = np.stack([x, y, type_labels], axis=1)  # Shape (N_cells, 3)
+        minimal_array = np.stack([x, y, type_labels], axis=1)
         return minimal_array
 
     def sample(self):
@@ -338,9 +348,6 @@ class MinimalImgReplayBuffer(object):
         return sample
 
     def minimal_array_to_image(self, state_array):
-        """
-        Reconstruct color image from (x, y, type_int) array.
-        """
         x = state_array[:, 0]
         y = state_array[:, 1]
         type_int = state_array[:, 2].astype(int)
@@ -361,9 +368,8 @@ class MinimalImgReplayBuffer(object):
         y_valid = y_norm[valid_mask]
         types_valid = type_int[valid_mask]
 
-        for i in range(len(x_valid)):
-            color = self.type_to_color.get(types_valid[i], (0, 0, 0))
-            o_observation[:, x_valid[i], y_valid[i]] = color
+        # --- Fast colorization using Numba ---
+        colorize(x_valid, y_valid, types_valid, self.type_to_color_array, o_observation)
 
         return o_observation
 
