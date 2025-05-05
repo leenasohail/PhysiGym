@@ -28,8 +28,11 @@ from rl.utils.wrappers.wrapper_physicell_tme import (
     wrap_env_with_rescale_stats,
     wrap_gray_env_image,
 )
-from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
-from rl.utils.replay_buffer.image_replay_buffer import ImgReplayBuffer
+from rl.utils.replay_buffer.set_replay_buffer import (
+    MinimalImgReplayBuffer,
+    ReplayBuffer,
+)
+
 import mpld3
 import matplotlib.pyplot as plt
 import os

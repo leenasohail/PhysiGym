@@ -27,8 +27,7 @@ absolute_path = os.path.abspath(__file__)[
 ]
 sys.path.append(absolute_path)
 from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
-from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
-from rl.utils.replay_buffer.smart_image_replay_buffer import MinimalImgReplayBuffer
+from rl.utils.replay_buffer.set_replay_buffer import MinimalImgReplayBuffer, ReplayBuffer
 import matplotlib.pyplot as plt
 import os
 import glob

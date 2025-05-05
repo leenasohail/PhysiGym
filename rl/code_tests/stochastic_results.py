@@ -2,7 +2,7 @@ import gymnasium as gym
 import physigym
 import random
 import numpy as np
-from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
+import sys
 import matplotlib.pyplot as plt
 import os
 import time
@@ -10,6 +10,12 @@ import pandas as pd
 import tyro
 from dataclasses import dataclass, field
 import plotly.express as px
+
+absolute_path = os.path.abspath(__file__)[
+    : os.path.abspath(__file__).find("PhysiCell") + len("PhysiCell")
+]
+sys.path.append(absolute_path)
+from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
 
 liste = [round(x * 0.1, 1) for x in range(11)] + [-1]
 list_pairs_drugs = [[a, b] for a, b in zip(liste, liste)]
