@@ -28,7 +28,7 @@ absolute_path = os.path.abspath(__file__)[
 sys.path.append(absolute_path)
 from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
 from rl.utils.replay_buffer.simple_replay_buffer import ReplayBuffer
-from rl.utils.replay_buffer.image_replay_buffer import ImgReplayBuffer
+from rl.utils.replay_buffer.smart_image_replay_buffer import MinimalImgReplayBuffer
 import matplotlib.pyplot as plt
 import os
 import glob
@@ -338,34 +338,6 @@ def saving_img(
     plt.close(fig)
 
 
-def png_to_video_imageio(
-    output_video: str, image_folder: str = "./output/image", fps: int = 10
-):
-    images = sorted(glob.glob(os.path.join(image_folder, "*.png")))
-
-    if not images:
-        print("❌ No images found in the directory:", image_folder)
-        return
-
-    print(f"🖼️ Found {len(images)} images. First image: {images[0]}")
-
-    # Read first image to get size
-    frame = iio.imread(images[0])
-    height, width, _ = frame.shape
-    print(f"📏 Image size: {width}x{height}")
-
-    writer = imageio.get_writer(
-        output_video, fps=fps, codec="libx264", format="FFMPEG", pixelformat="yuv420p"
-    )
-
-    for img in images:
-        frame = iio.imread(img)
-        writer.append_data(frame)
-
-    writer.close()
-    print(f"✅ Video saved as {output_video}")
-
-
 def main():
     args = tyro.cli(Args)
     config = vars(args)
@@ -413,9 +385,7 @@ def main():
     cumulative_return = 0
     length = 0
     env = PhysiCellModelWrapper(env=env)
-    shape_observation_space_env = env.observation_space.shape
     is_gray = True if args.observation_type == "image_gray" else False
-    test_step = 0
     cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -440,6 +410,9 @@ def main():
         a_optimizer = optim.Adam([log_alpha], lr=args.q_lr)
     else:
         alpha = args.alpha
+    type_to_int = {
+        name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
+    }
     rb = (
         ReplayBuffer(
             state_dim=np.array(env.observation_space.shape).prod(),
@@ -450,7 +423,7 @@ def main():
             state_type=env.observation_space.dtype,
         )
         if args.observation_type == "simple"
-        else ImgReplayBuffer(
+        else MinimalImgReplayBuffer(
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
             buffer_size=args.buffer_size,
@@ -459,7 +432,7 @@ def main():
             width=width,
             x_min=x_min,
             y_min=y_min,
-            color_mapping=color_mapping,
+            color_mapping={v: color_mapping[k] for k, v in type_to_int.items()},
             image_gray=is_gray,
         )
     )
