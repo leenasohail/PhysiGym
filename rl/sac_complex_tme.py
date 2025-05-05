@@ -421,6 +421,9 @@ def main():
     is_rgb_first = True if args.observation_type == "image_rgb_first" else False
     is_gray = True if args.observation_type == "image_gray" else False
     use_intelligent_buffer = is_rgb_first or is_gray
+    type_to_int = {
+        name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
+    }
     cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -455,7 +458,7 @@ def main():
             state_type=env.observation_space.dtype,
         )
         if not use_intelligent_buffer
-        else ImgReplayBuffer(
+        else MinimalImgReplayBuffer(
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
             buffer_size=args.buffer_size,
@@ -464,7 +467,7 @@ def main():
             width=width,
             x_min=x_min,
             y_min=y_min,
-            color_mapping=color_mapping,
+            color_mapping={v: color_mapping[k] for k, v in type_to_int.items()},
             image_gray=is_gray,
         )
     )

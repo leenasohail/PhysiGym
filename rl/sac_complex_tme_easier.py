@@ -27,7 +27,10 @@ absolute_path = os.path.abspath(__file__)[
 ]
 sys.path.append(absolute_path)
 from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrapper
-from rl.utils.replay_buffer.set_replay_buffer import MinimalImgReplayBuffer, ReplayBuffer
+from rl.utils.replay_buffer.set_replay_buffer import (
+    MinimalImgReplayBuffer,
+    ReplayBuffer,
+)
 import matplotlib.pyplot as plt
 import os
 import glob
@@ -619,6 +622,39 @@ def main():
             cumulative_return = 0
             length = 0
             obs, info = env.reset(seed=None)
+            if episode % 100 == 0:
+                done = False
+                step_episode = 0
+                c = 1
+                while c < 4:
+                    while not done:
+                        x = [obs.item()] if args.observation_type == "simple" else obs
+                        x = torch.Tensor(x).to(device).unsqueeze(0)
+                        with torch.no_grad():  # Disable gradients for inference
+                            actions, _, _ = actor.get_action(x)
+                        actions = actions.detach().squeeze(0).cpu().numpy()
+                        obs, reward, terminated, truncated, info = env.step(actions)
+                        saving_img(
+                            image_folder=image_folder + f"/{episode}_test_{c}",
+                            info=info,
+                            step_episode=step_episode,
+                            x_max=x_max,
+                            y_max=y_max,
+                            x_min=x_min,
+                            y_min=y_min,
+                            color_mapping=color_mapping,
+                        )
+                        step_episode += 1
+                        cumulative_return += reward
+                        done = terminated or truncated
+                        if done:
+                            step_episode = 0
+                            length = 0
+                            c += 1
+                            obs, info = env.reset(seed=None)
+                writer.add_scalar(
+                    "charts/episodic_return_mean", cumulative_return / c, global_step
+                )
 
     env.close()
     writer.close()

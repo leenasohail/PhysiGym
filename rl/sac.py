@@ -421,8 +421,12 @@ def main():
 
     env = make_gym_env(env, observation_type=args.observation_type)
     shape_observation_space_env = env.observation_space.shape
+    type_to_int = {
+        name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
+    }
     is_image = True if args.observation_type == "image" else False
     is_rgb_first = True if args.observation_type == "image_rgb_first" else False
+    is_gray = True if args.observation_type == "image_gray" else False
     cfg = {"cfg_FeatureExtractor": {}}
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -457,7 +461,7 @@ def main():
             state_type=env.observation_space.dtype,
         )
         if not is_rgb_first
-        else ImgReplayBuffer(
+        else MinimalImgReplayBuffer(
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
             buffer_size=args.buffer_size,
@@ -466,7 +470,8 @@ def main():
             width=width,
             x_min=x_min,
             y_min=y_min,
-            color_mapping=color_mapping,
+            color_mapping={v: color_mapping[k] for k, v in type_to_int.items()},
+            image_gray=is_gray,
         )
     )
 
