@@ -436,7 +436,7 @@ def main():
             width=width,
             x_min=x_min,
             y_min=y_min,
-            color_mapping={v: color_mapping[k] for k, v in type_to_int.items()},
+            type_to_color={v: color_mapping[k] for k, v in type_to_int.items()},
             image_gray=is_gray,
         )
     )
@@ -475,7 +475,7 @@ def main():
         if args.observation_type == "simple":
             rb.add(obs, actions, rewards, next_obs, done)
         else:
-            rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done)
+            rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done, type_to_int)
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs.copy()
@@ -624,8 +624,8 @@ def main():
             cumulative_return = 0
             length = 0
             obs, info = env.reset(seed=None)
+            done = False
             if episode % 100 == 0:
-                done = False
                 step_episode = 0
                 c = 1
                 checkpoint = {
@@ -636,7 +636,7 @@ def main():
                 }
 
                 torch.save(checkpoint, model_dir + f"/sac_checkpoint_{episode}.pth")
-                while c < 4:
+                while c < 5:
                     while not done:
                         x = [obs.item()] if args.observation_type == "simple" else obs
                         x = torch.Tensor(x).to(device).unsqueeze(0)
@@ -661,6 +661,7 @@ def main():
                             step_episode = 0
                             length = 0
                             c += 1
+                            done = False
                             obs, info = env.reset(seed=None)
                 writer.add_scalar(
                     "charts/episodic_return_mean_test",

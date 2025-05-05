@@ -23,7 +23,7 @@
     </domain>
 
     <overall>
-        <max_time units="min">13536.0</max_time>
+        <max_time units="min">15360.0</max_time>
         <time_units>min</time_units>
         <space_units>micron</space_units>
         <dt_diffusion units="min">0.01</dt_diffusion>
@@ -32,7 +32,7 @@
     </overall>
 
     <parallel>
-        <omp_num_threads>10</omp_num_threads>
+        <omp_num_threads>20</omp_num_threads>
     </parallel>
 
     <save>
@@ -57,7 +57,7 @@
     </save>
 
     <options>
-        <random_seed>system_clock</random_seed>
+        <random_seed>1</random_seed>
         <legacy_random_points_on_sphere_in_divide>false</legacy_random_points_on_sphere_in_divide>
         <virtual_wall_at_domain_edge>true</virtual_wall_at_domain_edge>
     </options>
