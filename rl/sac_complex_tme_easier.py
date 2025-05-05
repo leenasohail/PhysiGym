@@ -362,6 +362,8 @@ def main():
     os.makedirs(run_dir, exist_ok=True)
     image_folder = run_dir + "/image"
     os.makedirs(image_folder, exist_ok=True)
+    model_dir = run_dir + "/models"
+    os.makedirs(model_dir, exist_ok=True)
     writer = SummaryWriter(run_dir)
     writer.add_text(
         "hyperparameters",
@@ -626,6 +628,14 @@ def main():
                 done = False
                 step_episode = 0
                 c = 1
+                checkpoint = {
+                    "actor_state_dict": actor.state_dict(),
+                    "qf1_state_dict": qf1.state_dict(),
+                    "qf2_state_dict": qf2.state_dict(),
+                    "episode": episode,  # if defined
+                }
+
+                torch.save(checkpoint, model_dir + f"/sac_checkpoint_{episode}.pth")
                 while c < 4:
                     while not done:
                         x = [obs.item()] if args.observation_type == "simple" else obs
@@ -653,7 +663,9 @@ def main():
                             c += 1
                             obs, info = env.reset(seed=None)
                 writer.add_scalar(
-                    "charts/episodic_return_mean", cumulative_return / c, global_step
+                    "charts/episodic_return_mean_test",
+                    cumulative_return / c,
+                    global_step,
                 )
 
     env.close()
