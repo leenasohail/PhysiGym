@@ -635,7 +635,7 @@ def main():
                 }
 
                 torch.save(checkpoint, model_dir + f"/sac_checkpoint_{episode}.pth")
-                for i in range(1, 6):
+                for k in range(1, 6):
                     while not done:
                         x = [obs.item()] if args.observation_type == "simple" else obs
                         x = torch.Tensor(x).to(device).unsqueeze(0)
@@ -644,7 +644,7 @@ def main():
                         actions = actions.detach().squeeze(0).cpu().numpy()
                         obs, reward, terminated, truncated, info = env.step(actions)
                         saving_img(
-                            image_folder=image_folder + f"/{episode}_test_{i}",
+                            image_folder=image_folder + f"/{episode}_test_{k}",
                             info=info,
                             step_episode=step_episode,
                             x_max=x_max,
@@ -656,14 +656,14 @@ def main():
                         step_episode += 1
                         cumulative_return += reward
                         done = terminated or truncated
-                        if done:
-                            step_episode = 0
-                            length = 0
-                            done = False
-                            obs, info = env.reset(seed=None)
+                    if done:
+                        step_episode = 0
+                        length = 0
+                        done = False
+                        obs, info = env.reset(seed=None)
                 writer.add_scalar(
                     "charts/episodic_return_mean_test",
-                    cumulative_return / i,
+                    cumulative_return / k,
                     global_step,
                 )
 
