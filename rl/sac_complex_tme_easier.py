@@ -627,7 +627,6 @@ def main():
             done = False
             if episode % 100 == 0:
                 step_episode = 0
-                c = 1
                 checkpoint = {
                     "actor_state_dict": actor.state_dict(),
                     "qf1_state_dict": qf1.state_dict(),
@@ -636,7 +635,7 @@ def main():
                 }
 
                 torch.save(checkpoint, model_dir + f"/sac_checkpoint_{episode}.pth")
-                while c < 5:
+                for i in range(1, 6):
                     while not done:
                         x = [obs.item()] if args.observation_type == "simple" else obs
                         x = torch.Tensor(x).to(device).unsqueeze(0)
@@ -645,7 +644,7 @@ def main():
                         actions = actions.detach().squeeze(0).cpu().numpy()
                         obs, reward, terminated, truncated, info = env.step(actions)
                         saving_img(
-                            image_folder=image_folder + f"/{episode}_test_{c}",
+                            image_folder=image_folder + f"/{episode}_test_{i}",
                             info=info,
                             step_episode=step_episode,
                             x_max=x_max,
@@ -660,12 +659,11 @@ def main():
                         if done:
                             step_episode = 0
                             length = 0
-                            c += 1
                             done = False
                             obs, info = env.reset(seed=None)
                 writer.add_scalar(
                     "charts/episodic_return_mean_test",
-                    cumulative_return / c,
+                    cumulative_return / i,
                     global_step,
                 )
 
