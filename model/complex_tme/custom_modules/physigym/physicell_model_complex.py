@@ -73,8 +73,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.observation_type = "simple" if None else observation_type
         if self.observation_type not in [
             "simple",
-            "image",
-            "image_rgb_first",
             "image_gray",
         ]:
             raise ValueError(
@@ -93,6 +91,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             self.x_root.xpath("//user_parameters/number_of_tumor")[0].text
         )
         self.nb_cell_types = len(self.unique_cell_types)
+        self.np_ratio_nb_cancer_cells = None
+        self.np_ratio_old_nb_cancer_cells = None
 
     def get_action_space(self):
         """
@@ -159,34 +159,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation_space = spaces.Box(
                 low=0,
                 high=2**16,
-                shape=(self.nb_cell_types,),
+                shape=(len(self.unique_cell_types),),
                 dtype=np.float32,
-            )
-        elif self.observation_type == "image":
-            # Define the Box space for the image
-            o_observation_space = spaces.Box(
-                low=0, high=255, shape=(self.height, self.width, 3), dtype=np.uint8
-            )
-        elif self.observation_type == "image_rgb_first":
-            # Define the Box space for the image
-            o_observation_space = spaces.Box(
-                low=0, high=255, shape=(3, self.height, self.width), dtype=np.uint8
             )
         elif self.observation_type == "image_gray":
             # Define the Box space for the image
             o_observation_space = spaces.Box(
                 low=0, high=255, shape=(1, self.height, self.width), dtype=np.uint8
-            )
-
-        elif self.observation_type == "graph":
-            node_feature_space = spaces.Box(
-                low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32
-            )
-            edge_feature_space = spaces.Box(
-                low=-np.inf, high=np.inf, shape=(1,), dtype=np.float32
-            )
-            o_observation_space = spaces.Graph(
-                node_space=node_feature_space, edge_space=edge_feature_space
             )
         else:
             raise f"Error unknown observation type: {o_observation_space}"
@@ -221,14 +200,40 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"), :
             ]
         )
-        _nb_cancer_cells = np.array([self.nb_cancer_cells])
-        _ratio_nb_cancer_cells = (
-            _nb_cancer_cells.astype(float)[0] / self.init_cancer_cells
+
+        self.nb_m2 = len(
+            self.df_cell.loc[
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2 macrophage"), :
+            ]
+        )
+        self.nb_cd8 = len(
+            self.df_cell.loc[
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "CD8 T cell"), :
+            ]
+        )
+
+        self.nb_cd8exhausted = len(
+            self.df_cell.loc[
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "exhausted T cell"),
+                :,
+            ]
+        )
+        self.np_ratio_old_nb_cancer_cells = (
+            self.np_ratio_nb_cancer_cells
+            if self.np_ratio_nb_cancer_cells is not None
+            else None
         )
         self.np_ratio_nb_cancer_cells = np.array(
-            [_ratio_nb_cancer_cells], dtype=np.float64
+            [self.nb_cancer_cells / self.init_cancer_cells], dtype=np.float64
+        )
+
+        self.np_ratio_old_nb_cancer_cells = (
+            self.np_ratio_nb_cancer_cells
+            if self.np_ratio_old_nb_cancer_cells is None
+            else self.np_ratio_old_nb_cancer_cells
         )
         # model dependent observation processing logic goes here!
+
         if self.observation_type == "simple":
             normalized_concentration_cells = np.zeros((self.nb_cell_types,))
             for i in range(self.nb_cell_types):
@@ -240,11 +245,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     ]
                 )
             o_observation = normalized_concentration_cells / self.init_cancer_cells - 1
-        elif (
-            self.observation_type == "image"
-            or self.observation_type == "image_rgb_first"
-            or self.observation_type == "image_gray"
-        ):
+
+        elif self.observation_type == "image_gray":
             x = self.df_cell["x"].to_numpy()
             y = self.df_cell["y"].to_numpy()
             cell_id = self.df_cell["ID"].to_numpy()
@@ -259,50 +261,20 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 lambda row: [0, 0, 0] if row["dead"] != 0.0 else row["color"], axis=1
             )
 
-            if self.observation_type == "image":
-                o_observation = np.zeros((self.height, self.width, 3), dtype=np.uint8)
-                # Assign colors to the image grid
-                for i in range(len(cell_id)):
-                    o_observation[x_normalized[i], y_normalized[i], :] = self.df_cell[
-                        "color"
-                    ].iloc[i]
+            o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
+            # Assign colors to the image grid
+            for i in range(len(cell_id)):
+                o_observation[:, x_normalized[i], y_normalized[i]] = self.df_cell[
+                    "color"
+                ].iloc[i]
 
-            elif (
-                self.observation_type == "image_rgb_first"
-                or self.observation_type == "image_gray"
-            ):
-                o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
-                # Assign colors to the image grid
-                for i in range(len(cell_id)):
-                    o_observation[:, x_normalized[i], y_normalized[i]] = self.df_cell[
-                        "color"
-                    ].iloc[i]
-                if self.observation_type == "image_gray":
-                    grayscale_image = np.dot(
-                        o_observation.transpose(1, 2, 0),
-                        [0.2989, 0.5870, 0.1140],
-                    ).astype(np.uint8)
-                    o_observation = grayscale_image[np.newaxis, :, :]
-            else:
-                raise f"Observation type: {self.observation_type} does not exist"
-
-        elif self.observation_type == "graph":
-            df_cell = self.df_cell[self.df_cell["dead"] == 0]
-            coords = df_cell.loc[:, ["x", "y"]].values
-            pairs = ty.build_delaunay(coords)
-            distances = ty.distance_neighbors(coords, pairs)
-            o_observation = GraphInstance(
-                nodes=np.array(
-                    df_cell.index, dtype=self.observation_space.node_space.dtype
-                )[:, np.newaxis],
-                edge_links=pairs,
-                edges=np.array(
-                    distances, dtype=self.observation_space.edge_space.dtype
-                )[:, np.newaxis],
-            )
+            grayscale_image = np.dot(
+                o_observation.transpose(1, 2, 0),
+                [0.2989, 0.5870, 0.1140],
+            ).astype(np.uint8)
+            o_observation = grayscale_image[np.newaxis, :, :]
         else:
             raise f"Observation type: {self.observation_type} does not exist"
-
         return o_observation
 
     def get_info(self):
@@ -322,7 +294,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             the number of hearts (lives left) from our character.
         """
         # model dependent info processing logic goes here!
-        info = {"number_cancer_cells": self.nb_cancer_cells, "df_cell": self.df_cell}
+        info = {
+            "number_cancer_cells": self.nb_cancer_cells,
+            "df_cell": self.df_cell,
+            "number_m2": self.nb_m2,
+            "number_cd8": self.nb_cd8,
+            "number_cd8exhausted": self.nb_cd8exhausted,
+        }
 
         # output
         return info
@@ -345,8 +323,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             truncated (the episode reached the max time limit).
         """
         # model dependent terminated processing logic goes here!
-        b_terminated = False
-        return b_terminated
+        return True if self.nb_cancer_cells == 0 else False
 
     def get_reward(self):
         """
@@ -365,4 +342,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        return -self.np_ratio_nb_cancer_cells
+        # idea of using this new reward self.np_ratio_old_nb_cancer_cells - self.np_ratio_nb_cancer_cells when we do the cumulative return
+        # we have at the end the number of cancer cells at the end of the episode if we do the assumption gamma = 1
+        return (
+            self.np_ratio_old_nb_cancer_cells - self.np_ratio_nb_cancer_cells
+        )  # /(self.np_ratio_old_nb_cancer_cells) # that should only be -self.np_ratio_nb_cancer_cells overleaf
+
+    def get_reset_values(self):
+        self.np_ratio_old_nb_cancer_cells = None
+        self.np_ratio_nb_cancer_cells = None
+        return None
