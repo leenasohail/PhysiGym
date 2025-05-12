@@ -227,17 +227,17 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "image_gray"
+    observation_type: str = "simple"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
     buffer_size: int = int(1e6)
     """the replay memory buffer size"""
-    gamma: float = 0.99
+    gamma: float = 0.9995
     """the discount factor gamma"""
     tau: float = 0.005
     """target smoothing coefficient (default: 0.005)"""
-    batch_size: int = 128
+    batch_size: int = 256
     """the batch size of sample from the reply memory"""
     learning_starts: float = 25e3
     """timestep to start learning"""
@@ -387,7 +387,6 @@ def main():
     y_max = env.unwrapped.y_max
     color_mapping = env.unwrapped.color_mapping
     cumulative_return = 0
-    length = 0
     env = PhysiCellModelWrapper(env=env)
     is_gray = True if args.observation_type == "image_gray" else False
     cfg = {"cfg_FeatureExtractor": {}}
@@ -471,7 +470,6 @@ def main():
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
         cumulative_return += rewards
-        length += 1
         if args.observation_type == "simple":
             rb.add(obs, actions, rewards, next_obs, done)
         else:
@@ -616,16 +614,16 @@ def main():
         )
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
-            print(f"global_step={global_step}, episodic_return={cumulative_return}")
-            writer.add_scalar("charts/episodic_return", cumulative_return, global_step)
-            writer.add_scalar("charts/episodic_length", length, global_step)
+            print(f"global_step={global_step}, episodic_return={cumulative_return/step_episode}")
+            writer.add_scalar("charts/episodic_return", cumulative_return/step_episode, global_step)
+            writer.add_scalar("charts/episodic_length", step_episode, global_step)
             episode += 1
             step_episode = 0
+            cumumative_return_episode = 0
             cumulative_return = 0
-            length = 0
             obs, info = env.reset(seed=None)
             done = False
-            if episode % 100 == 0:
+            if episode % 50 == 0:
                 step_episode = 0
                 checkpoint = {
                     "actor_state_dict": actor.state_dict(),
@@ -654,11 +652,11 @@ def main():
                             color_mapping=color_mapping,
                         )
                         step_episode += 1
-                        cumulative_return += reward
+                        cumumative_return_episode += reward
                         done = terminated or truncated
                     if done:
+                        cumulative_return += cumumative_return_episode/step_episode
                         step_episode = 0
-                        length = 0
                         done = False
                         obs, info = env.reset(seed=None)
                 writer.add_scalar(
