@@ -619,11 +619,12 @@ def main():
             writer.add_scalar("charts/episodic_length", step_episode, global_step)
             episode += 1
             step_episode = 0
-            cumumative_return_episode = 0
+            total_steps = 0
             cumulative_return = 0
             obs, info = env.reset(seed=None)
             done = False
             if episode % 50 == 0:
+                cumumative_return_episode = 0
                 step_episode = 0
                 checkpoint = {
                     "actor_state_dict": actor.state_dict(),
@@ -635,7 +636,7 @@ def main():
                 torch.save(checkpoint, model_dir + f"/sac_checkpoint_{episode}.pth")
                 for k in range(1, 6):
                     while not done:
-                        x = [obs.item()] if args.observation_type == "simple" else obs
+                        x = obs
                         x = torch.Tensor(x).to(device).unsqueeze(0)
                         with torch.no_grad():  # Disable gradients for inference
                             actions, _, _ = actor.get_action(x)
@@ -652,18 +653,26 @@ def main():
                             color_mapping=color_mapping,
                         )
                         step_episode += 1
+                        total_steps += 1
                         cumumative_return_episode += reward
                         done = terminated or truncated
                     if done:
-                        cumulative_return += cumumative_return_episode/step_episode
-                        step_episode = 0
                         done = False
+                        cumulative_return += cumumative_return_episode / step_episode
+                        writer.add_scalar(
+                        "charts/episodic_return_test",
+                        cumumative_return_episode / step_episode,
+                        global_step,
+                        )
+                        step_episode = 0
+                        cumumative_return_episode = 0
                         obs, info = env.reset(seed=None)
                 writer.add_scalar(
                     "charts/episodic_return_mean_test",
                     cumulative_return / k,
                     global_step,
                 )
+                
 
     env.close()
     writer.close()
