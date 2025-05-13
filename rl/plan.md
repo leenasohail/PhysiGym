@@ -33,9 +33,9 @@ For image-based state space:
 
 
 ## Tasks done
-- Replay Buffer in rust (same as the replay buffer in python in terms of speed)
-- Launched with the new replay buffer in Python on Sureli11 with image state space
-- [Given the results from dummy policies](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/code_tests), the [policy learnt from scalar values](https://wandb.ai/corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/runs/8y6ebe1p?nw=nwuseralexandrebertin) is in average better
+[x] Replay Buffer in rust (same as the replay buffer in python in terms of speed)
+[x] Launched with the new replay buffer in Python on Sureli11 with image state space
+[x] [Given the results from dummy policies](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/code_tests), the [policy learnt from scalar values](https://wandb.ai/corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/runs/8y6ebe1p?nw=nwuseralexandrebertin) is in average better
 
 # New Ideas
 ## Easier Problem
@@ -43,3 +43,28 @@ For image-based state space:
 2) Reduce the number of cells, that could imply more stochasticity and that involves to relaunch the [code tests](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/code_tests) but that implies to add [IQN](https://proceedings.mlr.press/v80/dabney18a/dabney18a.pdf)
 ## New Features
 [] Add [Simba](https://arxiv.org/pdf/2410.09754) for concentration of cells as state 
+
+# 12 may
+## Problem solved
+[x] forgot minus one to the reward associated to the drugs (launched on sureli 9 (scalars)=> did not seen any improvements in terms of cumulative return and 11)
+[x] relaunch with the reward solved, did not see any improvements ( still waiting for image)
+
+## Idea
+Propose a new reward, each component is between zero and one
+```
+r(t) = (1-\alpha)*(1-\frac{d_{1,t}+d_{2,t}}{2}) + \alpha*c_{norm,t}
+```
+Where
+```
+c_{norm,t} = 1 - \frac{\text(clip)(\log(\frac{\c_{t}}{\c_{t-1}}),-0.05,0.05)-0.05}{0.1}
+```
+[c norm reward](https://github.com/Dante-Berth/PhysiGym/blob/main/model/complex_tme/custom_modules/physigym/physicell_model.py)
+It is working on Sureli9.
+
+**Problem**: lack of ressources, i asked an account to genotoul
+
+## New Features Added but not launched
+Idea behind it, in deep learning the neurons can fade away, to avoid it we can use layer norm, rsnorm and to improve results and to avoid scale ambiguity Weight L2 Norm is also applied [Normalization and effective learning rates in reinforcement learning](https://arxiv.org/pdf/2407.01800) and [Hyperspherical Normalization for Scalable Deep Reinforcement Learning](https://arxiv.org/pdf/2502.15280)
+In my case, i added layer norm and use l2 norm on weights on my actor and critic.
+
+Side quest: Thursday and Friday courses

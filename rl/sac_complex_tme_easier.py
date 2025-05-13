@@ -53,26 +53,6 @@ class PixelPreprocess(nn.Module):
         return x.div(255.0).sub(0.5)
 
 
-class SimNorm(nn.Module):
-    """
-    Simplicial normalization.
-    Adapted from https://arxiv.org/abs/2204.00616.
-    """
-
-    def __init__(self, simnorm_dim: int = 8):
-        super().__init__()
-        self.dim = simnorm_dim
-
-    def forward(self, x):
-        shp = x.shape
-        x = x.view(*shp[:-1], -1, self.dim)
-        x = F.softmax(x, dim=-1)
-        return x.view(*shp)
-
-    def __repr__(self):
-        return f"SimNorm(dim={self.dim})"
-
-
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
@@ -118,32 +98,42 @@ class FeatureExtractor(nn.Module):
         return x
 
 
+def l2_project_weights(model):
+    """Project weights of all linear layers to unit L2 norm (per row)."""
+    with torch.no_grad():
+        for module in model.modules():
+            if isinstance(module, nn.Linear):
+                w = module.weight.data
+                w.div_(w.norm(p=2, dim=1, keepdim=True).clamp(min=1e-6))  # Row-wise
+
+
 class QNetwork(nn.Module):
-    """Critic network (Q-function)"""
+    """Critic network (Q-function) with LayerNorm and L2-normalized weights"""
 
     def __init__(self, env, cfg):
         super().__init__()
         self.cfg = cfg
         self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
 
-        # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
+        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
+        self.ln2 = nn.LayerNorm(256)
         self.fc3 = nn.LazyLinear(1)
         self.mish = nn.Mish()
 
     def forward(self, x, a):
-        x = self.feature_extractor(x)  # Extract features
-        x = torch.cat([x, a], dim=1)  # Concatenate state and action
+        x = self.feature_extractor(x)
+        x = torch.cat([x, a], dim=1)
 
-        x = self.mish(self.fc1(x))
-        x = self.mish(self.fc2(x))
+        x = self.mish(self.ln1(self.fc1(x)))
+        x = self.mish(self.ln2(self.fc2(x)))
         x = self.fc3(x)
         return x
 
 
 class Actor(nn.Module):
-    """Policy network (Actor)"""
+    """Policy network (Actor) with LayerNorm and L2-normalized weights"""
 
     def __init__(self, env, cfg):
         super().__init__()
@@ -151,13 +141,14 @@ class Actor(nn.Module):
         self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
         action_dim = np.prod(env.action_space.shape)
 
-        # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
+        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
+        self.ln2 = nn.LayerNorm(256)
         self.fc_mean = nn.LazyLinear(action_dim)
         self.fc_logstd = nn.LazyLinear(action_dim)
         self.relu = nn.ReLU()
-        # Action scaling
+
         self.register_buffer(
             "action_scale",
             torch.tensor(
@@ -174,17 +165,14 @@ class Actor(nn.Module):
         )
 
     def forward(self, x):
-        x = self.feature_extractor(x)  # Extract features
-
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
+        x = self.feature_extractor(x)
+        x = self.relu(self.ln1(self.fc1(x)))
+        x = self.relu(self.ln2(self.fc2(x)))
 
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
         log_std = torch.tanh(log_std)
-        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (
-            log_std + 1
-        )  # Stable variance scaling
+        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)
 
         return mean, log_std
 
@@ -193,7 +181,7 @@ class Actor(nn.Module):
         std = log_std.exp()
         normal = torch.distributions.Normal(mean, std)
 
-        x_t = normal.rsample()  # Reparameterization trick
+        x_t = normal.rsample()
         y_t = torch.tanh(x_t)
         action = y_t * self.action_scale + self.action_bias
 
@@ -527,6 +515,8 @@ def main():
             q_optimizer.zero_grad()
             qf_loss.backward()
             q_optimizer.step()
+            l2_project_weights(qf1_target)
+            l2_project_weights(qf2_target)
 
             if global_step % args.policy_frequency == 0:  # TD 3 Delayed update support
                 for _ in range(
@@ -541,6 +531,7 @@ def main():
                     actor_optimizer.zero_grad()
                     actor_loss.backward()
                     actor_optimizer.step()
+                    l2_project_weights(actor)
 
                     if args.autotune:
                         with torch.no_grad():
@@ -552,6 +543,7 @@ def main():
                         a_optimizer.zero_grad()
                         alpha_loss.backward()
                         a_optimizer.step()
+                        l2_project_weights(actor)
                         alpha = log_alpha.exp().item()
                 writer.add_scalar(
                     "losses/min_qf_next_target",
@@ -614,8 +606,12 @@ def main():
         )
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
-            print(f"global_step={global_step}, episodic_return={cumulative_return/step_episode}")
-            writer.add_scalar("charts/episodic_return", cumulative_return/step_episode, global_step)
+            print(
+                f"global_step={global_step}, episodic_return={cumulative_return / step_episode}"
+            )
+            writer.add_scalar(
+                "charts/episodic_return", cumulative_return / step_episode, global_step
+            )
             writer.add_scalar("charts/episodic_length", step_episode, global_step)
             episode += 1
             step_episode = 0
@@ -660,9 +656,9 @@ def main():
                         done = False
                         cumulative_return += cumumative_return_episode / step_episode
                         writer.add_scalar(
-                        "charts/episodic_return_test",
-                        cumumative_return_episode / step_episode,
-                        global_step,
+                            "charts/episodic_return_test",
+                            cumumative_return_episode / step_episode,
+                            global_step,
                         )
                         step_episode = 0
                         cumumative_return_episode = 0
@@ -672,7 +668,6 @@ def main():
                     cumulative_return / k,
                     global_step,
                 )
-                
 
     env.close()
     writer.close()
