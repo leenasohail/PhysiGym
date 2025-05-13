@@ -84,10 +84,8 @@ class PhysiCellModelWrapper(gym.Wrapper):
         # Preprocess observation (if needed)
         o_observation = np.array(o_observation, dtype=float)
         info["action"] = d_action
-        r_reward = -(1-self.weight)*np.mean(action)/self.max_steps + r_reward*self.weight
+        r_reward = (1-self.weight)*(1-np.mean(action)) + r_reward*self.weight
         
-
-
         # corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/run-cqtzu9b8-history:v1
         # r_reward = -1
         # r_reward += 1000  if info["number_cancer_cells"] == 0 else 0 
