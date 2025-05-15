@@ -69,6 +69,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         render_fps=10,
         verbose=False,
         observation_type="simple",
+        reward_type="normalize",
     ):
         self.observation_type = "simple" if None else observation_type
         if self.observation_type not in [
@@ -93,6 +94,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.nb_cell_types = len(self.unique_cell_types)
         self.np_ratio_nb_cancer_cells = None
         self.np_ratio_old_nb_cancer_cells = None
+        self.reward_type = reward_type
 
     def get_action_space(self):
         """
@@ -200,29 +202,38 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"), :
             ]
         )
-        
+
         self.nb_m2 = len(
-             self.df_cell.loc[
-                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2 macrophage"), :
-             ]
-         )
+            self.df_cell.loc[
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2 macrophage"), :
+            ]
+        )
         self.nb_cd8 = len(
-             self.df_cell.loc[
-                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "CD8 T cell"), :
-             ]
-         )
-        
+            self.df_cell.loc[
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "CD8 T cell"), :
+            ]
+        )
+
         self.nb_cd8exhausted = len(
-             self.df_cell.loc[
-                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "exhausted T cell"), :
-             ]
-         )
-        self.np_ratio_old_nb_cancer_cells = self.np_ratio_nb_cancer_cells if self.np_ratio_nb_cancer_cells is not None else None
+            self.df_cell.loc[
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "exhausted T cell"),
+                :,
+            ]
+        )
+        self.np_ratio_old_nb_cancer_cells = (
+            self.np_ratio_nb_cancer_cells
+            if self.np_ratio_nb_cancer_cells is not None
+            else None
+        )
         self.np_ratio_nb_cancer_cells = np.array(
             [self.nb_cancer_cells / self.init_cancer_cells], dtype=np.float64
         )
 
-        self.np_ratio_old_nb_cancer_cells = self.np_ratio_nb_cancer_cells if self.np_ratio_old_nb_cancer_cells is None else self.np_ratio_old_nb_cancer_cells
+        self.np_ratio_old_nb_cancer_cells = (
+            self.np_ratio_nb_cancer_cells
+            if self.np_ratio_old_nb_cancer_cells is None
+            else self.np_ratio_old_nb_cancer_cells
+        )
         # model dependent observation processing logic goes here!
 
         if self.observation_type == "simple":
@@ -286,12 +297,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent info processing logic goes here!
         info = {
-             "number_cancer_cells": self.nb_cancer_cells,
-             "df_cell": self.df_cell,
-             "number_m2": self.nb_m2,
-             "number_cd8":self.nb_cd8,
-             "number_cd8exhausted":self.nb_cd8exhausted
-         }
+            "number_cancer_cells": self.nb_cancer_cells,
+            "df_cell": self.df_cell,
+            "number_m2": self.nb_m2,
+            "number_cd8": self.nb_cd8,
+            "number_cd8exhausted": self.nb_cd8exhausted,
+        }
 
         # output
         return info
@@ -333,15 +344,21 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        def normalize_log_ratio(C_t, C_prev, r_min=-0.05, r_max=0.05):
+        C_t = self.np_ratio_nb_cancer_cells * self.init_cancer_cells
+        C_prev = C_prev = self.np_ratio_old_nb_cancer_cells * self.init_cancer_cells
+        return self.normalize(
+            C_t=C_t, C_prev=C_prev, r_min=-0.05, r_max=0.05, max_cells=1000
+        )
+
+    def normalize(self, C_t, C_prev, r_min=-0.05, r_max=0.05, max_cells=1000):
+        if self.reward_type == "log":
             r = np.log(C_t / C_prev)
             r_clipped = np.clip(r, r_min, r_max)
             normalized = (r_clipped - r_min) / (r_max - r_min)
-            return 1-normalized
-        # idea of using this new reward self.np_ratio_old_nb_cancer_cells - self.np_ratio_nb_cancer_cells when we do the cumulative return 
-        # we have at the end the number of cancer cells at the end of the episode if we do the assumption gamma = 1
-        return normalize_log_ratio(C_t=self.np_ratio_nb_cancer_cells*self.init_cancer_cells, C_prev=self.np_ratio_old_nb_cancer_cells*self.init_cancer_cells)
-    
+        else:
+            normalized = min(C_t, max_cells) / max_cells
+        return 1 - normalized
+
     def get_reset_values(self):
         self.np_ratio_old_nb_cancer_cells = None
         self.np_ratio_nb_cancer_cells = None
