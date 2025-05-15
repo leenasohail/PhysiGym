@@ -68,3 +68,6 @@ Idea behind it, in deep learning the neurons can fade away, to avoid it we can u
 In my case, i added layer norm and use l2 norm on weights on my actor and critic.
 
 Side quest: Thursday and Friday courses
+
+## Make easy great again
+No matter, the reward we do not see any improvement in the episodic mean return, we can simply the problem by categorical actions instead continous actions. The categorical actions can be \[0,0.5,1\] instead of \[0,1\]. That implies to change the physicell_model.py from complex_tme but also that implies to add a [deep reinforcement learning for discrete actions](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/c51.py)
