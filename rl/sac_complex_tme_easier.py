@@ -53,6 +53,26 @@ class PixelPreprocess(nn.Module):
         return x.div(255.0).sub(0.5)
 
 
+class SimNorm(nn.Module):
+    """
+    Simplicial normalization.
+    Adapted from https://arxiv.org/abs/2204.00616.
+    """
+
+    def __init__(self, simnorm_dim: int = 8):
+        super().__init__()
+        self.dim = simnorm_dim
+
+    def forward(self, x):
+        shp = x.shape
+        x = x.view(*shp[:-1], -1, self.dim)
+        x = F.softmax(x, dim=-1)
+        return x.view(*shp)
+
+    def __repr__(self):
+        return f"SimNorm(dim={self.dim})"
+
+
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
@@ -98,42 +118,32 @@ class FeatureExtractor(nn.Module):
         return x
 
 
-def l2_project_weights(model):
-    """Project weights of all linear layers to unit L2 norm (per row)."""
-    with torch.no_grad():
-        for module in model.modules():
-            if isinstance(module, nn.Linear):
-                w = module.weight.data
-                w.div_(w.norm(p=2, dim=1, keepdim=True).clamp(min=1e-6))  # Row-wise
-
-
 class QNetwork(nn.Module):
-    """Critic network (Q-function) with LayerNorm and L2-normalized weights"""
+    """Critic network (Q-function)"""
 
     def __init__(self, env, cfg):
         super().__init__()
         self.cfg = cfg
         self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
 
+        # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
-        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
-        self.ln2 = nn.LayerNorm(256)
         self.fc3 = nn.LazyLinear(1)
         self.mish = nn.Mish()
 
     def forward(self, x, a):
-        x = self.feature_extractor(x)
-        x = torch.cat([x, a], dim=1)
+        x = self.feature_extractor(x)  # Extract features
+        x = torch.cat([x, a], dim=1)  # Concatenate state and action
 
-        x = self.mish(self.ln1(self.fc1(x)))
-        x = self.mish(self.ln2(self.fc2(x)))
+        x = self.mish(self.fc1(x))
+        x = self.mish(self.fc2(x))
         x = self.fc3(x)
         return x
 
 
 class Actor(nn.Module):
-    """Policy network (Actor) with LayerNorm and L2-normalized weights"""
+    """Policy network (Actor)"""
 
     def __init__(self, env, cfg):
         super().__init__()
@@ -141,14 +151,13 @@ class Actor(nn.Module):
         self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
         action_dim = np.prod(env.action_space.shape)
 
+        # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
-        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
-        self.ln2 = nn.LayerNorm(256)
         self.fc_mean = nn.LazyLinear(action_dim)
         self.fc_logstd = nn.LazyLinear(action_dim)
         self.relu = nn.ReLU()
-
+        # Action scaling
         self.register_buffer(
             "action_scale",
             torch.tensor(
@@ -165,14 +174,17 @@ class Actor(nn.Module):
         )
 
     def forward(self, x):
-        x = self.feature_extractor(x)
-        x = self.relu(self.ln1(self.fc1(x)))
-        x = self.relu(self.ln2(self.fc2(x)))
+        x = self.feature_extractor(x)  # Extract features
+
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
 
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
         log_std = torch.tanh(log_std)
-        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (log_std + 1)
+        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (
+            log_std + 1
+        )  # Stable variance scaling
 
         return mean, log_std
 
@@ -181,7 +193,7 @@ class Actor(nn.Module):
         std = log_std.exp()
         normal = torch.distributions.Normal(mean, std)
 
-        x_t = normal.rsample()
+        x_t = normal.rsample()  # Reparameterization trick
         y_t = torch.tanh(x_t)
         action = y_t * self.action_scale + self.action_bias
 
@@ -201,6 +213,10 @@ list_variable_name = ["anti_M2", "anti_pd1"]
 class Args:
     name: str = "sac"
     """the name of this experiment"""
+    weight: float = 0.8
+    """weight for the reduction of tumor"""
+    reward_type: str = "simple"
+    """type of the reward"""
     seed: int = 1
     """seed of the experiment"""
     torch_deterministic: bool = True
@@ -243,8 +259,6 @@ class Args:
     """automatic tuning of the entropy coefficient"""
     wandb_track: bool = True
     """track with wandb"""
-    video: bool = False
-    """save video"""
 
 
 def saving_img(
@@ -337,7 +351,7 @@ def main():
         wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
-            name=f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}",
+            name=f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}_weight_{args.weight}_rewardtype_{args.reward_type}",
             sync_tensorboard=True,
             config=config,
             monitor_gym=True,
@@ -366,7 +380,11 @@ def main():
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
-    env = gym.make(args.env_id, observation_type=args.observation_type)
+    env = gym.make(
+        args.env_id,
+        observation_type=args.observation_type,
+        reward_type=args.reward_type,
+    )
     height = env.unwrapped.height
     width = env.unwrapped.width
     x_min = env.unwrapped.x_min
@@ -515,8 +533,6 @@ def main():
             q_optimizer.zero_grad()
             qf_loss.backward()
             q_optimizer.step()
-            l2_project_weights(qf1_target)
-            l2_project_weights(qf2_target)
 
             if global_step % args.policy_frequency == 0:  # TD 3 Delayed update support
                 for _ in range(
@@ -531,7 +547,6 @@ def main():
                     actor_optimizer.zero_grad()
                     actor_loss.backward()
                     actor_optimizer.step()
-                    l2_project_weights(actor)
 
                     if args.autotune:
                         with torch.no_grad():
@@ -543,7 +558,6 @@ def main():
                         a_optimizer.zero_grad()
                         alpha_loss.backward()
                         a_optimizer.step()
-                        l2_project_weights(actor)
                         alpha = log_alpha.exp().item()
                 writer.add_scalar(
                     "losses/min_qf_next_target",
