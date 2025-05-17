@@ -77,9 +77,8 @@ Where $\text{maxcells} = 1000$ — working on Sureli11.
 
 ### Notes
 - The weight $\alpha$ equals to $0.8$.
-- **Problem**: Lack of resources — requested an account from Genotoul.
-- **Problem**: [No improvements observed](https://api.wandb.ai/links/corporate-manu-sureli/ip9ppxmp) after 4 Millions steps, for more details, you can click on the report
-I was accepted on Genotoul ! 
+- **Problem**: Lack of resources — requested an account from Genotoul => now i have an account.
+- **Problem**: [No improvements observed](https://api.wandb.ai/links/corporate-manu-sureli/ip9ppxmp) after 4 Millions steps.
 
 ## New Features Added but Not Launched
 

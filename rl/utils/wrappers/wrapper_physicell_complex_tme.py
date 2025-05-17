@@ -1,6 +1,6 @@
 import numpy as np
 import gymnasium as gym
-from gymnasium.spaces import Box
+from gymnasium.spaces import Box, Discrete
 
 
 class PhysiCellModelWrapper(gym.Wrapper):
@@ -12,6 +12,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
             "anti_pd1",
         ],
         weight: float = 0.8,
+        discrete: bool = False,
     ):
         """
         Args:
@@ -30,21 +31,35 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
         self.list_variable_name = list_variable_name
         # Flatten the action space to match the expected two values
-        low = np.array(
-            [
-                env.action_space[variable_name].low[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        high = np.array(
-            [
-                env.action_space[variable_name].high[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        self._action_space = Box(low=low, high=high, dtype=np.float64)
+        self.discrete = discrete
+        self.dose_to_class = []
+        if self.discrete:
+            anti_M2_dose_map = [0.0, 0.5, 1.0]
+            anti_pd1_dose_map = [0.0, 0.5, 1.0]
+            dose_to_class = {}
+
+            for m2 in anti_M2_dose_map:
+                for pd1 in anti_pd1_dose_map:
+                    self.dose_to_class.append([m2, pd1])
+
+            self.dose_to_class = dose_to_class
+            self._action_space = Discrete(n=len(dose_to_class))
+        else:
+            low = np.array(
+                [
+                    env.action_space[variable_name].low[0]
+                    for variable_name in list_variable_name
+                ]
+            )
+            high = np.array(
+                [
+                    env.action_space[variable_name].high[0]
+                    for variable_name in list_variable_name
+                ]
+            )
+            self._action_space = Box(low=low, high=high, dtype=np.float64)
+
         self.weight = weight
-        self.max_steps = env.unwrapped.max_steps
 
     @property
     def action_space(self):
@@ -72,7 +87,9 @@ class PhysiCellModelWrapper(gym.Wrapper):
         Returns:
             Tuple: Observation, reward, terminated, truncated, info.
         """
-        # Convert the flat action array to the dictionary expected by the env
+        if self.discrete:
+            action = np.array(self.dose_to_class[action])
+
         d_action = {
             variable_name: np.array([value])
             for variable_name, value in zip(self.list_variable_name, action)
@@ -86,7 +103,4 @@ class PhysiCellModelWrapper(gym.Wrapper):
         info["action"] = d_action
         r_reward = (1 - self.weight) * (1 - np.mean(action)) + r_reward * self.weight
 
-        # corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/run-cqtzu9b8-history:v1
-        # r_reward = -1
-        # r_reward += 1000  if info["number_cancer_cells"] == 0 else 0
         return o_observation, r_reward, b_terminated, b_truncated, info
