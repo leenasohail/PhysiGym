@@ -49,7 +49,7 @@ For image-based state space:
 [x] forgot minus one to the reward associated to the drugs (launched on sureli 9 (scalars)=> did not seen any improvements in terms of cumulative return and 11)
 [x] relaunch with the reward solved, did not see any improvements ( still waiting for image)
 
-## Idea
+## Rewards used
 Propose a new reward, each component is between zero and one
 ```
 r(t) = (1-\alpha)*(1-\frac{d_{1,t}+d_{2,t}}{2}) + \alpha*c_{norm,t}
@@ -61,13 +61,24 @@ c_{norm,t} = 1 - \frac{\text(clip)(\log(\frac{\c_{t}}{\c_{t-1}}),-0.05,0.05)-0.0
 [c norm reward](https://github.com/Dante-Berth/PhysiGym/blob/main/model/complex_tme/custom_modules/physigym/physicell_model.py)
 It is working on Sureli9.
 
+I also developed a new reward which tries to reduce the number of cancer cells over the episode which is called simple reward.
+```
+r(t) = (1-\alpha)*(1-\frac{d_{1,t}+d_{2,t}}{2})  +  \alpha*(1-\frac{\min(C_t, maxcells)}{maxcells})
+```
+Where $maxcells=1000$
+It is working on sureli 11
+
+The weight which is the alpha in different rewards 
 **Problem**: lack of ressources, i asked an account to genotoul
+**Problem**: [0 improvements](https://api.wandb.ai/links/corporate-manu-sureli/ip9ppxmp) 
 
 ## New Features Added but not launched
 Idea behind it, in deep learning the neurons can fade away, to avoid it we can use layer norm, rsnorm and to improve results and to avoid scale ambiguity Weight L2 Norm is also applied [Normalization and effective learning rates in reinforcement learning](https://arxiv.org/pdf/2407.01800) and [Hyperspherical Normalization for Scalable Deep Reinforcement Learning](https://arxiv.org/pdf/2502.15280)
 In my case, i added layer norm and use l2 norm on weights on my actor and critic.
 
+
 Side quest: Thursday and Friday courses
 
 ## Make easy great again
 No matter, the reward we do not see any improvement in the episodic mean return, we can simply the problem by categorical actions instead continous actions. The categorical actions can be \[0,0.5,1\] instead of \[0,1\]. That implies to change the physicell_model.py from complex_tme but also that implies to add a [deep reinforcement learning for discrete actions](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/c51.py)
+
