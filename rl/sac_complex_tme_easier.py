@@ -128,7 +128,9 @@ class QNetwork(nn.Module):
 
         # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
+        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
+        self.ln2 = nn.LayerNorm(256)
         self.fc3 = nn.LazyLinear(1)
         self.mish = nn.Mish()
 
@@ -136,10 +138,19 @@ class QNetwork(nn.Module):
         x = self.feature_extractor(x)  # Extract features
         x = torch.cat([x, a], dim=1)  # Concatenate state and action
 
-        x = self.mish(self.fc1(x))
-        x = self.mish(self.fc2(x))
+        x = self.mish(self.ln1(self.fc1(x)))
+        x = self.mish(self.ln2(self.fc2(x)))
         x = self.fc3(x)
         return x
+
+
+def l2_project_weights(model):
+    """Project weights of all linear layers to unit L2 norm (per row)."""
+    with torch.no_grad():
+        for module in model.modules():
+            if isinstance(module, nn.Linear):
+                w = module.weight.data
+                w.div_(w.norm(p=2, dim=1, keepdim=True).clamp(min=1e-6))
 
 
 class Actor(nn.Module):
@@ -153,7 +164,9 @@ class Actor(nn.Module):
 
         # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
+        self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
+        self.ln2 = nn.LayerNorm(256)
         self.fc_mean = nn.LazyLinear(action_dim)
         self.fc_logstd = nn.LazyLinear(action_dim)
         self.relu = nn.ReLU()
@@ -176,8 +189,8 @@ class Actor(nn.Module):
     def forward(self, x):
         x = self.feature_extractor(x)  # Extract features
 
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
+        x = self.relu(self.ln1(self.fc1(x)))
+        x = self.relu(self.ln2(self.fc2(x)))
 
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
@@ -533,6 +546,8 @@ def main():
             q_optimizer.zero_grad()
             qf_loss.backward()
             q_optimizer.step()
+            l2_project_weights(qf1_target)
+            l2_project_weights(qf2_target)
 
             if global_step % args.policy_frequency == 0:  # TD 3 Delayed update support
                 for _ in range(
@@ -547,6 +562,7 @@ def main():
                     actor_optimizer.zero_grad()
                     actor_loss.backward()
                     actor_optimizer.step()
+                    l2_project_weights(actor)
 
                     if args.autotune:
                         with torch.no_grad():
@@ -558,6 +574,7 @@ def main():
                         a_optimizer.zero_grad()
                         alpha_loss.backward()
                         a_optimizer.step()
+                        l2_project_weights(actor)
                         alpha = log_alpha.exp().item()
                 writer.add_scalar(
                     "losses/min_qf_next_target",
