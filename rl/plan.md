@@ -1,13 +1,13 @@
 # Plan
-
+Goal find a cumulative return improvement <=> a policy learnt is better than a random or dummy one
 ## Problems
 - **Problem 1**: Using images as state space makes the algorithm very slow (>5 seconds per step).
 - **Problem 2**: Stochastic environment.
-- **Problem 3**: How to compare the current learned policy to a random policy or to a simple human-designed strategy.
+- **Problem 3**: How to compare the current learned policy to a random policy or a simple human-designed strategy.
 
 ## Solutions
-- **Problem 1**: The slowdown was caused by the Replay Buffer (fixed) (5 times better). Another solution would be to use PPO instead of SAC.
-- **Problem 2**: Compute multiple environment dynamics under different strategies (done), and compute an Confidence interval.
+- **Problem 1**: The slowdown was caused by the Replay Buffer (fixed — 5× speed improvement). Another solution would be to use PPO instead of SAC.
+- **Problem 2**: Compute multiple environment dynamics under different strategies (done), and compute a confidence interval.
 - **Problem 3**: 
   - Given the multiple dynamics, we can compare the learned policy against them.
   - We can also design dummy strategies, e.g., if exhausted CD8 cells are detected, add the drug that affects CD8; do similarly for M2 cells.
@@ -16,69 +16,88 @@
 ## Add new feature
 - PPO (Algorithm)
 - Transformer (Neural Architecture)
-[x] Replay Buffer in Rust
+- [x] Replay Buffer in Rust
 
 ## Tasks
 - Analyze [result_11](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/code_tests/stochastic_results_sureli11.csv) and [result_9](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/code_tests/stochastic_results_sureli9.csv)
 
 For the current learned policy:
-[x] Based on the results, conclude if the policy learned with scalar state space is one of the best.
+- [x] Based on the results, conclude if the policy learned with scalar state space is one of the best.
 - Find a dummy strategy and compare it to other strategies.
 - Perform Behavior Cloning (BC) and use PPO/SAC to improve the policy.
 
 For image-based state space:
-[x] Debug the Replay Buffer in Rust and compare it to the pure Python implementation.
-[x] Launch with image state space on Sureli11.
+- [x] Debug the Replay Buffer in Rust and compare it to the pure Python implementation.
+- [x] Launch with image state space on Sureli11.
 - Integrate a Transformer and launch on Sureli9.
 
-
 ## Tasks done
-[x] Replay Buffer in rust (same as the replay buffer in python in terms of speed)
-[x] Launched with the new replay buffer in Python on Sureli11 with image state space
-[x] [Given the results from dummy policies](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/code_tests), the [policy learnt from scalar values](https://wandb.ai/corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/runs/8y6ebe1p?nw=nwuseralexandrebertin) is in average better
+- [x] Replay Buffer in Rust (same speed as the Python version)
+- [x] Launched with the new replay buffer in Python on Sureli11 with image state space
+- [x] [Given the results from dummy policies](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/code_tests), the [policy learned from scalar values](https://wandb.ai/corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/runs/8y6ebe1p?nw=nwuseralexandrebertin) performs better on average
 
 # New Ideas
+
 ## Easier Problem
-1) Instead of solving a continous problem, solves a discrete problem. 
-2) Reduce the number of cells, that could imply more stochasticity and that involves to relaunch the [code tests](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/code_tests) but that implies to add [IQN](https://proceedings.mlr.press/v80/dabney18a/dabney18a.pdf)
+1. Instead of solving a continuous problem, solve a discrete one.  
+2. Reduce the number of cells — this could increase stochasticity and requires re-running the [code tests](https://github.com/Dante-Berth/PhysiGym/tree/main/rl/code_tests). This change would also require adding [IQN](https://proceedings.mlr.press/v80/dabney18a/dabney18a.pdf).
+
 ## New Features
-[] Add [Simba](https://arxiv.org/pdf/2410.09754) for concentration of cells as state 
+- Add [Simba](https://arxiv.org/pdf/2410.09754) for concentration of cells as state
 
-# 12 may
-## Problem solved
-[x] forgot minus one to the reward associated to the drugs (launched on sureli 9 (scalars)=> did not seen any improvements in terms of cumulative return and 11)
-[x] relaunch with the reward solved, did not see any improvements ( still waiting for image)
+# 12 May
 
-## Rewards used
-Propose a new reward, each component is between zero and one
-```
-r(t) = (1-\alpha)*(1-\frac{d_{1,t}+d_{2,t}}{2}) + \alpha*c_{norm,t}
-```
-Where
-```
-c_{norm,t} = 1 - \frac{\text(clip)(\log(\frac{\c_{t}}{\c_{t-1}}),-0.05,0.05)-0.05}{0.1}
-```
-[c norm reward](https://github.com/Dante-Berth/PhysiGym/blob/main/model/complex_tme/custom_modules/physigym/physicell_model.py)
-It is working on Sureli9.
+## Problems Solved
+- [x] Fixed a bug where a `-1` reward was missing for drugs (re-launched on Sureli9 (scalars) and Sureli11 — no improvement observed).
+- [x] Re-launched with the corrected reward; no improvements observed (still waiting for image results).
 
-I also developed a new reward which tries to reduce the number of cancer cells over the episode which is called simple reward.
-```
-r(t) = (1-\alpha)*(1-\frac{d_{1,t}+d_{2,t}}{2})  +  \alpha*(1-\frac{\min(C_t, maxcells)}{maxcells})
-```
-Where $maxcells=1000$
-It is working on sureli 11
+## Rewards Used
 
-The weight which is the alpha in different rewards 
-**Problem**: lack of ressources, i asked an account to genotoul
-**Problem**: [0 improvements](https://api.wandb.ai/links/corporate-manu-sureli/ip9ppxmp) 
+Proposed a new reward — each component is scaled between 0 and 1:
 
-## New Features Added but not launched
-Idea behind it, in deep learning the neurons can fade away, to avoid it we can use layer norm, rsnorm and to improve results and to avoid scale ambiguity Weight L2 Norm is also applied [Normalization and effective learning rates in reinforcement learning](https://arxiv.org/pdf/2407.01800) and [Hyperspherical Normalization for Scalable Deep Reinforcement Learning](https://arxiv.org/pdf/2502.15280)
-In my case, i added layer norm and use l2 norm on weights on my actor and critic.
+$$
+r(t) = (1 - \alpha) \left(1 - \frac{d_{1,t} + d_{2,t}}{2} \right) + \alpha \cdot c_{norm,t}
+$$
 
+Where:
 
-Side quest: Thursday and Friday courses
+$$
+c_{norm,t} = 1 - \frac{\text{clip}\left( \log\left( \frac{c_t}{c_{t-1}} \right), -0.05, 0.05 \right) - (-0.05)}{0.1}
+$$
 
-## Make easy great again
-No matter, the reward we do not see any improvement in the episodic mean return, we can simply the problem by categorical actions instead continous actions. The categorical actions can be \[0,0.5,1\] instead of \[0,1\]. That implies to change the physicell_model.py from complex_tme but also that implies to add a [deep reinforcement learning for discrete actions](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/c51.py)
+[Link to reward implementation](https://github.com/Dante-Berth/PhysiGym/blob/main/model/complex_tme/custom_modules/physigym/physicell_model.py) — working on Sureli9.
 
+Also developed a **simple reward** to reduce the number of cancer cells over the episode:
+
+$$
+r(t) = (1 - \alpha) \left(1 - \frac{d_{1,t} + d_{2,t}}{2} \right) + \alpha \left(1 - \frac{\min(C_t, \text{maxcells})}{\text{maxcells}} \right)
+$$
+
+Where $\text{maxcells} = 1000$ — working on Sureli11.
+
+### Notes
+- The weight $\alpha$ equals to $0.8$.
+- **Problem**: Lack of resources — requested an account from Genotoul.
+- **Problem**: [No improvements observed](https://api.wandb.ai/links/corporate-manu-sureli/ip9ppxmp) after 4 Millions steps, for more details, you can click on the report
+I was accepted on Genotoul ! 
+
+## New Features Added but Not Launched
+
+To address neuron fading and scale ambiguity in deep learning, added:
+- Layer Normalization
+- L2 weight norm on actor and critic
+
+References:
+- [Normalization and Effective Learning Rates in Reinforcement Learning](https://arxiv.org/pdf/2407.01800)
+- [Hyperspherical Normalization for Scalable Deep Reinforcement Learning](https://arxiv.org/pdf/2502.15280)
+
+I added these two features in my code, it is launched on Sureli 9 since Saturday !
+## Side Quest
+- Thursday and Friday courses
+
+## Conclusion 
+Given the previous ideas and given the last results, using PPO or Behavior Cloning are not good ideas because the problem remains the same and adds more difficulty. We also do not change the number of cells to avoid any highest stochasticity. The easiet solution to implement and to accelerate the research is to use discrete actions instead of continous actions.
+To simplify the problem:
+- Use **categorical actions** instead of continuous actions.  
+  Example: \[0, 0.5, 1\] instead of \[0, 1\].  
+  This requires changes in `physicell_model.py` from `complex_tme` and adoption of a discrete action RL algorithm like [C51](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/c51.py). We begin with C51 and then we can end with [IQN](https://github.com/BY571/IQN-and-Extensions/blob/master/IQN-DQN.ipynb)
