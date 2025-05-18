@@ -100,3 +100,7 @@ To simplify the problem:
 - Use **categorical actions** instead of continuous actions.  
   Example: \[0, 0.5, 1\] instead of \[0, 1\].  
   This requires changes in `physicell_model.py` from `complex_tme` and adoption of a discrete action RL algorithm like [C51](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/c51.py). We begin with C51 and then we can end with [IQN](https://github.com/BY571/IQN-and-Extensions/blob/master/IQN-DQN.ipynb)
+
+
+## Sunday Results
+I changed from continous problem to discrete, there is no improvement !

@@ -119,7 +119,7 @@ class QNetwork(nn.Module):
         self.env = env
         self.n_atoms = n_atoms
         self.register_buffer("atoms", torch.linspace(v_min, v_max, steps=n_atoms))
-        self.n = env.single_action_space.n
+        self.n = 9
         obs_shape = env.observation_space.shape
         self.network = nn.Sequential(
             nn.Linear(np.array(obs_shape).prod(), 256),
@@ -178,11 +178,10 @@ class Args:
     # Training control
     total_timesteps: int = int(1e6)
     buffer_size: int = int(1e6)
-    batch_size: int = 256
-    learning_starts: int = 10_000
+    batch_size: int = 10
+    learning_starts: int = 25
     learning_rate: float = 2.5e-4
     gamma: float = 0.99
-    autotune: bool = True
 
     # C51-specific settings
     n_atoms: int = 201  # increased from 101 → improves value resolution
@@ -191,17 +190,20 @@ class Args:
     """Minimum value of value distribution — matches min cumulative reward (since reward is [0,1])."""
     v_max: float = 256.0
     """Maximum value of value distribution — 1 (max reward/step) × 256 steps/episode."""
-    
+
     # Exploration schedule
     start_e: float = 1.0
     end_e: float = 0.05
     exploration_fraction: float = 0.5
 
     # Target network update (soft)
+    train_frequency: int = 10
+    """the frequency of training"""
     tau: float = 0.005
     """Soft update coefficient for the target network."""
     target_network_frequency: int = 2
     """Deprecated if using soft update, retained for compatibility."""
+
 
 def saving_img(
     image_folder: str,
@@ -353,8 +355,8 @@ def main():
     }
     rb = (
         ReplayBuffer(
-            state_dim=np.array(env.observation_space.shape).prod(),
-            action_dim=np.array(env.action_space.shape).prod(),
+            state_dim=int(np.array(env.observation_space.shape).prod()),
+            action_dim=int(np.array(env.action_space.shape).prod()),
             device=device,
             buffer_size=args.buffer_size,
             batch_size=args.batch_size,
@@ -391,9 +393,11 @@ def main():
             actions = np.array(env.action_space.sample())
         else:
             x = obs
-            x = torch.Tensor(x).to(device).unsqueeze(0)
-            actions, pmf = q_network.get_action(torch.Tensor(obs).to(device))
-            actions = actions.cpu().numpy()
+            x = torch.Tensor(x).to(device)
+            actions, pmf = q_network.get_action(
+                torch.Tensor(obs).to(device).unsqueeze(0)
+            )
+            actions = actions.cpu()
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         step_episode += 1
@@ -425,8 +429,7 @@ def main():
             data_state = data["state"]
 
             with torch.no_grad():
-                actions, pmf = q_network.get_action(torch.Tensor(data_state).to(device))
-            del actions, data_state, data
+                _, _ = q_network.get_action(torch.Tensor(data_state).to(device))
 
         if global_step > args.learning_starts:
             if global_step % args.train_frequency == 0:
@@ -435,8 +438,8 @@ def main():
                 data_state = data["state"]
                 with torch.no_grad():
                     _, next_pmfs = target_network.get_action(data_next_state)
-                    next_atoms = data.rewards + args.gamma * target_network.atoms * (
-                        1 - data.dones
+                    next_atoms = data["reward"] + args.gamma * target_network.atoms * (
+                        1 - data["done"]
                     )
                     # projection
                     delta_z = target_network.atoms[1] - target_network.atoms[0]
@@ -454,7 +457,7 @@ def main():
                         target_pmfs[i].index_add_(0, l[i].long(), d_m_l[i])
                         target_pmfs[i].index_add_(0, u[i].long(), d_m_u[i])
 
-                _, old_pmfs = q_network.get_action(data_state, data.actions.flatten())
+                _, old_pmfs = q_network.get_action(data_state, data["action"].int())
                 loss = (
                     -(target_pmfs * old_pmfs.clamp(min=1e-5, max=1 - 1e-5).log()).sum(
                         -1
@@ -477,13 +480,11 @@ def main():
                 for param, target_param in zip(
                     q_network.parameters(), target_network.parameters()
                 ):
-                    target_network.data.copy_(
+                    target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
-
-
-        writer.add_scalar("env/anti_M2", actions[0], global_step)
-        writer.add_scalar("env/anti_pd1", actions[1], global_step)
+        writer.add_scalar("env/anti_M2", env.dose_to_class[actions][0], global_step)
+        writer.add_scalar("env/anti_pd1", env.dose_to_class[actions][1], global_step)
 
         writer.add_scalar("env/reward_value", rewards, global_step)
 
@@ -536,12 +537,11 @@ def main():
                 for k in range(1, 6):
                     while not done:
                         x = obs
-                        x = torch.Tensor(x).to(device).unsqueeze(0)
                         with torch.no_grad():
-                            actions, pmf = q_network.get_action(
-                                torch.Tensor(data_state).to(device)
+                            actions, _ = q_network.get_action(
+                                torch.Tensor(obs).to(device).unsqueeze(0)
                             )
-                        actions = actions.cpu().numpy()
+                        actions = actions.cpu()
                         obs, reward, terminated, truncated, info = env.step(actions)
                         saving_img(
                             image_folder=image_folder + f"/{episode}_test_{k}",
@@ -560,11 +560,6 @@ def main():
                     if done:
                         done = False
                         cumulative_return += cumumative_return_episode / step_episode
-                        writer.add_scalar(
-                            "charts/episodic_return_test",
-                            cumumative_return_episode / step_episode,
-                            global_step,
-                        )
                         step_episode = 0
                         cumumative_return_episode = 0
                         obs, info = env.reset(seed=None)
