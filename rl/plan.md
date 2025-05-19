@@ -104,3 +104,11 @@ To simplify the problem:
 
 ## Sunday Results
 I changed from continous problem to discrete, there is no improvement !
+
+# 19 May
+## Launched 
+[x] C51 launched with $\alpha=0.7$
+## Ideas
+ - EMA reward
+ - Add Transformers
+ - Launch on Image
