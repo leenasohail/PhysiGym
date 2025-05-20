@@ -107,8 +107,14 @@ I changed from continous problem to discrete, there is no improvement !
 
 # 19 May
 ## Launched 
-[x] C51 launched with $\alpha=0.7$
+- [x] C51 launched with $\alpha=0.7$ => i have not seen any improvement
 ## Ideas
- - EMA reward
- - Add Transformers
- - Launch on Image
+### In general
+  - Keep changing $\alpha\in[0.5,0.8]$, $\alpha = 0.5$ means $50\%$ of the reward refers to the drug toxicity while $\alpha = 0.8$ means $20\%$ of the reward refers to the drug toxicity. You have to refer to the rewards proposed.
+  - weak reward-action, we can compute $TD(n)$ instead of $TD(1)$
+  - Add Transformers
+  - Launch CNN & Transformers
+### Continous problem
+  - No Idea
+### Discrete problem
+ - Use [Lazy MDP](https://arxiv.org/pdf/2203.08542) for discrete actions (C51)
