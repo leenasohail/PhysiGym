@@ -112,7 +112,7 @@ I changed from continous problem to discrete, there is no improvement !
 ### In general
   - Keep changing $\alpha\in[0.5,0.8]$, $\alpha = 0.5$ means $50\%$ of the reward refers to the drug toxicity while $\alpha = 0.8$ means $20\%$ of the reward refers to the drug toxicity. You have to refer to the rewards proposed.
   - weak reward-action, we can compute $TD(n)$ instead of $TD(1)$
-  - Add Transformers
+  - Add Transformers, the idea behind it is the fact we use a dataframe like of cells and cells can be seen as Token. The transformer will be used as encoder. Besides, there is an advantage in the neural architecture of a Transformer despite it head of attention, the layer norm used which is now used in Reinforcement Leanring seems to stablilize the learning process - [Normalization and Effective Learning Rates in Reinforcement Learning](https://arxiv.org/pdf/2407.01800) and  [Hyperspherical Normalization for Scalable Deep Reinforcement Learning](https://arxiv.org/pdf/2502.15280).
   - Launch CNN & Transformers
 ### Continous problem
   - No Idea
