@@ -148,7 +148,7 @@ def l2_project_weights(model):
     """Project weights of all linear layers to unit L2 norm (per row)."""
     with torch.no_grad():
         for module in model.modules():
-            if isinstance(module, nn.Linear):
+            if isinstance(module, nn.Linear) or isinstance(module, nn.LazyLinear):
                 w = module.weight.data
                 w.div_(w.norm(p=2, dim=1, keepdim=True).clamp(min=1e-6))
 
@@ -224,11 +224,11 @@ list_variable_name = ["anti_M2", "anti_pd1"]
 
 @dataclass
 class Args:
-    name: str = "sac"
+    name: str = "sac_normlayer_l2"
     """the name of this experiment"""
     weight: float = 0.8
     """weight for the reduction of tumor"""
-    reward_type: str = "simple"
+    reward_type: str = "log"
     """type of the reward"""
     seed: int = 1
     """seed of the experiment"""
@@ -250,7 +250,7 @@ class Args:
     """the learning rate of the optimizer"""
     buffer_size: int = int(1e6)
     """the replay memory buffer size"""
-    gamma: float = 0.9995
+    gamma: float = 0.99
     """the discount factor gamma"""
     tau: float = 0.005
     """target smoothing coefficient (default: 0.005)"""

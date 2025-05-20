@@ -117,5 +117,5 @@ I changed from continous problem to discrete, there is no improvement !
 ### Continous problem
   - No Idea
 ### Discrete problem
- - Use [Lazy MDP](https://arxiv.org/pdf/2203.08542) for discrete actions (C51)
+ - Use [Lazy MDP](https://arxiv.org/pdf/2203.08542) for discrete actions (C51) => Not a great idea, because in the current reward used we have already been encouraging ro reduce the amount of drug by $(1 - \alpha) \left(1 - \frac{d_{1,t} + d_{2,t}}{2} \right)$.
  - Increase the number of actions from  \[0, 0.5, 1\] to $[0,0.1,0.2,...,1]$ for each drugs that implies $11^{2}$ classes instead of $3^{2}$ actions
