@@ -118,3 +118,4 @@ I changed from continous problem to discrete, there is no improvement !
   - No Idea
 ### Discrete problem
  - Use [Lazy MDP](https://arxiv.org/pdf/2203.08542) for discrete actions (C51)
+ - Increase the number of actions from  \[0, 0.5, 1\] to $[0,0.1,0.2,...,1]$ for each drugs that implies $11*11=121$ classes instead of $3*3=9$ actions
