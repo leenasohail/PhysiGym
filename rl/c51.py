@@ -31,6 +31,7 @@ from rl.utils.replay_buffer.set_replay_buffer import (
     MinimalImgReplayBuffer,
     ReplayBuffer,
 )
+from rl.utils.img_vid.save_img import saving_img
 import matplotlib.pyplot as plt
 import os
 import imageio.v3 as iio  # Newer version of imageio
@@ -164,8 +165,6 @@ class Args:
     """If True, makes torch backend deterministic."""
     cuda: bool = True
     """If True, enables CUDA (GPU support)."""
-    track: bool = False
-    """Enable tracking (e.g., for wandb)."""
     wandb_project_name: str = "C51_IMAGE_COMPLEX_TME"
     wandb_entity: str = "corporate-manu-sureli"
     wandb_track: bool = True
@@ -178,7 +177,7 @@ class Args:
     # Training control
     total_timesteps: int = int(1e6)
     buffer_size: int = int(1e6)
-    batch_size: int = 10
+    batch_size: int = 256
     learning_starts: int = 25
     learning_rate: float = 2.5e-4
     gamma: float = 0.99
@@ -203,87 +202,6 @@ class Args:
     """Soft update coefficient for the target network."""
     target_network_frequency: int = 2
     """Deprecated if using soft update, retained for compatibility."""
-
-
-def saving_img(
-    image_folder: str,
-    info: dict,
-    step_episode: int,
-    x_min: int,
-    x_max: int,
-    y_min: int,
-    y_max: int,
-    saving_title: str = "output_simulation_image_episode",
-    color_mapping: dict = {},
-):
-    def rgb_to_hex(rgb):
-        return "#{:02x}{:02x}{:02x}".format(
-            int(rgb[0] * 255) if rgb[0] <= 1 else int(rgb[0]),
-            int(rgb[1] * 255) if rgb[1] <= 1 else int(rgb[1]),
-            int(rgb[2] * 255) if rgb[2] <= 1 else int(rgb[2]),
-        )
-
-    os.makedirs(image_folder, exist_ok=True)
-    df_cell = info["df_cell"]
-    fig, ax = plt.subplots(
-        1, 3, figsize=(10, 6), gridspec_kw={"width_ratios": [1, 0.2, 0.2]}
-    )
-    count_cancer_cell = info["number_cancer_cells"]
-    unique_cell_types = df_cell["type"].unique().tolist()
-    for cell_type in unique_cell_types:
-        tuple_color = color_mapping[cell_type]
-        df_celltype = df_cell.loc[
-            (df_cell.dead == 0.0) & (df_cell.type == cell_type), :
-        ]
-        df_celltype.plot(
-            kind="scatter",
-            x="x",
-            y="y",
-            c=rgb_to_hex(tuple_color),
-            xlim=[
-                x_min,
-                x_max,
-            ],
-            ylim=[
-                y_min,
-                y_max,
-            ],
-            grid=True,
-            label=cell_type,
-            s=100,
-            title=f"episode step {str(step_episode).zfill(3)}, cancer cell: {count_cancer_cell}",
-            ax=ax[0],
-        ).legend(loc="lower left")
-
-    # Create a colormap for the color bars (from -1 to 1)
-    list_colors = ["royalblue", "darkorange"]
-
-    # Function to create fluid-like color bars
-    def create_fluid_bar(ax_bar, drug_amount, title, max_amount=1, color="cyan"):
-        ax_bar.set_xlim(0, 1)
-        ax_bar.set_ylim(0, 1)
-        ax_bar.set_title(title, fontsize=10)
-        ax_bar.set_xticks([])
-        ax_bar.set_yticks(np.linspace(0, 1, 5))  # 0% to 100% scale
-
-        # Normalize drug amount (convert to percentage of max)
-        fill_level = drug_amount / max_amount
-
-        # Fill up to the corresponding level
-        ax_bar.fill_betweenx(np.linspace(0, fill_level, 100), 0, 1, color=color)
-
-        # Draw container border
-        ax_bar.spines["left"].set_visible(False)
-        ax_bar.spines["right"].set_visible(False)
-        ax_bar.spines["top"].set_visible(True)
-        ax_bar.spines["bottom"].set_visible(True)
-
-    action = info["action"]
-    for i, (key, value) in enumerate(action.items(), start=1):  # Start index from 1
-        create_fluid_bar(ax[i], value[0], f"drug_{i}", color=list_colors[i - 1])
-
-    plt.savefig(image_folder + f"/{saving_title} step {str(step_episode).zfill(3)}")
-    plt.close(fig)
 
 
 def main():
@@ -483,33 +401,20 @@ def main():
                     target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
-        writer.add_scalar("env/anti_M2", env.dose_to_class[actions][0], global_step)
-        writer.add_scalar("env/anti_pd1", env.dose_to_class[actions][1], global_step)
+        scalars = {
+            "env/anti_M2": actions[0],
+            "env/anti_pd1": actions[1],
+            "env/reward_value": rewards,
+            "env/number_cancer_cells": info["number_cancer_cells"],
+            "env/number_m2": info["number_m2"],
+            "env/number_cd8": info["number_cd8"],
+            "env/number_cd8exhausted": info["number_cd8exhausted"],
+            "env/reward_cancer_cells": info["reward_cancer_cells"],
+            "env/reward_drugs": info["reward_drugs"],
+        }
+        for tag, value in scalars.items():
+            writer.add_scalar(tag, value, global_step)
 
-        writer.add_scalar("env/reward_value", rewards, global_step)
-
-        writer.add_scalar(
-            "env/number_cancer_cells",
-            info["number_cancer_cells"],
-            global_step,
-        )
-        writer.add_scalar(
-            "env/number_m2",
-            info["number_m2"],
-            global_step,
-        )
-
-        writer.add_scalar(
-            "env/number_cd8",
-            info["number_cd8"],
-            global_step,
-        )
-
-        writer.add_scalar(
-            "env/number_cd8exhausted",
-            info["number_cd8exhausted"],
-            global_step,
-        )
         if done:
             # TRY NOT TO MODIFY: record rewards for plotting purposes
             print(

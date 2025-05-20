@@ -95,12 +95,18 @@ class PhysiCellModelWrapper(gym.Wrapper):
             for variable_name, value in zip(self.list_variable_name, action)
         }
         # Take a step in the environment
-        o_observation, r_reward, b_terminated, b_truncated, info = self.env.step(
+        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(
             d_action
         )
         # Preprocess observation (if needed)
         o_observation = np.array(o_observation, dtype=float)
+
+        r_drugs = 1 - np.mean(action)
+
         info["action"] = d_action
-        r_reward = (1 - self.weight) * (1 - np.mean(action)) + r_reward * self.weight
+        info["reward_drugs"] = r_drugs
+        info["reward_cancer_cells"] = r_cancer_cells
+
+        r_reward = (1 - self.weight) * r_drugs + self.weight * r_cancer_cells
 
         return o_observation, r_reward, b_terminated, b_truncated, info
