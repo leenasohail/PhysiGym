@@ -36,14 +36,11 @@ class PhysiCellModelWrapper(gym.Wrapper):
         if self.discrete:
             anti_M2_dose_map = [0.0, 0.5, 1.0]
             anti_pd1_dose_map = [0.0, 0.5, 1.0]
-            dose_to_class = {}
 
             for m2 in anti_M2_dose_map:
                 for pd1 in anti_pd1_dose_map:
                     self.dose_to_class.append([m2, pd1])
-
-            self.dose_to_class = dose_to_class
-            self._action_space = Discrete(n=len(dose_to_class))
+            self._action_space = Discrete(n=len(self.dose_to_class))
         else:
             low = np.array(
                 [
