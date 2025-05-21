@@ -123,5 +123,14 @@ I changed from continous problem to discrete, there is no improvement  for $\alp
 ## Code cleaned
   - Improved the code, more readable (save_img, writer)
   - New reward which combines the both reward
-  - Simulations for $\alpha=0.5$
-  - SImulations for more classes
+  - Simulations for $\alpha=0.5$ -> not adding as much drugs
+
+## Done
+- [x] Save entropy for SAC
+- [x] Launched with image
+- [x] Launched with C51 from 9 classes to 121 classes
+I found [high difference between the Q values](https://wandb.ai/corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/reports/Layer-Norm-or-Hyperspectral-on-Weights-vs-without--VmlldzoxMjg4Mjk1Nw) using [Normalization and Effective Learning Rates in Reinforcement Learning](https://arxiv.org/pdf/2407.01800) and [Hyperspherical Normalization for Scalable Deep Reinforcement Learning](https://arxiv.org/pdf/2502.15280)
+## Ideas to simply the problem
+  - Reduce the stochasticity by modifying the size of the environment (reducing)
+  - Decrease the radius where cancer cells can appear (initial state)
+  - Fix the inital state instead to have a uniform distribution
