@@ -122,8 +122,10 @@ class QNetwork(nn.Module):
         self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
         self.ln2 = nn.LayerNorm(256)
-        self.fc3 = nn.LazyLinear(1)
+        self.fc3 = nn.LazyLinear(64)
+        self.fc4 = nn.LazyLinear(out_features=1)
         self.mish = nn.Mish()
+        self.relu = nn.ReLU()
 
     def forward(self, x, a):
         x = self.feature_extractor(x)  # Extract features
@@ -131,7 +133,10 @@ class QNetwork(nn.Module):
 
         x = self.mish(self.ln1(self.fc1(x)))
         x = self.mish(self.ln2(self.fc2(x)))
-        x = self.fc3(x)
+        x = self.mish(self.fc3(x))
+        x = self.relu(
+            self.fc4(x)
+        )  # value Q function superior or equal to zero because the reward is also superior to zero and one
         return x
 
 
@@ -158,9 +163,11 @@ class Actor(nn.Module):
         self.ln1 = nn.LayerNorm(256)
         self.fc2 = nn.LazyLinear(256)
         self.ln2 = nn.LayerNorm(256)
+        self.fc3 = nn.LazyLinear(256)
         self.fc_mean = nn.LazyLinear(action_dim)
         self.fc_logstd = nn.LazyLinear(action_dim)
         self.relu = nn.ReLU()
+        self.mish = nn.Mish()
         # Action scaling
         self.register_buffer(
             "action_scale",
@@ -180,8 +187,9 @@ class Actor(nn.Module):
     def forward(self, x):
         x = self.feature_extractor(x)  # Extract features
 
-        x = self.relu(self.ln1(self.fc1(x)))
-        x = self.relu(self.ln2(self.fc2(x)))
+        x = self.mish(self.ln1(self.fc1(x)))
+        x = self.mish(self.ln2(self.fc2(x)))
+        x = self.relu(self.fc3(x))
 
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
@@ -217,7 +225,7 @@ list_variable_name = ["anti_M2", "anti_pd1"]
 class Args:
     name: str = "sac_normlayer_l2"
     """the name of this experiment"""
-    weight: float = 0.5
+    weight: float = 0.8
     """weight for the reduction of tumor"""
     reward_type: str = "log"
     """type of the reward"""
@@ -235,11 +243,11 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "simple"
+    observation_type: str = "image_gray"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
-    buffer_size: int = int(1e6)
+    buffer_size: int = int(2e5)
     """the replay memory buffer size"""
     gamma: float = 0.99
     """the discount factor gamma"""
@@ -247,11 +255,11 @@ class Args:
     """target smoothing coefficient (default: 0.005)"""
     batch_size: int = 256
     """the batch size of sample from the reply memory"""
-    learning_starts: float = 25e3
+    learning_starts: float = 10e3
     """timestep to start learning"""
-    policy_lr: float = 1e-4
+    policy_lr: float = 3e-4
     """the learning rate of the policy network optimizer"""
-    q_lr: float = 5e-4
+    q_lr: float = 3e-4
     """the learning rate of the Q network network optimizer"""
     policy_frequency: int = 2
     """the frequency of training policy (delayed)"""
@@ -477,6 +485,7 @@ def main():
                     if args.autotune:
                         with torch.no_grad():
                             _, log_pi, _ = actor.get_action(data_state)
+
                         alpha_loss = (
                             -log_alpha.exp() * (log_pi + target_entropy)
                         ).mean()
@@ -486,6 +495,7 @@ def main():
                         a_optimizer.step()
                         l2_project_weights(actor)
                         alpha = log_alpha.exp().item()
+                    entropy = -log_pi.mean().item()
 
                 losses = {
                     "losses/min_qf_next_target": min_qf_next_target.mean().item(),
@@ -495,6 +505,7 @@ def main():
                     "losses/qf2_loss": qf2_loss.item(),
                     "losses/qf_loss": qf_loss.item() / 2.0,
                     "losses/actor_loss": actor_loss.item(),
+                    "lossed/entropy": entropy,
                 }
 
                 for tag, value in losses.items():
