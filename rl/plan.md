@@ -130,7 +130,11 @@ I changed from continous problem to discrete, there is no improvement  for $\alp
 - [x] Launched with image
 - [x] Launched with C51 from 9 classes to 121 classes
 I found [high difference between the Q values](https://wandb.ai/corporate-manu-sureli/SAC_IMAGE_COMPLEX_TME/reports/Layer-Norm-or-Hyperspectral-on-Weights-vs-without--VmlldzoxMjg4Mjk1Nw) using [Normalization and Effective Learning Rates in Reinforcement Learning](https://arxiv.org/pdf/2407.01800) and [Hyperspherical Normalization for Scalable Deep Reinforcement Learning](https://arxiv.org/pdf/2502.15280)
+
 ## Ideas to simply the problem
+### Modify the environment
   - Reduce the stochasticity by modifying the size of the environment (reducing)
   - Decrease the radius where cancer cells can appear (initial state)
   - Fix the inital state instead to have a uniform distribution
+### Improve C51 into IQN
+ - C51 was already implemented but can we use [IQN](https://github.com/BY571/IQN-and-Extensions/blob/master/IQN-DQN.ipynb) or [RAINBOW](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/rainbow_atari.py)
