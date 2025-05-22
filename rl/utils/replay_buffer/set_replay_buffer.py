@@ -1,9 +1,6 @@
 import torch
 import numpy as np
-import pickle
-import pandas as pd
 from tensordict import TensorDict
-from concurrent.futures import ThreadPoolExecutor
 from numba import njit, prange
 
 
@@ -114,6 +111,49 @@ class ReplayBuffer(object):
 
 
 @njit(parallel=True)
+def colorize_batch(
+    batch_x: np.ndarray,  # (B, N)
+    batch_y: np.ndarray,  # (B, N)
+    batch_t: np.ndarray,  # (B, N)
+    type_to_color_array: np.ndarray,
+    o_batch: np.ndarray,  # (B, C, H, W)
+    use_grayscale: bool = False,
+    normalize: bool = False,
+):
+    B, N = batch_x.shape
+    for i in prange(B):
+        x_valid = batch_x[i]
+        y_valid = batch_y[i]
+        types_valid = batch_t[i]
+
+        for j in range(len(x_valid)):
+            type_idx = types_valid[j]
+
+            if 0 <= type_idx < type_to_color_array.shape[0]:
+                r = type_to_color_array[type_idx, 0]
+                g = type_to_color_array[type_idx, 1]
+                b = type_to_color_array[type_idx, 2]
+            else:
+                r = g = b = 0
+
+            if normalize:
+                r *= 255
+                g *= 255
+                b *= 255
+
+            x = x_valid[j]
+            y = y_valid[j]
+
+            if use_grayscale:
+                gray = r * 0.2989 + g * 0.5870 + b * 0.1140
+                o_batch[i, 0, x, y] = int(gray)
+            else:
+                o_batch[i, 0, x, y] = int(r)
+                o_batch[i, 1, x, y] = int(g)
+                o_batch[i, 2, x, y] = int(b)
+
+
+@njit(parallel=True)
 def colorize(
     x_valid: np.ndarray,
     y_valid: np.ndarray,
@@ -217,8 +257,47 @@ class MinimalImgReplayBuffer:
         type_labels = df_cell["type"].map(type_to_int).to_numpy()
         return np.stack([x, y, type_labels], axis=1)
 
-    def sample(self):
-        batch_size = self.batch_size
+    def batch_convert(self, state_list, grayscale: bool):
+        B = len(state_list)
+        N = max(s.shape[0] for s in state_list)
+
+        # Preallocate arrays
+        batch_x = np.zeros((B, N), dtype=np.int32)
+        batch_y = np.zeros((B, N), dtype=np.int32)
+        batch_t = np.zeros((B, N), dtype=np.int32)
+        mask = np.zeros((B, N), dtype=np.bool_)
+
+        for i, s in enumerate(state_list):
+            x = (s[:, 0] - self.x_min).astype(int)
+            y = (s[:, 1] - self.y_min).astype(int)
+            t = s[:, 2].astype(int)
+
+            valid = (0 <= x) & (x < self.height) & (0 <= y) & (y < self.width)
+            num_valid = valid.sum()
+
+            batch_x[i, :num_valid] = x[valid]
+            batch_y[i, :num_valid] = y[valid]
+            batch_t[i, :num_valid] = t[valid]
+            mask[i, :num_valid] = True
+
+        C = 1 if grayscale else 3
+        o_batch = np.zeros((B, C, self.height, self.width), dtype=np.uint8)
+
+        # Call Numba-accelerated colorization
+        colorize_batch(
+            batch_x,
+            batch_y,
+            batch_t,
+            self.type_to_color_array,
+            o_batch,
+            grayscale,
+            False,
+        )
+
+        return o_batch
+
+    def sample(self, batch_size=None):
+        batch_size = self.batch_size if batch_size is None else batch_size
         assert self.full or (self.buffer_index > batch_size), (
             "Buffer does not have enough samples"
         )
@@ -234,26 +313,13 @@ class MinimalImgReplayBuffer:
         reward = torch.as_tensor(self.reward[sample_index], device=self.device)
         done = torch.as_tensor(self.done[sample_index], device=self.device)
 
-        with ThreadPoolExecutor(max_workers=self.num_workers) as executor:
-            if self.image_gray:
-                state_images = list(
-                    executor.map(self.minimal_array_to_grayscale, state_list)
-                )
-                next_state_images = list(
-                    executor.map(self.minimal_array_to_grayscale, next_state_list)
-                )
-            else:
-                state_images = list(
-                    executor.map(self.minimal_array_to_image, state_list)
-                )
-                next_state_images = list(
-                    executor.map(self.minimal_array_to_image, next_state_list)
-                )
-
-        state_tensor = torch.from_numpy(np.stack(state_images)).float().to(self.device)
-        next_state_tensor = (
-            torch.from_numpy(np.stack(next_state_images)).float().to(self.device)
+        state_images = self.batch_convert(state_list, grayscale=self.image_gray)
+        next_state_images = self.batch_convert(
+            next_state_list, grayscale=self.image_gray
         )
+
+        state_tensor = torch.from_numpy(np.stack(state_images)).float()
+        next_state_tensor = torch.from_numpy(np.stack(next_state_images)).float()
 
         return TensorDict(
             {

@@ -346,22 +346,15 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         C_t = self.np_ratio_nb_cancer_cells * self.init_cancer_cells
         C_prev = C_prev = self.np_ratio_old_nb_cancer_cells * self.init_cancer_cells
-
-        reward = self.normalize(
+        return self.normalize(
             C_t=C_t, C_prev=C_prev, r_min=-0.05, r_max=0.05, max_cells=1000
         )
-        return reward
 
     def normalize(self, C_t, C_prev, r_min=-0.05, r_max=0.05, max_cells=1000):
         if self.reward_type == "log":
             r = np.log(C_t / C_prev)
             r_clipped = np.clip(r, r_min, r_max)
             normalized = (r_clipped - r_min) / (r_max - r_min)
-        elif self.reward_type == "both":
-            r = np.log(C_t / C_prev)
-            r_clipped = np.clip(r, r_min, r_max)
-            normalized = (r_clipped - r_min) / (r_max - r_min)
-            normalized += min(C_t, max_cells) / max_cells
         else:
             normalized = min(C_t, max_cells) / max_cells
         return 1 - normalized
