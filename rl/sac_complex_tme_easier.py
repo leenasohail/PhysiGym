@@ -26,118 +26,7 @@ from rl.utils.replay_buffer.set_replay_buffer import (
     ReplayBuffer,
 )
 from rl.utils.img_vid.save_img import saving_img
-
-
-LOG_STD_MAX = 2
-LOG_STD_MIN = -5
-
-
-class PixelPreprocess(nn.Module):
-    """
-    Normalizes pixel observations to [-0.5, 0.5].
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x):
-        return x.div(255.0).sub(0.5)
-
-
-class SimNorm(nn.Module):
-    """
-    Simplicial normalization.
-    Adapted from https://arxiv.org/abs/2204.00616.
-    """
-
-    def __init__(self, simnorm_dim: int = 8):
-        super().__init__()
-        self.dim = simnorm_dim
-
-    def forward(self, x):
-        shp = x.shape
-        x = x.view(*shp[:-1], -1, self.dim)
-        x = F.softmax(x, dim=-1)
-        return x.view(*shp)
-
-    def __repr__(self):
-        return f"SimNorm(dim={self.dim})"
-
-
-class FeatureExtractor(nn.Module):
-    """Handles both image-based and vector-based state inputs dynamically."""
-
-    def __init__(self, env, cfg):
-        super().__init__()
-        self.cfg = cfg
-
-        obs_shape = env.observation_space.shape
-        self.is_image = len(obs_shape) == 3  # Check if input is an image (C, H, W)
-
-        if self.is_image:
-            # CNN feature extractor
-            num_channels = 8
-            layers = [
-                PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7 * 8, stride=5),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 8, stride=5),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=3),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=1),
-                nn.Flatten(),
-            ]
-            self.feature_extractor = nn.Sequential(*layers)
-            self.feature_size = self._get_feature_size(obs_shape)
-        else:
-            # Directly flatten vector input
-            self.feature_extractor = nn.Identity()
-            self.feature_size = np.prod(obs_shape)
-
-    def _get_feature_size(self, obs_shape):
-        """Pass a dummy tensor through CNN to compute feature size dynamically."""
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, *obs_shape)
-            out = self.feature_extractor(dummy_input)
-            return int(np.prod(out.shape[1:]))
-
-    def forward(self, x):
-        if self.is_image:
-            x = self.feature_extractor(x)  # Apply CNN
-            x = x.view(x.size(0), -1)  # Flatten
-        return x
-
-
-class QNetwork(nn.Module):
-    """Critic network (Q-function)"""
-
-    def __init__(self, env, cfg):
-        super().__init__()
-        self.cfg = cfg
-        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
-
-        # Fully connected layers
-        self.fc1 = nn.LazyLinear(256)
-        self.ln1 = nn.LayerNorm(256)
-        self.fc2 = nn.LazyLinear(256)
-        self.ln2 = nn.LayerNorm(256)
-        self.fc3 = nn.LazyLinear(64)
-        self.fc4 = nn.LazyLinear(out_features=1)
-        self.mish = nn.Mish()
-        self.relu = nn.ReLU()
-
-    def forward(self, x, a):
-        x = self.feature_extractor(x)  # Extract features
-        x = torch.cat([x, a], dim=1)  # Concatenate state and action
-
-        x = self.mish(self.ln1(self.fc1(x)))
-        x = self.mish(self.ln2(self.fc2(x)))
-        x = self.mish(self.fc3(x))
-        x = self.relu(
-            self.fc4(x)
-        )  # value Q function superior or equal to zero because the reward is also superior to zero and one
-        return x
+from rl.utils.utils_layers.layers import QNetwork, ActorContinuous
 
 
 def l2_project_weights(model):
@@ -149,72 +38,6 @@ def l2_project_weights(model):
                 w.div_(w.norm(p=2, dim=1, keepdim=True).clamp(min=1e-6))
 
 
-class Actor(nn.Module):
-    """Policy network (Actor)"""
-
-    def __init__(self, env, cfg):
-        super().__init__()
-        self.cfg = cfg
-        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
-        action_dim = np.prod(env.action_space.shape)
-
-        # Fully connected layers
-        self.fc1 = nn.LazyLinear(256)
-        self.ln1 = nn.LayerNorm(256)
-        self.fc2 = nn.LazyLinear(256)
-        self.ln2 = nn.LayerNorm(256)
-        self.fc3 = nn.LazyLinear(256)
-        self.fc_mean = nn.LazyLinear(action_dim)
-        self.fc_logstd = nn.LazyLinear(action_dim)
-        self.relu = nn.ReLU()
-        self.mish = nn.Mish()
-        # Action scaling
-        self.register_buffer(
-            "action_scale",
-            torch.tensor(
-                (env.action_space.high - env.action_space.low) / 2.0,
-                dtype=torch.float32,
-            ),
-        )
-        self.register_buffer(
-            "action_bias",
-            torch.tensor(
-                (env.action_space.high + env.action_space.low) / 2.0,
-                dtype=torch.float32,
-            ),
-        )
-
-    def forward(self, x):
-        x = self.feature_extractor(x)  # Extract features
-
-        x = self.mish(self.ln1(self.fc1(x)))
-        x = self.mish(self.ln2(self.fc2(x)))
-        x = self.relu(self.fc3(x))
-
-        mean = self.fc_mean(x)
-        log_std = self.fc_logstd(x)
-        log_std = torch.tanh(log_std)
-        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (
-            log_std + 1
-        )  # Stable variance scaling
-
-        return mean, log_std
-
-    def get_action(self, x):
-        mean, log_std = self(x)
-        std = log_std.exp()
-        normal = torch.distributions.Normal(mean, std)
-
-        x_t = normal.rsample()  # Reparameterization trick
-        y_t = torch.tanh(x_t)
-        action = y_t * self.action_scale + self.action_bias
-
-        log_prob = normal.log_prob(x_t)
-        log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + 1e-6)
-        log_prob = log_prob.sum(1, keepdim=True)
-
-        mean = torch.tanh(mean) * self.action_scale + self.action_bias
-        return action, log_prob, mean
 
 
 # Wrap the environment
@@ -327,12 +150,12 @@ def main():
     env = PhysiCellModelWrapper(env=env)
     is_gray = True if args.observation_type == "image_gray" else False
     cfg = {"cfg_FeatureExtractor": {}}
-    actor = Actor(env, cfg).to(device)
+    actor = ActorContinuous(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
     qf2 = QNetwork(env, cfg).to(device)
     qf1_target = QNetwork(env, cfg).to(device)
     qf2_target = QNetwork(env, cfg).to(device)
-    target_actor = Actor(env, cfg).to(device)
+    target_actor = ActorContinuous(env, cfg).to(device)
     target_actor.load_state_dict(actor.state_dict())
     qf1_target.load_state_dict(qf1.state_dict())
     qf2_target.load_state_dict(qf2.state_dict())
@@ -562,7 +385,7 @@ def main():
                 torch.save(
                     checkpoint, model_dir + f"/{args.name}_checkpoint_{episode}.pth"
                 )
-                for k in range(1, 6):
+                for k in range(1, 4):
                     while not done:
                         x = obs
                         x = torch.Tensor(x).to(device).unsqueeze(0)

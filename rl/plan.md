@@ -138,3 +138,13 @@ I found [high difference between the Q values](https://wandb.ai/corporate-manu-s
   - Fix the inital state instead to have a uniform distribution
 ### Improve C51 into IQN
  - C51 was already implemented but can we use [IQN](https://github.com/BY571/IQN-and-Extensions/blob/master/IQN-DQN.ipynb) or [RAINBOW](https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/rainbow_atari.py)
+
+## Done
+ - [x] Much faster replay buffer with numba and jit, jax replay buffer is slowed (mainly caused by the fact the code implies numpy and torch), besides 0.1sec is lost between CPU and GPU, a sample time in around less than  0.13 seconds in CPU while in GPU is around 0.23 seconds for a batch size equals to 128. The batch size has an impact on the performance on the replay buffer
+ - [x] Adding a new state the Transformer state is a dictionnary composed of position, type and if the cell is dead
+## In progress
+ - [...] Building the replay buffer for the Transformer state
+ - [...] Reading about [Temporal Credit Assignment in DRL](https://arxiv.org/pdf/2312.01072) ( our problem is refering to)
+## To Do
+ - [ ] Add Transformers Layers in utils
+ - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
