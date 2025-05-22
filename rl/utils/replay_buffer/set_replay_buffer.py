@@ -114,31 +114,44 @@ class ReplayBuffer(object):
 
 
 @njit(parallel=True)
-def colorize(x_valid, y_valid, types_valid, type_to_color_array, o_observation):
-    for i in prange(len(x_valid)):
+def colorize(
+    x_valid: np.ndarray,
+    y_valid: np.ndarray,
+    types_valid: np.ndarray,
+    type_to_color_array: np.ndarray,
+    o_observation: np.ndarray,
+    use_grayscale: bool = False,
+    normalize: bool = False,
+):
+    n = x_valid.shape[0]
+    for i in prange(n):
         type_idx = types_valid[i]
+
         if 0 <= type_idx < type_to_color_array.shape[0]:
-            r, g, b = type_to_color_array[type_idx]
+            r = type_to_color_array[type_idx, 0]
+            g = type_to_color_array[type_idx, 1]
+            b = type_to_color_array[type_idx, 2]
         else:
-            r, g, b = 0, 0, 0
+            r = g = b = 0
+
+        if normalize:
+            r *= 255
+            g *= 255
+            b *= 255
 
         x = x_valid[i]
         y = y_valid[i]
 
-        # Numba doesn't like writing to global memory from multiple threads,
-        # but we assume no collisions here because each (x, y) is unique.
-        o_observation[0, x, y] = r
-        o_observation[1, x, y] = g
-        o_observation[2, x, y] = b
+        if use_grayscale:
+            gray = r * 0.2989 + g * 0.5870 + b * 0.1140
+            o_observation[0, x, y] = int(gray)
+        else:
+            o_observation[0, x, y] = int(r)
+            o_observation[1, x, y] = int(g)
+            o_observation[2, x, y] = int(b)
 
 
-# --- Your class ---
-class MinimalImgReplayBuffer(object):
-    """
-    A lighter replay buffer that only stores (x, y, type_int) points per state,
-    and reconstructs images when sampling.
-    """
-
+class MinimalImgReplayBuffer:
     def __init__(
         self,
         action_dim: int,
@@ -151,7 +164,7 @@ class MinimalImgReplayBuffer(object):
         y_min: int,
         type_to_color: dict,
         image_gray: bool,
-        num_workers: int = 12,
+        num_workers: int = 10,
     ):
         self.device = device
         self.buffer_size = int(buffer_size)
@@ -173,7 +186,6 @@ class MinimalImgReplayBuffer(object):
         self.image_gray = image_gray
         self.num_workers = num_workers
 
-        # --- Precompute the type_to_color_array for fast lookup ---
         self.type_to_color_array = self._make_type_to_color_array(type_to_color)
 
     def _make_type_to_color_array(self, type_to_color):
@@ -203,9 +215,7 @@ class MinimalImgReplayBuffer(object):
         x = df_cell["x"].to_numpy()
         y = df_cell["y"].to_numpy()
         type_labels = df_cell["type"].map(type_to_int).to_numpy()
-
-        minimal_array = np.stack([x, y, type_labels], axis=1)
-        return minimal_array
+        return np.stack([x, y, type_labels], axis=1)
 
     def sample(self):
         batch_size = self.batch_size
@@ -245,7 +255,7 @@ class MinimalImgReplayBuffer(object):
             torch.from_numpy(np.stack(next_state_images)).float().to(self.device)
         )
 
-        sample = TensorDict(
+        return TensorDict(
             {
                 "state": state_tensor,
                 "action": action,
@@ -256,7 +266,6 @@ class MinimalImgReplayBuffer(object):
             batch_size=batch_size,
             device=self.device,
         )
-        return sample
 
     def minimal_array_to_image(self, state_array):
         x = state_array[:, 0]
@@ -279,14 +288,47 @@ class MinimalImgReplayBuffer(object):
         y_valid = y_norm[valid_mask]
         types_valid = type_int[valid_mask]
 
-        # --- Fast colorization using Numba ---
-        colorize(x_valid, y_valid, types_valid, self.type_to_color_array, o_observation)
+        colorize(
+            x_valid,
+            y_valid,
+            types_valid,
+            self.type_to_color_array,
+            o_observation,
+            False,
+            False,
+        )
 
         return o_observation
 
     def minimal_array_to_grayscale(self, state_array):
-        color_image = self.minimal_array_to_image(state_array)
-        grayscale_image = np.dot(
-            color_image.transpose(1, 2, 0), [0.2989, 0.5870, 0.1140]
-        ).astype(np.uint8)
-        return grayscale_image[np.newaxis, :, :]
+        x = state_array[:, 0]
+        y = state_array[:, 1]
+        type_int = state_array[:, 2].astype(int)
+
+        x_norm = (x - self.x_min).astype(int)
+        y_norm = (y - self.y_min).astype(int)
+
+        o_observation = np.zeros((1, self.height, self.width), dtype=np.uint8)
+
+        valid_mask = (
+            (0 <= x_norm)
+            & (x_norm < self.height)
+            & (0 <= y_norm)
+            & (y_norm < self.width)
+        )
+
+        x_valid = x_norm[valid_mask]
+        y_valid = y_norm[valid_mask]
+        types_valid = type_int[valid_mask]
+
+        colorize(
+            x_valid,
+            y_valid,
+            types_valid,
+            self.type_to_color_array,
+            o_observation,
+            True,
+            False,
+        )
+
+        return o_observation
