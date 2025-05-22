@@ -63,17 +63,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
         """Returns the flattened action space for the wrapper."""
         return self._action_space
 
-    def reset(self, seed=None, options={}):
-        """
-        Resets the environment and preprocesses the observation.
-        """
-        o_observation, info = self.env.reset(seed=seed, options=options)
-
-        # Preprocess observation (if needed)
-        o_observation = np.array(o_observation, dtype=float)
-
-        return o_observation, info
-
     def step(self, action: np.ndarray):
         """
         Steps through the environment using the flattened action.
@@ -95,8 +84,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
         o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(
             d_action
         )
-        # Preprocess observation (if needed)
-        o_observation = np.array(o_observation, dtype=float)
 
         r_drugs = 1 - np.mean(action)
 

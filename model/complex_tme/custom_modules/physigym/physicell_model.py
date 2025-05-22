@@ -72,10 +72,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         reward_type="normalize",
     ):
         self.observation_type = "simple" if None else observation_type
-        if self.observation_type not in [
-            "simple",
-            "image_gray",
-        ]:
+        if self.observation_type not in ["simple", "image_gray", "transformer"]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
@@ -95,6 +92,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.np_ratio_nb_cancer_cells = None
         self.np_ratio_old_nb_cancer_cells = None
         self.reward_type = reward_type
+        self.type_map = {t: i for i, t in enumerate(self.unique_cell_types)}
 
     def get_action_space(self):
         """
@@ -169,6 +167,19 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation_space = spaces.Box(
                 low=0, high=255, shape=(1, self.height, self.width), dtype=np.uint8
             )
+        elif self.observation_type == "transformer":
+            o_observation_space = spaces.Dict(
+                {
+                    "type": spaces.Sequence(
+                        spaces.Discrete(len(self.unique_cell_types))
+                    ),
+                    "dead": spaces.Sequence(spaces.Discrete(2)),
+                    "pos": spaces.Sequence(
+                        spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32)
+                    ),
+                }
+            )
+
         else:
             raise f"Error unknown observation type: {o_observation_space}"
 
@@ -247,6 +258,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     ]
                 )
             o_observation = normalized_concentration_cells / self.init_cancer_cells - 1
+            o_observation = np.array(o_observation, dtype=float)
 
         elif self.observation_type == "image_gray":
             x = self.df_cell["x"].to_numpy()
@@ -275,6 +287,30 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 [0.2989, 0.5870, 0.1140],
             ).astype(np.uint8)
             o_observation = grayscale_image[np.newaxis, :, :]
+            o_observation = np.array(o_observation, dtype=float)
+
+        elif self.observation_type == "transformer":
+            x = self.df_cell["x"].to_numpy()
+            y = self.df_cell["y"].to_numpy()
+            cell_id = self.df_cell["ID"].to_numpy()
+            # Normalizing the coordinates to fit into the image grid
+            x_normalized = (x - self.x_min) / (self.x_max - self.x_min)
+            y_normalized = (y - self.y_min) / (self.y_max - self.y_min)
+            types = (
+                self.df_cell["type"]
+                .map(self.type_map)
+                .fillna(0)
+                .to_numpy(dtype=np.int64)
+                .reshape(-1, 1)
+            )
+            dead = self.df_cell["dead"].to_numpy(dtype=np.int64).reshape(-1, 1)
+            o_observation = {
+                "type": types,  # shape (num_cells,)
+                "dead": dead,  # shape (num_cells,)
+                "pos": np.stack(
+                    [x_normalized, y_normalized], axis=1
+                ),  # shape (num_cells, 2)
+            }
         else:
             raise f"Observation type: {self.observation_type} does not exist"
         return o_observation

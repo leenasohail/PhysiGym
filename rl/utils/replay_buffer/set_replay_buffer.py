@@ -1,4 +1,5 @@
 import torch
+from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 from tensordict import TensorDict
 from numba import njit, prange
@@ -398,3 +399,104 @@ class MinimalImgReplayBuffer:
         )
 
         return o_observation
+
+
+class TransformerReplayBuffer:
+    def __init__(
+        self,
+        action_dim: int,
+        device: torch.device,
+        buffer_size: int,
+        batch_size: int,
+        type_pad_id: int,
+    ):
+        self.device = device
+        self.buffer_size = int(buffer_size)
+
+        self.state = [None] * self.buffer_size
+        self.next_state = [None] * self.buffer_size
+        self.action = np.empty((self.buffer_size, action_dim), dtype=np.float32)
+        self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
+        self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
+
+        self.buffer_index = 0
+        self.full = False
+        self.batch_size = batch_size
+
+        self.type_pad_id = -1  # Typically len(type_map) or -1
+
+    def __len__(self):
+        return self.buffer_size if self.full else self.buffer_index
+
+    def add(self, state: dict, action, reward, next_state: dict, done):
+        self.state[self.buffer_index] = state
+        self.next_state[self.buffer_index] = next_state
+        self.action[self.buffer_index] = action
+        self.reward[self.buffer_index] = reward
+        self.done[self.buffer_index] = done
+
+        self.buffer_index = (self.buffer_index + 1) % self.buffer_size
+        self.full = self.full or self.buffer_index == 0
+
+    def sample(self):
+        batch_size = self.batch_size
+        assert self.full or (self.buffer_index > batch_size), (
+            "Buffer does not have enough samples"
+        )
+
+        sample_index = np.random.randint(
+            0, self.buffer_size if self.full else self.buffer_index, batch_size
+        )
+
+        state_list = [self.state[i] for i in sample_index]
+        next_state_list = [self.next_state[i] for i in sample_index]
+
+        def stack_field(field_name, pad_value):
+            seqs = [torch.tensor(s[field_name]) for s in state_list]
+            return pad_sequence(seqs, batch_first=True, padding_value=pad_value)
+
+        def stack_field_next(field_name, pad_value):
+            seqs = [torch.tensor(s[field_name]) for s in next_state_list]
+            return pad_sequence(seqs, batch_first=True, padding_value=pad_value)
+
+        state_type = stack_field("type", self.type_pad_id).to(self.device)
+        state_dead = stack_field("dead", 1).to(self.device)
+        state_pos = stack_field("pos", [0.0, 0.0]).to(self.device)
+        state_mask = (state_type != self.type_pad_id).int()
+
+        next_state_type = stack_field_next("type", self.type_pad_id).to(self.device)
+        next_state_dead = stack_field_next("dead", 1).to(self.device)
+        next_state_pos = stack_field_next("pos", [0.0, 0.0]).to(self.device)
+        next_state_mask = (next_state_type != self.type_pad_id).int()
+
+        action = torch.tensor(self.action[sample_index], device=self.device)
+        reward = torch.tensor(self.reward[sample_index], device=self.device)
+        done = torch.tensor(self.done[sample_index], device=self.device)
+
+        sample = TensorDict(
+            {
+                "state": TensorDict(
+                    {
+                        "type": state_type,
+                        "dead": state_dead,
+                        "pos": state_pos,
+                        "mask": state_mask,
+                    },
+                    batch_size=batch_size,
+                ),
+                "next_state": TensorDict(
+                    {
+                        "type": next_state_type,
+                        "dead": next_state_dead,
+                        "pos": next_state_pos,
+                        "mask": next_state_mask,
+                    },
+                    batch_size=batch_size,
+                ),
+                "action": action,
+                "reward": reward,
+                "done": done,
+            },
+            batch_size=batch_size,
+        )
+        return sample
