@@ -111,6 +111,7 @@ class QNetwork(nn.Module):
         )  # value Q function superior or equal to zero because the reward is also superior to zero and one
         return x
 
+
 class ActorContinuous(nn.Module):
     """Policy network (ActorContinuous)"""
 
@@ -180,8 +181,10 @@ class ActorContinuous(nn.Module):
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
         return action, log_prob, mean
 
+
 class CellTransformerEncoder(nn.Module):
     def __init__(self, type_vocab_size, embed_dim, n_heads, n_layers, dropout=0.1):
+        # https://docs.pytorch.org/docs/stable/generated/torch.nn.TransformerEncoder.html
         super().__init__()
 
         # Embedding layers for input features
@@ -195,24 +198,28 @@ class CellTransformerEncoder(nn.Module):
             nhead=n_heads,
             dim_feedforward=embed_dim * 4,
             dropout=dropout,
-            batch_first=True  # Set to True for (B, T, D) input shape
+            batch_first=True,  # Set to True for (B, T, D) input shape
         )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=n_layers)
+        self.transformer_encoder = nn.TransformerEncoder(
+            encoder_layer, num_layers=n_layers
+        )
 
         # Output projection (optional, can be adjusted to your use case)
-        self.output_head = nn.Linear(embed_dim, embed_dim)  # for example, to project to latent features
+        self.output_head = nn.Linear(
+            embed_dim, embed_dim
+        )  # for example, to project to latent features
 
     def forward(self, state):
         # state: TensorDict with keys "type", "dead", "pos", "mask"
-        type_embed = self.type_embedding(state["type"])           # (B, T, D)
-        dead_embed = self.dead_embedding(state["dead"])           # (B, T, D)
-        pos_embed = self.pos_linear(state["pos"])                 # (B, T, D)
+        type_embed = self.type_embedding(state["type"])  # (B, T, D)
+        dead_embed = self.dead_embedding(state["dead"])  # (B, T, D)
+        pos_embed = self.pos_linear(state["pos"])  # (B, T, D)
 
         # Combine embeddings
-        x = type_embed + dead_embed + pos_embed                    # (B, T, D)
+        x = type_embed + dead_embed + pos_embed  # (B, T, D)
 
         # Build attention mask
-        attn_mask = ~state["mask"].bool()                          # (B, T), True where we want to ignore
+        attn_mask = ~state["mask"].bool()  # (B, T), True where we want to ignore
 
         # Pass through transformer
         x = self.transformer_encoder(x, src_key_padding_mask=attn_mask)  # (B, T, D)
