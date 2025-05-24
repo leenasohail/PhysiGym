@@ -402,14 +402,14 @@ class MinimalImgReplayBuffer:
 
 
 class TransformerReplayBuffer:
+    MAX_SEQ_LEN = 3000  # Maximum length to pad/truncate sequences
+
     def __init__(
         self,
         action_dim: int,
         device: torch.device,
         buffer_size: int,
         batch_size: int,
-        type_pad_id: int,
-        max_seq_len: int,
     ):
         self.device = device
         self.buffer_size = int(buffer_size)
@@ -424,8 +424,7 @@ class TransformerReplayBuffer:
         self.full = False
         self.batch_size = batch_size
 
-        self.type_pad_id = type_pad_id
-        self.max_seq_len = max_seq_len
+        self.type_pad_id = -1
 
     def __len__(self):
         return self.buffer_size if self.full else self.buffer_index
@@ -460,37 +459,37 @@ class TransformerReplayBuffer:
                 return seq[:target_length]
             elif length < target_length:
                 pad_shape = (target_length - length, *seq.shape[1:])
-                pad_tensor = torch.full(pad_shape, pad_value, dtype=seq.dtype)
+                if isinstance(pad_value, (list, tuple, np.ndarray)):
+                    pad_tensor = torch.tensor(pad_value, dtype=seq.dtype)
+                    pad_tensor = pad_tensor.expand(pad_shape)
+                else:
+                    pad_tensor = torch.full(pad_shape, pad_value, dtype=seq.dtype)
                 return torch.cat([seq, pad_tensor], dim=0)
             return seq
 
         def stack_field_fixed(field_name, pad_value, data_list):
             return torch.stack(
                 [
-                    pad_or_truncate(s[field_name], self.max_seq_len, pad_value)
+                    pad_or_truncate(s[field_name], self.MAX_SEQ_LEN, pad_value)
                     for s in data_list
                 ]
             )
 
-        state_type = stack_field_fixed("type", self.type_pad_id, state_list).to(
-            self.device
-        )
-        state_dead = stack_field_fixed("dead", 1, state_list).to(self.device)
-        state_pos = stack_field_fixed("pos", [0.0, 0.0], state_list).to(self.device)
+        state_type = stack_field_fixed("type", self.type_pad_id, state_list).float()
+        state_dead = stack_field_fixed("dead", 1, state_list).float()
+        state_pos = stack_field_fixed("pos", [0.0, 0.0], state_list).float()
         state_mask = (state_type != self.type_pad_id).int()
 
         next_state_type = stack_field_fixed(
             "type", self.type_pad_id, next_state_list
-        ).to(self.device)
-        next_state_dead = stack_field_fixed("dead", 1, next_state_list).to(self.device)
-        next_state_pos = stack_field_fixed("pos", [0.0, 0.0], next_state_list).to(
-            self.device
-        )
+        ).float()
+        next_state_dead = stack_field_fixed("dead", 1, next_state_list).float()
+        next_state_pos = stack_field_fixed("pos", [0.0, 0.0], next_state_list).float()
         next_state_mask = (next_state_type != self.type_pad_id).int()
 
-        action = torch.tensor(self.action[sample_index], device=self.device)
-        reward = torch.tensor(self.reward[sample_index], device=self.device)
-        done = torch.tensor(self.done[sample_index], device=self.device)
+        action = torch.tensor(self.action[sample_index])
+        reward = torch.tensor(self.reward[sample_index])
+        done = torch.tensor(self.done[sample_index])
 
         sample = TensorDict(
             {
@@ -502,6 +501,7 @@ class TransformerReplayBuffer:
                         "mask": state_mask,
                     },
                     batch_size=batch_size,
+                    device=self.device,
                 ),
                 "next_state": TensorDict(
                     {
@@ -517,5 +517,6 @@ class TransformerReplayBuffer:
                 "done": done,
             },
             batch_size=batch_size,
+            device=self.device,
         )
         return sample
