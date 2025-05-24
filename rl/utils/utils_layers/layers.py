@@ -183,160 +183,109 @@ class ActorContinuous(nn.Module):
 
 
 class CellTransformerEncoder(nn.Module):
-    def __init__(self, dropout=0.1):
-        # https://docs.pytorch.org/docs/stable/generated/torch.nn.TransformerEncoder.html
+    def __init__(self, mode="cls_cnn", dropout=0.1, embed_dim=64, output_dim=10):
+        """
+        mode options:
+          - 'basic': simple sum embeddings + transformer + linear output
+          - 'cnn': like basic but adds 1D CNN pooling after transformer output
+          - 'cls_cnn': adds CLS token, transformer, CNN summary of tokens + CLS concat + final head
+        """
         super().__init__()
+        self.mode = mode
+        self.embed_dim = embed_dim
+        self.output_dim = output_dim
 
-        # Embedding layers for input features
-        self.type_embedding = nn.Linear(1, 2)
-        self.dead_embedding = nn.Linear(1, 2)  # assuming dead is 0 or 1
-        self.pos_linear = nn.Linear(2, 2)  # (x, y) -> embed_dim
+        # Embeddings
+        self.type_embedding = nn.Linear(1, embed_dim)
+        self.dead_embedding = nn.Linear(1, embed_dim)
+        self.pos_linear = nn.Linear(2, embed_dim)
+
+        # CLS token only used in 'cls_cnn' mode
+        if self.mode == "cls_cnn":
+            self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
 
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=2,
-            nhead=1,
-            dim_feedforward=8,
-            dropout=dropout,
-            batch_first=True,  # Set to True for (B, T, D) input shape
-        )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
-
-        # Output projection (optional, can be adjusted to your use case)
-        self.output_head = nn.Linear(
-            2, 10
-        )  # for example, to project to latent features
-
-    def forward(self, state):
-        # state: TensorDict with keys "type", "dead", "pos", "mask"
-        type_embed = self.type_embedding(state["type"])
-        dead_embed = self.dead_embedding(state["dead"])  # (B, T, D)
-        pos_embed = self.pos_linear(state["pos"])  # (B, T, D)
-
-        # Combine embeddings
-        x = type_embed + dead_embed + pos_embed  # (B, T, D)
-
-        # Build attention mask
-        attn_mask = ~state["mask"].bool()  # (B, T), True where we want to ignore
-
-        # Pass through transformer
-        x = self.transformer_encoder(
-            x, src_key_padding_mask=attn_mask.squeeze(-1)
-        )  # (B, T, D)
-
-        # Project to output (if needed)
-        x = self.output_head(x)
-        return x
-
-
-class CellTransformerEncoderWithCNN(nn.Module):
-    def __init__(self, dropout=0.1):
-        super().__init__()
-        self.type_embedding = nn.Linear(1, 2)
-        self.dead_embedding = nn.Linear(1, 2)
-        self.pos_linear = nn.Linear(2, 2)
-
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=2, nhead=1, dim_feedforward=8, dropout=dropout, batch_first=True
-        )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
-        self.output_head = nn.Linear(2, 10)
-
-        self.conv1 = nn.Conv1d(
-            in_channels=10, out_channels=32, kernel_size=3, stride=2, padding=1
-        )
-        self.pool = nn.AdaptiveAvgPool1d(1)
-        self.final = nn.Linear(32, 100)
-
-    def forward(self, state):
-        type_embed = self.type_embedding(state["type"])
-        dead_embed = self.dead_embedding(state["dead"])
-        pos_embed = self.pos_linear(state["pos"])
-
-        x = type_embed + dead_embed + pos_embed
-        attn_mask = ~state["mask"].bool()
-        x = self.transformer_encoder(x, src_key_padding_mask=attn_mask.squeeze(-1))
-        x = self.output_head(x)
-
-        # Apply mask before Conv1D
-        mask = state["mask"]
-        if mask.ndim == 2:
-            mask = mask.unsqueeze(-1)  # (B, T, 1)
-        x = x * mask
-
-        # Conv1D + Pooling
-        x = x.permute(0, 2, 1)  # (B, 10, T)
-        x = self.conv1(x)  # (B, 32, T')
-        x = self.pool(x)  # (B, 32, 1)
-        x = x.squeeze(-1)  # (B, 32)
-        x = self.final(x)  # (B, 16)
-
-        return x
-
-
-class CellTransformerEncoderWithCLSCNN(nn.Module):
-    def __init__(self, dropout=0.1):
-        super().__init__()
-        self.embed_dim = 64
-        self.type_embedding = nn.Linear(1, self.embed_dim)
-        self.dead_embedding = nn.Linear(1, self.embed_dim)
-        self.pos_linear = nn.Linear(2, self.embed_dim)
-
-        # CLS token
-        self.cls_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
-
-        # Transformer
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=self.embed_dim,
-            nhead=4,
-            dim_feedforward=256,
+            d_model=embed_dim,
+            nhead=4 if embed_dim >= 32 else 1,
+            dim_feedforward=embed_dim * 4,
             dropout=dropout,
             batch_first=True,
         )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
 
-        # CNN for summarizing the token sequence (excluding CLS)
-        self.cnn_summary = nn.Sequential(
-            nn.Conv1d(self.embed_dim, self.embed_dim, kernel_size=3, padding=1),
-            nn.ReLU(),
-            nn.AdaptiveAvgPool1d(1),  # (B, D, 1)
-        )
-
-        # Final output head
-        self.output_head = nn.Linear(self.embed_dim * 2, 10)
+        # CNN layers only used in 'cnn' and 'cls_cnn' modes
+        if self.mode == "cnn":
+            self.conv1 = nn.Conv1d(
+                in_channels=output_dim,
+                out_channels=32,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+            )
+            self.pool = nn.AdaptiveAvgPool1d(1)
+            self.final = nn.Linear(32, output_dim)
+        elif self.mode == "cls_cnn":
+            self.cnn_summary = nn.Sequential(
+                nn.Conv1d(embed_dim, embed_dim, kernel_size=3, padding=1),
+                nn.ReLU(),
+                nn.AdaptiveAvgPool1d(1),
+            )
+            self.output_head = nn.Linear(embed_dim * 2, output_dim)
+        else:
+            # basic mode just projects transformer output tokens to output_dim
+            self.output_head = nn.Linear(embed_dim, output_dim)
 
     def forward(self, state):
-        B, T, _ = state["type"].shape
+        B, T = state["type"].shape[:2]
 
-        # Embedding
+        # Embed inputs
         type_embed = self.type_embedding(state["type"])
         dead_embed = self.dead_embedding(state["dead"])
         pos_embed = self.pos_linear(state["pos"])
+
         x = type_embed + dead_embed + pos_embed  # (B, T, D)
 
-        # CLS token
-        cls_token = self.cls_token.expand(B, 1, self.embed_dim)
-        x = torch.cat([cls_token, x], dim=1)  # (B, T+1, D)
-
-        attn_mask = ~state["mask"].bool()  # might be (B, T, 1)
+        # Build padding mask (True where to ignore)
+        attn_mask = ~state["mask"].bool()
         if attn_mask.dim() == 3 and attn_mask.size(-1) == 1:
-            attn_mask = attn_mask.squeeze(-1)  # (B, T)
+            attn_mask = attn_mask.squeeze(-1)
 
-        cls_pad = torch.zeros(
-            (B, 1), dtype=torch.bool, device=attn_mask.device
-        )  # (B, 1)
-        attn_mask = torch.cat([cls_pad, attn_mask], dim=1)  # (B, T+1)
+        if self.mode == "cls_cnn":
+            # Add CLS token
+            cls_token = self.cls_token.expand(B, 1, self.embed_dim)
+            x = torch.cat([cls_token, x], dim=1)  # (B, T+1, D)
 
-        # Transformer
-        x = self.transformer_encoder(x, src_key_padding_mask=attn_mask)  # (B, T+1, D)
+            # Update mask for CLS token: CLS token is never masked
+            cls_pad = torch.zeros((B, 1), dtype=torch.bool, device=attn_mask.device)
+            attn_mask = torch.cat([cls_pad, attn_mask], dim=1)  # (B, T+1)
 
-        # Split CLS and tokens
-        cls_out = x[:, 0]  # (B, D)
-        tokens = x[:, 1:]  # (B, T, D)
+            x = self.transformer_encoder(x, src_key_padding_mask=attn_mask)
+            cls_out = x[:, 0]  # CLS output (B, D)
+            tokens = x[:, 1:]  # token outputs (B, T, D)
 
-        # CNN summary
-        tokens_cnn = self.cnn_summary(tokens.transpose(1, 2)).squeeze(-1)  # (B, D)
+            tokens_cnn = self.cnn_summary(tokens.transpose(1, 2)).squeeze(-1)  # (B, D)
+            combined = torch.cat([cls_out, tokens_cnn], dim=-1)  # (B, 2D)
+            out = self.output_head(combined)  # (B, output_dim)
+            return out
 
-        # Combine CLS + CNN
-        combined = torch.cat([cls_out, tokens_cnn], dim=-1)  # (B, 2D)
-        return self.output_head(combined)  # (B, output_dim)
+        else:
+            # Basic and cnn modes: no CLS token
+            x = self.transformer_encoder(x, src_key_padding_mask=attn_mask)  # (B, T, D)
+            x = self.output_head(x)  # (B, T, output_dim)
+
+            if self.mode == "cnn":
+                mask = state["mask"]
+                if mask.dim() == 2:
+                    mask = mask.unsqueeze(-1)  # (B, T, 1)
+                x = x * mask  # mask out padded tokens
+
+                x = x.permute(0, 2, 1)  # (B, output_dim, T)
+                x = self.conv1(x)  # (B, 32, T')
+                x = self.pool(x)  # (B, 32, 1)
+                x = x.squeeze(-1)  # (B, 32)
+                x = self.final(x)  # (B, output_dim)
+                return x
+
+            # Basic mode returns all token outputs (B, T, output_dim)
+            return x  # (B, output_dim)
