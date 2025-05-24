@@ -227,3 +227,116 @@ class CellTransformerEncoder(nn.Module):
         # Project to output (if needed)
         x = self.output_head(x)
         return x
+
+
+class CellTransformerEncoderWithCNN(nn.Module):
+    def __init__(self, dropout=0.1):
+        super().__init__()
+        self.type_embedding = nn.Linear(1, 2)
+        self.dead_embedding = nn.Linear(1, 2)
+        self.pos_linear = nn.Linear(2, 2)
+
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=2, nhead=1, dim_feedforward=8, dropout=dropout, batch_first=True
+        )
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
+        self.output_head = nn.Linear(2, 10)
+
+        self.conv1 = nn.Conv1d(
+            in_channels=10, out_channels=32, kernel_size=3, stride=2, padding=1
+        )
+        self.pool = nn.AdaptiveAvgPool1d(1)
+        self.final = nn.Linear(32, 100)
+
+    def forward(self, state):
+        type_embed = self.type_embedding(state["type"])
+        dead_embed = self.dead_embedding(state["dead"])
+        pos_embed = self.pos_linear(state["pos"])
+
+        x = type_embed + dead_embed + pos_embed
+        attn_mask = ~state["mask"].bool()
+        x = self.transformer_encoder(x, src_key_padding_mask=attn_mask.squeeze(-1))
+        x = self.output_head(x)
+
+        # Apply mask before Conv1D
+        mask = state["mask"]
+        if mask.ndim == 2:
+            mask = mask.unsqueeze(-1)  # (B, T, 1)
+        x = x * mask
+
+        # Conv1D + Pooling
+        x = x.permute(0, 2, 1)  # (B, 10, T)
+        x = self.conv1(x)  # (B, 32, T')
+        x = self.pool(x)  # (B, 32, 1)
+        x = x.squeeze(-1)  # (B, 32)
+        x = self.final(x)  # (B, 16)
+
+        return x
+
+
+class CellTransformerEncoderWithCLSCNN(nn.Module):
+    def __init__(self, dropout=0.1):
+        super().__init__()
+        self.embed_dim = 64
+        self.type_embedding = nn.Linear(1, self.embed_dim)
+        self.dead_embedding = nn.Linear(1, self.embed_dim)
+        self.pos_linear = nn.Linear(2, self.embed_dim)
+
+        # CLS token
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
+
+        # Transformer
+        encoder_layer = nn.TransformerEncoderLayer(
+            d_model=self.embed_dim,
+            nhead=4,
+            dim_feedforward=256,
+            dropout=dropout,
+            batch_first=True,
+        )
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
+
+        # CNN for summarizing the token sequence (excluding CLS)
+        self.cnn_summary = nn.Sequential(
+            nn.Conv1d(self.embed_dim, self.embed_dim, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool1d(1),  # (B, D, 1)
+        )
+
+        # Final output head
+        self.output_head = nn.Linear(self.embed_dim * 2, 10)
+
+    def forward(self, state):
+        B, T, _ = state["type"].shape
+
+        # Embedding
+        type_embed = self.type_embedding(state["type"])
+        dead_embed = self.dead_embedding(state["dead"])
+        pos_embed = self.pos_linear(state["pos"])
+        x = type_embed + dead_embed + pos_embed  # (B, T, D)
+
+        # CLS token
+        cls_token = self.cls_token.expand(B, 1, self.embed_dim)
+        x = torch.cat([cls_token, x], dim=1)  # (B, T+1, D)
+
+        attn_mask = ~state["mask"].bool()  # might be (B, T, 1)
+        if attn_mask.dim() == 3 and attn_mask.size(-1) == 1:
+            attn_mask = attn_mask.squeeze(-1)  # (B, T)
+
+        cls_pad = torch.zeros(
+            (B, 1), dtype=torch.bool, device=attn_mask.device
+        )  # (B, 1)
+        attn_mask = torch.cat([cls_pad, attn_mask], dim=1)  # (B, T+1)
+
+        # Transformer
+        x = self.transformer_encoder(x, src_key_padding_mask=attn_mask)  # (B, T+1, D)
+
+        # Split CLS and tokens
+        cls_out = x[:, 0]  # (B, D)
+        tokens = x[:, 1:]  # (B, T, D)
+
+        # CNN summary
+        tokens_cnn = self.cnn_summary(tokens.transpose(1, 2)).squeeze(-1)  # (B, D)
+
+        # Combine CLS + CNN
+        combined = torch.cat([cls_out, tokens_cnn], dim=-1)  # (B, 2D)
+        return self.output_head(combined)  # (B, output_dim)
