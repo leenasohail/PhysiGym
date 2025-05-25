@@ -44,8 +44,10 @@ class FeatureExtractor(nn.Module):
         self.cfg = cfg
 
         obs_shape = env.observation_space.shape
-        self.is_image = len(obs_shape) == 3  # Check if input is an image (C, H, W)
-
+        self.is_image = (
+            cfg["data_type"] == "image"
+        )  # Check if input is an image (C, H, W)
+        self.is_transfomer = cfg["data_type"] == "transformer"
         if self.is_image:
             # CNN feature extractor
             num_channels = 8
@@ -62,6 +64,9 @@ class FeatureExtractor(nn.Module):
             ]
             self.feature_extractor = nn.Sequential(*layers)
             self.feature_size = self._get_feature_size(obs_shape)
+        elif self.is_transfomer:
+            self.feature_extractor = CellTransformerEncoder(cfg=cfg)
+            self.feature_size = self.feature_extractor.output_dim
         else:
             # Directly flatten vector input
             self.feature_extractor = nn.Identity()
@@ -183,7 +188,7 @@ class ActorContinuous(nn.Module):
 
 
 class CellTransformerEncoder(nn.Module):
-    def __init__(self, mode="cls_cnn", dropout=0.1, embed_dim=64, output_dim=10):
+    def __init__(self, cfg):
         """
         mode options:
           - 'basic': simple sum embeddings + transformer + linear output
@@ -191,50 +196,52 @@ class CellTransformerEncoder(nn.Module):
           - 'cls_cnn': adds CLS token, transformer, CNN summary of tokens + CLS concat + final head
         """
         super().__init__()
-        self.mode = mode
-        self.embed_dim = embed_dim
-        self.output_dim = output_dim
+        self.mode = cfg["mode"]
+        self.embed_dim = cfg["embed_dim"]
+        self.output_dim = cfg["output_dim"]
+        self.dropout = cfg["dropout"]
 
         # Embeddings
-        self.type_embedding = nn.Linear(1, embed_dim)
-        self.dead_embedding = nn.Linear(1, embed_dim)
-        self.pos_linear = nn.Linear(2, embed_dim)
+        self.type_embedding = nn.Linear(1, self.embed_dim)
+        self.dead_embedding = nn.Linear(1, self.embed_dim)
+        self.pos_linear = nn.Linear(2, self.embed_dim)
 
         # CLS token only used in 'cls_cnn' mode
         if self.mode == "cls_cnn":
-            self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
+            self.cls_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
 
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=embed_dim,
-            nhead=4 if embed_dim >= 32 else 1,
-            dim_feedforward=embed_dim * 4,
-            dropout=dropout,
+            d_model=self.embed_dim,
+            nhead=4 if self.embed_dim >= 32 else 1,
+            dim_feedforward=self.embed_dim * 4,
+            dropout=self.dropout,
             batch_first=True,
         )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=4)
 
         # CNN layers only used in 'cnn' and 'cls_cnn' modes
         if self.mode == "cnn":
+            self.output_head = nn.Linear(self.embed_dim, self.output_dim)
             self.conv1 = nn.Conv1d(
-                in_channels=output_dim,
+                in_channels=self.output_dim,
                 out_channels=32,
                 kernel_size=3,
                 stride=2,
                 padding=1,
             )
             self.pool = nn.AdaptiveAvgPool1d(1)
-            self.final = nn.Linear(32, output_dim)
+            self.final = nn.Linear(32, self.output_dim)
         elif self.mode == "cls_cnn":
             self.cnn_summary = nn.Sequential(
-                nn.Conv1d(embed_dim, embed_dim, kernel_size=3, padding=1),
+                nn.Conv1d(self.embed_dim, self.embed_dim, kernel_size=3, padding=1),
                 nn.ReLU(),
                 nn.AdaptiveAvgPool1d(1),
             )
-            self.output_head = nn.Linear(embed_dim * 2, output_dim)
+            self.output_head = nn.Linear(self.embed_dim * 2, self.output_dim)
         else:
             # basic mode just projects transformer output tokens to output_dim
-            self.output_head = nn.Linear(embed_dim, output_dim)
+            self.output_head = nn.Linear(self.embed_dim, self.output_dim)
 
     def forward(self, state):
         B, T = state["type"].shape[:2]
