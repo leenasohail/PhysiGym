@@ -24,20 +24,10 @@ from rl.utils.wrappers.wrapper_physicell_complex_tme import PhysiCellModelWrappe
 from rl.utils.replay_buffer.set_replay_buffer import (
     MinimalImgReplayBuffer,
     ReplayBuffer,
+    TransformerReplayBuffer,
 )
 from rl.utils.img_vid.save_img import saving_img
 from rl.utils.utils_layers.layers import QNetwork, ActorContinuous
-
-
-def l2_project_weights(model):
-    """Project weights of all linear layers to unit L2 norm (per row)."""
-    with torch.no_grad():
-        for module in model.modules():
-            if isinstance(module, nn.Linear) or isinstance(module, nn.LazyLinear):
-                w = module.weight.data
-                w.div_(w.norm(p=2, dim=1, keepdim=True).clamp(min=1e-6))
-
-
 
 
 # Wrap the environment
@@ -149,7 +139,15 @@ def main():
     cumulative_return = 0
     env = PhysiCellModelWrapper(env=env)
     is_gray = True if args.observation_type == "image_gray" else False
-    cfg = {"cfg_FeatureExtractor": {}}
+    cfg = {
+        "cfg_FeatureExtractor": {
+            "data_type": "transformer",
+            "mode": "cnn",
+            "dropout": 0.1,
+            "embed_dim": 64,
+            "output_dim": 64,
+        }
+    }
     actor = ActorContinuous(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
     qf2 = QNetwork(env, cfg).to(device)
@@ -176,8 +174,9 @@ def main():
     type_to_int = {
         name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
     }
-    rb = (
-        ReplayBuffer(
+    action_dim = np.array(env.action_space.shape).prod()
+    if args.observation_type == "simple":
+        rb = ReplayBuffer(
             state_dim=np.array(env.observation_space.shape).prod(),
             action_dim=np.array(env.action_space.shape).prod(),
             device=device,
@@ -185,9 +184,17 @@ def main():
             batch_size=args.batch_size,
             state_type=env.observation_space.dtype,
         )
-        if args.observation_type == "simple"
-        else MinimalImgReplayBuffer(
-            action_dim=np.array(env.action_space.shape).prod(),
+    elif args.observation_type == "transformer":
+        rb = TransformerReplayBuffer(
+            action_dim=action_dim,
+            device=device,
+            buffer_size=args.buffer_size,
+            batch_size=args.batch_size,
+        )
+
+    else:
+        rb = MinimalImgReplayBuffer(
+            action_dim=action_dim,
             device=device,
             buffer_size=args.buffer_size,
             batch_size=args.batch_size,
@@ -198,7 +205,6 @@ def main():
             type_to_color={v: color_mapping[k] for k, v in type_to_int.items()},
             image_gray=is_gray,
         )
-    )
 
     # TRY NOT TO MODIFY: start the game
     obs, info = env.reset(seed=args.seed)
@@ -287,8 +293,6 @@ def main():
             q_optimizer.zero_grad()
             qf_loss.backward()
             q_optimizer.step()
-            l2_project_weights(qf1_target)
-            l2_project_weights(qf2_target)
 
             if global_step % args.policy_frequency == 0:  # TD 3 Delayed update support
                 for _ in range(
@@ -303,7 +307,6 @@ def main():
                     actor_optimizer.zero_grad()
                     actor_loss.backward()
                     actor_optimizer.step()
-                    l2_project_weights(actor)
 
                     if args.autotune:
                         with torch.no_grad():
@@ -316,7 +319,6 @@ def main():
                         a_optimizer.zero_grad()
                         alpha_loss.backward()
                         a_optimizer.step()
-                        l2_project_weights(actor)
                         alpha = log_alpha.exp().item()
                     entropy = -log_pi.mean().item()
 
