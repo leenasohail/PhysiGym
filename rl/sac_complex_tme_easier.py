@@ -175,7 +175,7 @@ def main():
         name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
     }
     action_dim = np.array(env.action_space.shape).prod()
-    if args.observation_type == "simple":
+    if args.observation_type == "simple" or args.observation_type == "transformer":
         rb = ReplayBuffer(
             state_dim=np.array(env.observation_space.shape).prod(),
             action_dim=np.array(env.action_space.shape).prod(),

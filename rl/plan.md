@@ -149,8 +149,9 @@ I found [high difference between the Q values](https://wandb.ai/corporate-manu-s
 WHat is the impact of set of actions to contribute to a realization ? In our case, the set of actions is the set of drugs introduced and the realization the complete or almost complete eradication of cancer cells. This is the credit assignment, to map actions to an outcome under delay, partial observability, stochasticity from the MDP and the environment. [Phd thesis from Johan Ferret](https://theses.hal.science/tel-03958482/document)
 ## Done
  - [x] Add Transformers Layers in utils
+ - [x] Launch SAC with Transformers
 ## To Do
- - [ ] Launch SAC with Transformers
+ - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
  - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
  - [ ] Adapt the code SAIL+C51
 
