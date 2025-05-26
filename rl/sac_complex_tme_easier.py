@@ -13,6 +13,7 @@ import wandb
 import tyro
 import sys, os
 from torch.utils.tensorboard import SummaryWriter
+from tensordict import TensorDict
 
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
@@ -84,6 +85,22 @@ class Args:
     """automatic tuning of the entropy coefficient"""
     wandb_track: bool = True
     """track with wandb"""
+
+
+def pad_or_truncate(seq, target_length, pad_value):
+    seq = torch.tensor(seq)
+    length = seq.size(0)
+    if length > target_length:
+        return seq[:target_length]
+    elif length < target_length:
+        pad_shape = (target_length - length, *seq.shape[1:])
+        if isinstance(pad_value, (list, tuple, np.ndarray)):
+            pad_tensor = torch.tensor(pad_value, dtype=seq.dtype)
+            pad_tensor = pad_tensor.expand(pad_shape)
+        else:
+            pad_tensor = torch.full(pad_shape, pad_value, dtype=seq.dtype)
+        return torch.cat([seq, pad_tensor], dim=0)
+    return seq
 
 
 def main():
@@ -175,7 +192,7 @@ def main():
         name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
     }
     action_dim = np.array(env.action_space.shape).prod()
-    if args.observation_type == "simple" or args.observation_type == "transformer":
+    if args.observation_type == "simple":
         rb = ReplayBuffer(
             state_dim=np.array(env.observation_space.shape).prod(),
             action_dim=np.array(env.action_space.shape).prod(),
@@ -217,7 +234,26 @@ def main():
             actions = np.array(env.action_space.sample())
         else:
             x = obs
-            x = torch.Tensor(x).to(device).unsqueeze(0)
+            if args.observation_type != "transformer":
+                x = torch.Tensor(x).to(device).unsqueeze(0)
+            else:
+                state_type = pad_or_truncate(x["type"], rb.MAX_SEQ_LEN, -1).float()
+                state_dead = pad_or_truncate(x["dead"], rb.MAX_SEQ_LEN, 1).float()
+                state_pos = pad_or_truncate(
+                    x["pos"], rb.MAX_SEQ_LEN, [0.0, 0.0]
+                ).float()
+                state_mask = (state_type != -1).int()
+                x = TensorDict(
+                    {
+                        "type": state_type.unsqueeze(0),
+                        "dead": state_dead.unsqueeze(0),
+                        "pos": state_pos.unsqueeze(0),
+                        "mask": state_mask.unsqueeze(0),
+                    },
+                    batch_size=1,
+                    device=device,
+                )
+
             actions, _, _ = actor.get_action(x)
             actions = actions.detach().squeeze(0).cpu().numpy()
         # TRY NOT TO MODIFY: execute the game and log data.
@@ -236,7 +272,7 @@ def main():
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
         cumulative_return += rewards
-        if args.observation_type == "simple":
+        if args.observation_type == "simple" or args.observation_type == "transformer":
             rb.add(obs, actions, rewards, next_obs, done)
         else:
             rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done, type_to_int)
@@ -390,7 +426,29 @@ def main():
                 for k in range(1, 4):
                     while not done:
                         x = obs
-                        x = torch.Tensor(x).to(device).unsqueeze(0)
+                        if not args.observation_type != "transformer":
+                            x = torch.Tensor(x).to(device).unsqueeze(0)
+                        else:
+                            state_type = pad_or_truncate(
+                                x["type"], rb.MAX_SEQ_LEN, -1
+                            ).float()
+                            state_dead = pad_or_truncate(
+                                x["dead"], rb.MAX_SEQ_LEN, 1
+                            ).float()
+                            state_pos = pad_or_truncate(
+                                x["pos"], rb.MAX_SEQ_LEN, [0.0, 0.0]
+                            ).float()
+                            state_mask = (state_type != -1).int()
+                            x = TensorDict(
+                                {
+                                    "type": state_type,
+                                    "dead": state_dead,
+                                    "pos": state_pos,
+                                    "mask": state_mask,
+                                },
+                                batch_size=1,
+                                device=args.device,
+                            )
                         with torch.no_grad():  # Disable gradients for inference
                             actions, _, _ = actor.get_action(x)
                         actions = actions.detach().squeeze(0).cpu().numpy()

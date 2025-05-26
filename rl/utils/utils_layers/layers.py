@@ -83,6 +83,8 @@ class FeatureExtractor(nn.Module):
         if self.is_image:
             x = self.feature_extractor(x)  # Apply CNN
             x = x.view(x.size(0), -1)  # Flatten
+        elif self.is_transfomer:
+            x = self.feature_extractor(x)
         return x
 
 
@@ -156,7 +158,6 @@ class ActorContinuous(nn.Module):
 
     def forward(self, x):
         x = self.feature_extractor(x)  # Extract features
-
         x = self.mish(self.ln1(self.fc1(x)))
         x = self.mish(self.ln2(self.fc2(x)))
         x = self.relu(self.fc3(x))
