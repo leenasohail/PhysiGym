@@ -143,15 +143,21 @@ I found [high difference between the Q values](https://wandb.ai/corporate-manu-s
  - [x] Much faster replay buffer with numba and jit, jax replay buffer is slowed (mainly caused by the fact the code implies numpy and torch), besides 0.1sec is lost between CPU and GPU, a sample time in around less than  0.13 seconds in CPU while in GPU is around 0.23 seconds for a batch size equals to 128. The batch size has an impact on the performance on the replay buffer
  - [x] Adding a new state the Transformer state is a dictionnary composed of position, type and if the cell is dead
 ## In progress
- - [...] Building the replay buffer for the Transformer state
  - [...] Reading about [Temporal Credit Assignment in DRL](https://arxiv.org/pdf/2312.01072) ( our problem is refering to)
 ## Idea 
 WHat is the impact of set of actions to contribute to a realization ? In our case, the set of actions is the set of drugs introduced and the realization the complete or almost complete eradication of cancer cells. This is the credit assignment, to map actions to an outcome under delay, partial observability, stochasticity from the MDP and the environment. [Phd thesis from Johan Ferret](https://theses.hal.science/tel-03958482/document)
+# 26 May
 ## Done
  - [x] Add Transformers Layers in utils
- - [x] Launch SAC with Transformers
+ - [x] Launch SAC with Transformers (Sureli11)
+ - [x] Added tumor immune base
+ - [x] Launch SAC with Transfomers with the new tumor immune base (Sureli9)
+ - [x] Building the replay buffer for the Transformer state 
+
 ## To Do
  - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
+ - [ ] Clean Code urgent
+ - [ ] Check for Cmake does not work when you use make install_requirement
  - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
  - [ ] Adapt the code SAIL+C51
 
