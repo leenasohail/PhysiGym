@@ -154,6 +154,39 @@ WHat is the impact of set of actions to contribute to a realization ? In our cas
  - [x] Launch SAC with Transfomers with the new tumor immune base (Sureli9)
  - [x] Building the replay buffer for the Transformer state 
 
+## :warning: Important Problems :warning:
+Be aware of the path used in the PhysiCell_settings.xml file ! 
+Replace **Basic_Agent::release_internalized_substrates** in the file **BioFVM_basic_agent.cpp** by 
+```cpp
+void Basic_Agent::release_internalized_substrates( void )
+{
+	Microenvironment* pS = get_default_microenvironment(); 
+	
+	// change in total in voxel: 
+	// total_ext = total_ext + fraction*total_internal 
+	// total_ext / vol_voxel = total_ext / vol_voxel + fraction*total_internal / vol_voxel 
+	// density_ext += fraction * total_internal / vol_volume 
+	
+	// std::cout << "\t\t\t" << (*pS)(current_voxel_index) << "\t\t\t" << std::endl; 
+	*internalized_substrates /=  pS->voxels(current_voxel_index).volume; // turn to density 
+	*internalized_substrates *= *fraction_released_at_death;  // what fraction is released? 
+	
+	// release this amount into the environment 
+	if ((*pS)(current_voxel_index).size() ==6)
+	{
+		(*pS)(current_voxel_index) += *internalized_substrates; 
+	}
+	
+	// zero out the now-removed substrates 
+	
+	internalized_substrates->assign( internalized_substrates->size() , 0.0 ); 
+	
+	return; 
+}
+```
+That avoids a Segmentation Fault!
+
+
 ## To Do
  - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
  - [ ] Clean Code urgent
