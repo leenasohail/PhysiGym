@@ -24,7 +24,7 @@ dynamic = ["version"]
 description = "Embed PhysiCell into Python."
 #readme = "README.md"
 requires-python = ">=3.8, <4"
-license = {text="BSD-3-Clause"}
+license = "BSD-3-Clause"
 authors = [{name="Elmar Bucher", email="epbucher@iu.edu"}]
 maintainers = [{name="Elmar Bucher", email="epbucher@iu.edu"}]
 keywords = [
@@ -38,7 +38,6 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
