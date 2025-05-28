@@ -190,9 +190,9 @@ That avoids a Segmentation Fault!
 With the new model, the drug transforms M2 (pro tumor) to M1 (anti tumor).
 The goal is to reduce the tumor size while minimizing the amount of drug added.
 I tested several different reward functions. The plot shared on Slack corresponds to the following reward function:
-$$
+```math
 r(t) = -d_t*(1-\alpha) + \alpha*10 \cdot \mathbb{1}_{\{C_t = 0\}}
-$$
+```
 with $d_{t}$ the drug amount (the action) and $C_t$ the number of cancer cells, $\alpha=0.8$
 The agent learns something, but it was not expected.
 It fails to discover a good policy that maximizes the expected discounted cumulative return by eliminating all cancer cells while a random policy can sometimes achieve this. The policy found is suboptimal. The learning agent should discover a treatment regime that eliminates all cancer cells while minimizing drug usage, thus earning the final reward of 10 points. However, this objective might be too ambitious.
