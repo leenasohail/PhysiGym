@@ -202,13 +202,23 @@ So, from the agent’s perspective (based on its Q-values), it is better to not 
 As a result, the agent stucks in a local policy, essentially trading off the cost of adding zero drugs with the low-probability chance of earning a large reward.
 
 
-A solution to that is to increase the term ```math 10 \cdot \mathbb{1}_{\{C_t = 0\}}``` to ```math 100 \cdot \mathbb{1}_{\{C_t = 0\}}``` which implies $100*\gamma**(100)$ almost equals to $36.6$.
-I also added a new term to help the agent  ```math -\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}```.
+A solution to that is to increase the term 
+```math
+10 \cdot \mathbb{1}_{\{C_t = 0\}}
+```
+to 
+```math 
+100 \cdot \mathbb{1}_{\{C_t = 0\}}
+```
+which implies $100*\gamma**(100)$ almost equals to $36.6$.
+I also added a new term to help the agent  
+```math 
+-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}.
+```
 Finally, the reward is:
 ```math
 r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
 ```
-
 With this reward, results can be better. 
 Learning agent found a good policy ![rl/strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
 Why adding a lot of drugs at the beginning and not at the final steps? This is explained by the environment and the reward function. In fact, there is a rule that allows M1 to transform into M2 due to pressure. At the beginning, there are around 512 cancer cells, and globally, there is more pressure in the environment compared to the same environment with fewer cancer cells.
