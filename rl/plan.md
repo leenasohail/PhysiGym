@@ -223,8 +223,8 @@ Despite this, the curves related ![rl/returns_length.png] to returns (discounted
 Finally, despite the flat curves, something has been learned. Changing the reward parameters could be a way to obtain a better-shaped curve. Alternatively, we can "sell" our product by saying: "You have an environment, and you can find a policy for your problem that aims to maximize the discounted cumulative return."
 
 I also propose a new reward model without $\alpha$ and which seems relevant in our environment composed at the beggingin of $512$ cancer cells.
-$$r(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{1-d_{t}}$$.
-We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{1-d_{t}}$ a magnitude between 1.0 and 0.36.
+$$r(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}$$.
+We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
 I will also launching with the last rewards used.
 I can also use C51.
 ## To Do
