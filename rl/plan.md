@@ -202,8 +202,8 @@ So, from the agent’s perspective (based on its Q-values), it is better to not 
 As a result, the agent stucks in a local policy, essentially trading off the cost of adding zero drugs with the low-probability chance of earning a large reward.
 
 
-A solution to that is to increase the term ``math 10 \cdot \mathbb{1}_{\{C_t = 0\}}`` to $100 \cdot \mathbb{1}_{\{C_t = 0\}}$ which implies $100*\gamma**(100)$ almost equals to $36.6$.
-I also added a new term to help the agent ``math-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}``.
+A solution to that is to increase the term ```math 10 \cdot \mathbb{1}_{\{C_t = 0\}}``` to $100 \cdot \mathbb{1}_{\{C_t = 0\}}$ which implies $100*\gamma**(100)$ almost equals to $36.6$.
+I also added a new term to help the agent  ```math -\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}```.
 Finally, the reward is:
 ```math
 r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
