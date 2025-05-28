@@ -186,8 +186,54 @@ void Basic_Agent::release_internalized_substrates( void )
 ```
 That avoids a Segmentation Fault!
 
+## Results (new model)
+With the new model, the drug transforms M2 (pro tumor) to M1 (anti tumor).
+The goal is to reduce the tumor size while minimizing the amount of drug added.
+I tested several different reward functions. The plot shared on Slack corresponds to the following reward function:
+$$
+r(t) = -d_t*(1-\alpha) + \alpha*10 \cdot \mathbb{1}_{\{C_t = 0\}}
+$$
+with $d_{t}$ the drug amount (the action) and $C_t$ the number of cancer cells, $\alpha=0.8$
+The agent learns something, but it was not expected.
+It fails to discover a good policy that maximizes the expected discounted cumulative return by eliminating all cancer cells while a random policy can sometimes achieve this. The policy found is suboptimal. The learning agent should discover a treatment regime that eliminates all cancer cells while minimizing drug usage, thus earning the final reward of 10 points. However, this objective might be too ambitious.
+The agent can earn at most $10*\gamma**(100)\seq3.66$ where $\gamma=0.99$ represents the discounted factor and $100$ the number of steps. The agent has to at least to add enough drugs to kill all cancer cells but that may imply a discounted cumulative return related to drugs higher than $10*\gamma**(100)$ even though the terminal reward is missed. 
+So, from the agent’s perspective (based on its Q-values), it is better to not administer any drugs, since it can at least aim for the 10-point reward if all cancer cells disappear—despite this being unlikely.
 
+As a result, the agent stucks in a local policy, essentially trading off the cost of adding zero drugs with the low-probability chance of earning a large reward.
+
+
+A solution to that is to increase the term $10 \cdot \mathbb{1}_{\{C_t = 0\}}$ to $100 \cdot \mathbb{1}_{\{C_t = 0\}}$ which implies $10*\gamma**(100)\seq36.6$.
+I also added a new term to help the agent $-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}$.
+Finally, the reward is:
+$$r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)$$
+
+
+With this reward, results can be better. 
+Learning agent found a good policy ![rl/strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
+Why adding a lot of drugs at the beginning and not at the final steps? This is explained by the environment and the reward function. In fact, there is a rule that allows M1 to transform into M2 due to pressure. At the beginning, there are around 512 cancer cells, and globally, there is more pressure in the environment compared to the same environment with fewer cancer cells.
+
+Thus, a good strategy to kill all cancer cells while not adding too many drugs would be to act early in the episode to prevent M1 from transforming into M2, allowing M1 to kill a large number of cancer cells. Then, the treatment can be stopped, letting M1 finish killing the remaining cancer cells, with the advantage that M1 is less likely to transform into M2 due to the lower number of cells.
+
+Even if some M1 macrophages transform into M2, it is not a problem because the killing rate of M1 can be seen higher than the sum of the division rate of the remaining cancer cells and the probability of M1 transforming into M2 (which depends on the pressure).
+
+However, sometimes the discounted cumulative return is not high because a single cancer cell remains alive at the end of the episode. 
+
+Despite this, the curves related ![rl/returns_length.png] to returns (discounted cumulative return and cumulative return) seem flat. However, it is important to keep in mind that the framework (RL) aims to maximize the discounted cumulative return, so it is more relevant to focus on that.
+
+Finally, despite the flat curves, something has been learned. Changing the reward parameters could be a way to obtain a better-shaped curve. Alternatively, we can "sell" our product by saying: "You have an environment, and you can find a policy for your problem that aims to maximize the discounted cumulative return."
+
+I also propose a new reward model without $\alpha$ and which seems relevant in our environment composed at the beggingin of $512$ cancer cells.
+$$r(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{1-d_{t}}$$.
+We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{1-d_{t}}$ a magnitude between 1.0 and 0.36.
+I will also launching with the last rewards used.
+I can also use C51.
 ## To Do
+ - [ ] Launch with different rewards function
+ - [ ] Analysis different policies
+
+
+
+## To Do (not now)
  - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
  - [ ] Clean Code urgent
  - [ ] Check for Cmake does not work when you use make install_requirement
