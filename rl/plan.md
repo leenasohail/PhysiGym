@@ -143,7 +143,7 @@ I found [high difference between the Q values](https://wandb.ai/corporate-manu-s
  - [x] Much faster replay buffer with numba and jit, jax replay buffer is slowed (mainly caused by the fact the code implies numpy and torch), besides 0.1sec is lost between CPU and GPU, a sample time in around less than  0.13 seconds in CPU while in GPU is around 0.23 seconds for a batch size equals to 128. The batch size has an impact on the performance on the replay buffer
  - [x] Adding a new state the Transformer state is a dictionnary composed of position, type and if the cell is dead
 ## In progress
- - [...] Reading about [Temporal Credit Assignment in DRL](https://arxiv.org/pdf/2312.01072) ( our problem is refering to)
+ - [ ] Reading about [Temporal Credit Assignment in DRL](https://arxiv.org/pdf/2312.01072) ( our problem is refering to)
 ## Idea 
 WHat is the impact of set of actions to contribute to a realization ? In our case, the set of actions is the set of drugs introduced and the realization the complete or almost complete eradication of cancer cells. This is the credit assignment, to map actions to an outcome under delay, partial observability, stochasticity from the MDP and the environment. [Phd thesis from Johan Ferret](https://theses.hal.science/tel-03958482/document)
 # 26 May
@@ -196,17 +196,18 @@ r(t) = -d_t*(1-\alpha) + \alpha*10 \cdot \mathbb{1}_{\{C_t = 0\}}
 with $d_{t}$ the drug amount (the action) and $C_t$ the number of cancer cells, $\alpha=0.8$
 The agent learns something, but it was not expected.
 It fails to discover a good policy that maximizes the expected discounted cumulative return by eliminating all cancer cells while a random policy can sometimes achieve this. The policy found is suboptimal. The learning agent should discover a treatment regime that eliminates all cancer cells while minimizing drug usage, thus earning the final reward of 10 points. However, this objective might be too ambitious.
-The agent can earn at most $10*\gamma**(100)\seq3.66$ where $\gamma=0.99$ represents the discounted factor and $100$ the number of steps. The agent has to at least to add enough drugs to kill all cancer cells but that may imply a discounted cumulative return related to drugs higher than $10*\gamma**(100)$ even though the terminal reward is missed. 
+The agent can earn at most $10*\gamma**(100)$ almost equals to $3.66$ where $\gamma=0.99$ represents the discounted factor and $100$ the number of steps. The agent has to at least to add enough drugs to kill all cancer cells but that may imply a discounted cumulative return related to drugs higher than $10*\gamma**(100)$ even though the terminal reward is missed. 
 So, from the agent’s perspective (based on its Q-values), it is better to not administer any drugs, since it can at least aim for the 10-point reward if all cancer cells disappear—despite this being unlikely.
 
 As a result, the agent stucks in a local policy, essentially trading off the cost of adding zero drugs with the low-probability chance of earning a large reward.
 
 
-A solution to that is to increase the term $10 \cdot \mathbb{1}_{\{C_t = 0\}}$ to $100 \cdot \mathbb{1}_{\{C_t = 0\}}$ which implies $10*\gamma**(100)\seq36.6$.
-I also added a new term to help the agent $-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}$.
+A solution to that is to increase the term ``math 10 \cdot \mathbb{1}_{\{C_t = 0\}}`` to $100 \cdot \mathbb{1}_{\{C_t = 0\}}$ which implies $100*\gamma**(100)$ almost equals to $36.6$.
+I also added a new term to help the agent ``math-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}``.
 Finally, the reward is:
-$$r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)$$
-
+```math
+r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
+```
 
 With this reward, results can be better. 
 Learning agent found a good policy ![rl/strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
