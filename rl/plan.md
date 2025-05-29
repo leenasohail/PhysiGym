@@ -212,7 +212,7 @@ $$r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}
 
 
 With this reward, results can be better. 
-Learning agent found a good policy ![rl/strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
+Learning agent found a good policy ![strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
 Why adding a lot of drugs at the beginning and not at the final steps? This is explained by the environment and the reward function. In fact, there is a rule that allows M1 to transform into M2 due to pressure. At the beginning, there are around 512 cancer cells, and globally, there is more pressure in the environment compared to the same environment with fewer cancer cells.
 
 Thus, a good strategy to kill all cancer cells while not adding too many drugs would be to act early in the episode to prevent M1 from transforming into M2, allowing M1 to kill a large number of cancer cells. Then, the treatment can be stopped, letting M1 finish killing the remaining cancer cells, with the advantage that M1 is less likely to transform into M2 due to the lower number of cells.
@@ -221,7 +221,7 @@ Even if some M1 macrophages transform into M2, it is not a problem because the k
 
 However, sometimes the discounted cumulative return is not high because a single cancer cell remains alive at the end of the episode. 
 
-Despite this, the curves related ![rl/returns_length.png] to returns (discounted cumulative return and cumulative return) seem flat. However, it is important to keep in mind that the framework (RL) aims to maximize the discounted cumulative return, so it is more relevant to focus on that.
+Despite this, the curves related ![returns_length.png] to returns (discounted cumulative return and cumulative return) seem flat. However, it is important to keep in mind that the framework (RL) aims to maximize the discounted cumulative return, so it is more relevant to focus on that.
 
 Finally, despite the flat curves, something has been learned. Changing the reward parameters could be a way to obtain a better-shaped curve. Alternatively, we can "sell" our product by saying: "You have an environment, and you can find a policy for your problem that aims to maximize the discounted cumulative return."
 
