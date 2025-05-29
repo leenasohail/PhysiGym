@@ -231,10 +231,10 @@ We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and 
 I will also launching with the last rewards used.
 I can also use C51.
 ## Urgent
- - [ ] Launch SAC with image with the reward called $r_{1}(t)$
+ - [x] Launch SAC with image with the reward called $r_{1}(t)$
  - [ ] Launch on C51 with the $r_{1}(t)$ (image and concentration)
- - [ ] How to add wrapper into physicell_model (specified for each model)
  - [ ] Try to make more generic, SAC/C51 code into utils and call it
+ - [ ] How to add wrapper into physicell_model (specified for each model)
  - [ ] Add documenation from RL package, for all python functions used
  - [ ] Clean the code, put useless files into a folder/branch or from a new repository
  - [ ] Create two tutorials, teach how to use SAC, C51, RL
