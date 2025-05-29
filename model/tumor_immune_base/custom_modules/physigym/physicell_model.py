@@ -355,6 +355,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent terminated processing logic goes here!
         return True if self.nb_cancer_cells == 0 else False
+        # return False
 
     def get_reward(self):
         """
@@ -376,17 +377,28 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         C_t = self.np_ratio_nb_cancer_cells * self.init_cancer_cells
         C_prev = C_prev = self.np_ratio_old_nb_cancer_cells * self.init_cancer_cells
         return self.normalize(
-            C_t=C_t, C_prev=C_prev, r_min=-0.05, r_max=0.05, max_cells=1000
+            C_t=C_t, C_prev=C_prev, r_min=-0.05, r_max=0.05, max_cells=512
         )
 
-    def normalize(self, C_t, C_prev, r_min=-0.05, r_max=0.05, max_cells=1000):
+    def normalize(self, C_t, C_prev, r_min=-0.05, r_max=0.05, max_cells=512):
         if self.reward_type == "log":
             r = np.log(C_t / C_prev)
             r_clipped = np.clip(r, r_min, r_max)
             normalized = (r_clipped - r_min) / (r_max - r_min)
+            return 1 - normalized
+        elif self.reward_type == "sparse":
+            if C_prev * C_t == 0:
+                return 100
+            elif C_prev > C_t:
+                return 1
+            else:
+                return -1
+        elif self.reward_type == "log_exp":
+            return np.log(C_t + 1) / np.log(100)
+
         else:
             normalized = min(C_t, max_cells) / max_cells
-        return 1 - normalized
+            return 1 - normalized
 
     def get_reset_values(self):
         self.np_ratio_old_nb_cancer_cells = None
