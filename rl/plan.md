@@ -205,7 +205,7 @@ As a result, the agent stucks in a local policy, essentially trading off the cos
 A solution to that is to increase the term $10 \cdot \mathbb{1}_{\{C_t = 0\}}$ to $100 \cdot \mathbb{1}_{\{C_t = 0\}}$ which implies $10*\gamma**(100)\seq36.6$.
 I also added a new term to help the agent $-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}}$.
 Finally, the reward is:
-$$r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)$$
+$$r_{1}(t) = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)$$
 
 
 With this reward, results can be better. 
@@ -227,7 +227,18 @@ $$r(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}$$.
 We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
 I will also launching with the last rewards used.
 I can also use C51.
+## Urgent
+ - [ ] Launch SAC with image with the reward called $r_{1}(t)$
+ - [ ] Launch on C51 with the $r_{1}(t)$ (image and concentration)
+ - [ ] How to add wrapper into physicell_model (specified for each model)
+ - [ ] Try to make more generic, SAC/C51 code into utils and call it
+ - [ ] Add documenation from RL package, for all python functions used
+ - [ ] Clean the code, put useless files into a folder/branch or from a new repository
+ - [ ] Create two tutorials, teach how to use SAC, C51, RL
+
+
 ## To Do
+ - [ ] Make it more modular C51 and SAC in utils python package with pip install
  - [ ] Launch with different rewards function
  - [ ] Analysis different policies
 
