@@ -56,6 +56,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
             self._action_space = Box(low=low, high=high, dtype=np.float64)
 
         self.weight = weight
+        self.reward_type = env.unwrapped.reward_type
 
     @property
     def action_space(self):
@@ -84,12 +85,14 @@ class PhysiCellModelWrapper(gym.Wrapper):
             d_action
         )
 
-        r_drugs = 1 - np.mean(action)
+        r_drugs = np.mean(action)
 
         info["action"] = d_action
         info["reward_drugs"] = r_drugs
         info["reward_cancer_cells"] = r_cancer_cells
-
-        r_reward = (1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+        if self.reward_type == "log_exp":
+            r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
+        else:
+            r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
 
         return o_observation, r_reward, b_terminated, b_truncated, info

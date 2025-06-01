@@ -236,6 +236,7 @@ I will also launching with the last rewards used. I did not have expected result
  - [ ] How to add wrapper into physicell_model (specified for each model)
  - [...] Add documenation from RL package, for all python functions used
  - [ ] Clean the code, put useless files into a folder/branch or from a new repository
+ - [ ] Add test codes to avoid any problems
  - [ ] Use pip install to install the new lib
  - [ ] Create two tutorials, teach how to use SAC, C51, RL
 
