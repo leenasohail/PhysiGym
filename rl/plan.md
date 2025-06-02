@@ -231,19 +231,19 @@ We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and 
 I will also launching with the last rewards used. I did not have expected results with $r_{2}$, i may have a problem of magnitude. The policy learnt does not try to kill all cancer cells but it seems keep to a certain number of cancer cells, and avoids to add drug.
 ## Urgent
  - [x] Launch SAC with image with the reward called $r_{1}$ => better results in terms of mean episodic return and discounted cumulative return
- - [ ] Launch on C51 with the $r_{1}$ (image and concentration)
- - [...] (in progress) Try to make more generic, SAC/C51 code into utils and call it 
- - [ ] How to add wrapper into physicell_model (specified for each model)
- - [...] Add documenation from RL package, for all python functions used
- - [ ] Clean the code, put useless files into a folder/branch or from a new repository
- - [ ] Add test codes to avoid any problems
- - [ ] Use pip install to install the new lib
- - [ ] Create two tutorials, teach how to use SAC, C51, RL
-
+ - [ ] Push on github sac_tumor_immune_base.py one file as pre-tutorial
 
 ## To Do
  - [...] Launch with different rewards function $r_{1}$ seems a good policy but can be improved
  - [...] Analysis different policies
+ - [ ] Launch on C51 with the $r_{1}$ (image and concentration)
+ - [...] (in progress) Try to make more generic, SAC/C51 code into utils and call it ( done for SAC not for C51 yet)
+ - [ ] How to add wrapper into physicell_model (specified for each model)
+ - [...] Add documenation from RL package, for all python functions used
+ - [...] [Into a new repository]()
+ - [ ] Add test codes to avoid any problems
+ - [ ] Use pip install to install the new lib
+ - [ ] Create two tutorials, teach how to use SAC, C51, RL
 
 
 

@@ -22,14 +22,9 @@
 from extending import physicell
 from gymnasium import spaces
 import gymnasium as gym
-from gymnasium.spaces import Box
-import matplotlib.pyplot as plt
-from matplotlib import cm, colors
 import numpy as np
 import pandas as pd
 from physigym.envs.physicell_core import CorePhysiCellEnv
-from gymnasium.spaces.graph import GraphInstance
-from tysserand import tysserand as ty
 
 
 # function
