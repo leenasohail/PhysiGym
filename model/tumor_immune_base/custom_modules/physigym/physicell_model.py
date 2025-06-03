@@ -390,7 +390,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 return -1
         elif self.reward_type == "log_exp":
             return np.log(C_t + 1) / np.log(100)
-
+        elif self.reward_type == "simple":
+            return 1 if C_prev > C_t else 0
         else:
             normalized = min(C_t, max_cells) / max_cells
             return 1 - normalized

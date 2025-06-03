@@ -208,7 +208,9 @@ I also added a new term to help the agent
 \mu(t) = -(\mathbb{1}_{\left\{ C_t \geq C_{t-1} \right\}} + \mathbb{1}_{\left\{ C_t < C_{t-1} \right\}}).
 ```
 Finally, the reward is:
-$$r_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)$$
+```math 
+r_{1}_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
+```
 
 
 With this reward, results can be better. 
@@ -229,18 +231,26 @@ I also propose a new reward model without $\alpha$ and which seems relevant in o
 $$r_{2}(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}$$.
 We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
 I will also launching with the last rewards used. I did not have expected results with $r_{2}$, i may have a problem of magnitude. The policy learnt does not try to kill all cancer cells but it seems keep to a certain number of cancer cells, and avoids to add drug.
-## Urgent
+# 3 June
+## Done
  - [x] Launch SAC with image with the reward called $r_{1}$ => better results in terms of mean episodic return and discounted cumulative return
- - [ ] Push on github sac_tumor_immune_base.py one file as pre-tutorial
+ - [x] Analysis different policies with $r_{1}$ badly called sparse reward w ehave different policies given different states susch as image and scalars
+ - [x] Push on github sac_tib.py one file as pre-tutorial
+
+## Simple reward
+```math
+$r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
+```
+
 
 ## To Do
- - [...] Launch with different rewards function $r_{1}$ seems a good policy but can be improved
- - [...] Analysis different policies
+ - [In progress] Launch with different rewards function $r_{1}$ seems a good policy but can be improved
+ - [In progress] Analysis different policies
  - [ ] Launch on C51 with the $r_{1}$ (image and concentration)
- - [...] (in progress) Try to make more generic, SAC/C51 code into utils and call it ( done for SAC not for C51 yet)
+ - [In progress] (in progress) Try to make more generic, SAC/C51 code into utils and call it ( done for SAC not for C51 yet)
  - [ ] How to add wrapper into physicell_model (specified for each model)
- - [...] Add documenation from RL package, for all python functions used
- - [...] [Into a new repository]()
+ - [In progress] Add documenation from RL package, for all python functions used
+ - [In progress] [Into a new repository](https://github.com/Dante-Berth/rllib)
  - [ ] Add test codes to avoid any problems
  - [ ] Use pip install to install the new lib
  - [ ] Create two tutorials, teach how to use SAC, C51, RL

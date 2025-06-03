@@ -569,7 +569,7 @@ class Actor(nn.Module):
 class Args:
     name: str = "sac"
     """the name of this experiment"""
-    weight: float = 0.5
+    weight: float = 0.8
     """weight for the reduction of tumor"""
     reward_type: str = "sparse"
     """type of the reward"""
@@ -587,7 +587,7 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "image_gray"
+    observation_type: str = "simple"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
