@@ -3,6 +3,9 @@ from torch.nn.utils.rnn import pad_sequence
 import numpy as np
 from tensordict import TensorDict
 from numba import njit, prange
+import numba
+
+numba.set_num_threads(5)
 
 
 class ReplayBuffer(object):
@@ -395,14 +398,14 @@ class MinimalImgReplayBuffer:
             self.type_to_color_array,
             o_observation,
             True,
-            False,
+            normalize=False,
         )
 
         return o_observation
 
 
 class TransformerReplayBuffer:
-    MAX_SEQ_LEN = 3000  # Maximum length to pad/truncate sequences
+    MAX_SEQ_LEN = 1000  # Maximum length to pad/truncate sequences
 
     def __init__(
         self,

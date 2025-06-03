@@ -143,7 +143,7 @@ I found [high difference between the Q values](https://wandb.ai/corporate-manu-s
  - [x] Much faster replay buffer with numba and jit, jax replay buffer is slowed (mainly caused by the fact the code implies numpy and torch), besides 0.1sec is lost between CPU and GPU, a sample time in around less than  0.13 seconds in CPU while in GPU is around 0.23 seconds for a batch size equals to 128. The batch size has an impact on the performance on the replay buffer
  - [x] Adding a new state the Transformer state is a dictionnary composed of position, type and if the cell is dead
 ## In progress
- - [...] Reading about [Temporal Credit Assignment in DRL](https://arxiv.org/pdf/2312.01072) ( our problem is refering to)
+ - [ ] Reading about [Temporal Credit Assignment in DRL](https://arxiv.org/pdf/2312.01072) ( our problem is refering to)
 ## Idea 
 WHat is the impact of set of actions to contribute to a realization ? In our case, the set of actions is the set of drugs introduced and the realization the complete or almost complete eradication of cancer cells. This is the credit assignment, to map actions to an outcome under delay, partial observability, stochasticity from the MDP and the environment. [Phd thesis from Johan Ferret](https://theses.hal.science/tel-03958482/document)
 # 26 May
@@ -154,9 +154,111 @@ WHat is the impact of set of actions to contribute to a realization ? In our cas
  - [x] Launch SAC with Transfomers with the new tumor immune base (Sureli9)
  - [x] Building the replay buffer for the Transformer state 
 
+## :warning: Important Problems :warning:
+Be aware of the path used in the PhysiCell_settings.xml file ! 
+Replace **Basic_Agent::release_internalized_substrates** in the file **BioFVM_basic_agent.cpp** by 
+```cpp
+void Basic_Agent::release_internalized_substrates( void )
+{
+	Microenvironment* pS = get_default_microenvironment(); 
+	
+	// change in total in voxel: 
+	// total_ext = total_ext + fraction*total_internal 
+	// total_ext / vol_voxel = total_ext / vol_voxel + fraction*total_internal / vol_voxel 
+	// density_ext += fraction * total_internal / vol_volume 
+	
+	// std::cout << "\t\t\t" << (*pS)(current_voxel_index) << "\t\t\t" << std::endl; 
+	*internalized_substrates /=  pS->voxels(current_voxel_index).volume; // turn to density 
+	*internalized_substrates *= *fraction_released_at_death;  // what fraction is released? 
+	
+	// release this amount into the environment 
+	if ((*pS)(current_voxel_index).size() ==6)
+	{
+		(*pS)(current_voxel_index) += *internalized_substrates; 
+	}
+	
+	// zero out the now-removed substrates 
+	
+	internalized_substrates->assign( internalized_substrates->size() , 0.0 ); 
+	
+	return; 
+}
+```
+That avoids a Segmentation Fault!
+
+## Results (new model)
+With the new model, the drug transforms M2 (pro tumor) to M1 (anti tumor).
+The goal is to reduce the tumor size while minimizing the amount of drug added.
+I tested several different reward functions. The plot shared on Slack corresponds to the following reward function:
+```math
+r(t) = -d_t*(1-\alpha) + \alpha*10 \cdot \mathbb{1}_{\{C_t = 0\}}
+```
+with $d_{t}$ the drug amount (the action) and $C_t$ the number of cancer cells, $\alpha=0.8$
+The agent learns something, but it was not expected.
+It fails to discover a good policy that maximizes the expected discounted cumulative return by eliminating all cancer cells while a random policy can sometimes achieve this. The policy found is suboptimal. The learning agent should discover a treatment regime that eliminates all cancer cells while minimizing drug usage, thus earning the final reward of 10 points. However, this objective might be too ambitious.
+The agent can earn at most $10*\gamma**(100)$ almost equals to $3.66$ where $\gamma=0.99$ represents the discounted factor and $100$ the number of steps. The agent has to at least to add enough drugs to kill all cancer cells but that may imply a discounted cumulative return related to drugs higher than $10*\gamma**(100)$ even though the terminal reward is missed. 
+So, from the agent’s perspective (based on its Q-values), it is better to not administer any drugs, since it can at least aim for the 10-point reward if all cancer cells disappear—despite this being unlikely.
+
+As a result, the agent stucks in a local policy, essentially trading off the cost of adding zero drugs with the low-probability chance of earning a large reward.
+
+
+A solution to that is to increase the term from 10 to 100 which implies $100*\gamma**(100)$ almost equals to $36.6$.
+I also added a new term to help the agent  
+```math 
+\mu(t) = -(\mathbb{1}_{\left\{ C_t \geq C_{t-1} \right\}} + \mathbb{1}_{\left\{ C_t < C_{t-1} \right\}}).
+```
+Finally, the reward is:
+```math 
+r_{1}_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
+```
+
+
+With this reward, results can be better. 
+Learning agent found a good policy ![strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
+Why adding a lot of drugs at the beginning and not at the final steps? This is explained by the environment and the reward function. In fact, there is a rule that allows M1 to transform into M2 due to pressure. At the beginning, there are around 512 cancer cells, and globally, there is more pressure in the environment compared to the same environment with fewer cancer cells.
+
+Thus, a good strategy to kill all cancer cells while not adding too many drugs would be to act early in the episode to prevent M1 from transforming into M2, allowing M1 to kill a large number of cancer cells. Then, the treatment can be stopped, letting M1 finish killing the remaining cancer cells, with the advantage that M1 is less likely to transform into M2 due to the lower number of cells.
+
+Even if some M1 macrophages transform into M2, it is not a problem because the killing rate of M1 can be seen higher than the sum of the division rate of the remaining cancer cells and the probability of M1 transforming into M2 (which depends on the pressure).
+
+However, sometimes the discounted cumulative return is not high because a single cancer cell remains alive at the end of the episode. 
+
+Despite this, the curves related ![returns_length.png] to returns (discounted cumulative return and cumulative return) seem flat. However, it is important to keep in mind that the framework (RL) aims to maximize the discounted cumulative return, so it is more relevant to focus on that.
+
+Finally, despite the flat curves, something has been learned. Changing the reward parameters could be a way to obtain a better-shaped curve. Alternatively, we can "sell" our product by saying: "You have an environment, and you can find a policy for your problem that aims to maximize the discounted cumulative return."
+
+I also propose a new reward model without $\alpha$ and which seems relevant in our environment composed at the beggingin of $512$ cancer cells.
+$$r_{2}(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}$$.
+We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
+I will also launching with the last rewards used. I did not have expected results with $r_{2}$, i may have a problem of magnitude. The policy learnt does not try to kill all cancer cells but it seems keep to a certain number of cancer cells, and avoids to add drug.
+# 3 June
+## Done
+ - [x] Launch SAC with image with the reward called $r_{1}$ => better results in terms of mean episodic return and discounted cumulative return
+ - [x] Analysis different policies with $r_{1}$ badly called sparse reward w ehave different policies given different states susch as image and scalars
+ - [x] Push on github sac_tib.py one file as pre-tutorial
+
+## Simple reward
+```math
+$r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
+```
+
+
 ## To Do
+ - [In progress] Launch with different rewards function $r_{1}$ seems a good policy but can be improved
+ - [In progress] Analysis different policies
+ - [ ] Launch on C51 with the $r_{1}$ (image and concentration)
+ - [In progress] (in progress) Try to make more generic, SAC/C51 code into utils and call it ( done for SAC not for C51 yet)
+ - [ ] How to add wrapper into physicell_model (specified for each model)
+ - [In progress] Add documenation from RL package, for all python functions used
+ - [In progress] [Into a new repository](https://github.com/Dante-Berth/rllib)
+ - [ ] Add test codes to avoid any problems
+ - [ ] Use pip install to install the new lib
+ - [ ] Create two tutorials, teach how to use SAC, C51, RL
+
+
+
+## To Do (not now)
  - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
- - [ ] Clean Code urgent
  - [ ] Check for Cmake does not work when you use make install_requirement
  - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
  - [ ] Adapt the code SAIL+C51
