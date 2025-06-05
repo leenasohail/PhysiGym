@@ -580,7 +580,7 @@ class Args:
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
     track: bool = False
-    wandb_project_name: str = "SAC_IMAGE_TIB"
+    wandb_project_name: str = "SAC_IMAGE_TIB2"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
 
