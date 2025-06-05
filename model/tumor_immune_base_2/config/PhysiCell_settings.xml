@@ -97,7 +97,7 @@
         </variable>
         <variable name="drug_1" units="dimensionless" ID="2">
             <physical_parameter_set>
-                <diffusion_coefficient units="micron^2/min">100000</diffusion_coefficient>
+                <diffusion_coefficient units="micron^2/min">0.0</diffusion_coefficient>
                 <decay_rate units="1/min">0.01</decay_rate>
             </physical_parameter_set>
             <initial_condition units="dimensionless">0</initial_condition>
@@ -596,12 +596,14 @@
 
     <initial_conditions>
         <cell_positions type="csv" enabled="true">
-            <folder>/home/owen.griere/Desktop/Projet_Janssen/PhysiCell-model-of-PDAC-progression/user_projects/tumor_immune_dummy/config</folder>
+            <folder>./config</folder>
             <filename>cells.csv</filename>
         </cell_positions>
     </initial_conditions>
 
     <user_parameters>
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">0</number_of_cells>
+        <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60</dt_gym>
+        <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
     </user_parameters>
 </PhysiCell_settings>
