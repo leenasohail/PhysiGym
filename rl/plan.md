@@ -231,19 +231,21 @@ I also propose a new reward model without $\alpha$ and which seems relevant in o
 $$r_{2}(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}$$.
 We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
 I will also launching with the last rewards used. I did not have expected results with $r_{2}$, i may have a problem of magnitude. The policy learnt does not try to kill all cancer cells but it seems keep to a certain number of cancer cells, and avoids to add drug.
-# 3 June
+# 2 June
 ## Done
  - [x] Launch SAC with image with the reward called $r_{1}$ => better results in terms of mean episodic return and discounted cumulative return
  - [x] Analysis different policies with $r_{1}$ badly called sparse reward w ehave different policies given different states susch as image and scalars
  - [x] Push on github sac_tib.py one file as pre-tutorial
-
+ - [x] New model added
+ - [x] videos created for $r_{2}_{t}$ and $\alpha = 0.3$
 ## Simple reward
 ```math
-$r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
+r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha),
+r_{3}_{t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t}\}}) -d_t*(1-\alpha),
 ```
 
-
 ## To Do
+- [ ] Write the tutorial for sac_tib, no details, explain important things, such as explain how to create an account, add pip install for numba, torch, tensorboard, tensordict, wandb
  - [In progress] Launch with different rewards function $r_{1}$ seems a good policy but can be improved
  - [In progress] Analysis different policies
  - [ ] Launch on C51 with the $r_{1}$ (image and concentration)
@@ -254,12 +256,15 @@ $r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
  - [ ] Add test codes to avoid any problems
  - [ ] Use pip install to install the new lib
  - [ ] Create two tutorials, teach how to use SAC, C51, RL
-
-
+## PhysiNA (Neural Architectures)
+ - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
+ - [ ] Solve Transformers memory
+ ## PhysiTCA (Temporal credit assignment)
+ - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
+ - [ ] Adapt the code SAIL+C51
 
 ## To Do (not now)
- - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
- - [ ] Check for Cmake does not work when you use make install_requirement
+ - [x] Check for Cmake does not work when you use make install_requirement
  - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
  - [ ] Adapt the code SAIL+C51
 
