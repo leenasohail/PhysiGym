@@ -205,14 +205,12 @@ As a result, the agent stucks in a local policy, essentially trading off the cos
 A solution to that is to increase the term from 10 to 100 which implies $100*\gamma**(100)$ almost equals to $36.6$.
 I also added a new term to help the agent  
 ```math 
-\mu(t) = -(\mathbb{1}_{\left\{ C_t \geq C_{t-1} \right\}} + \mathbb{1}_{\left\{ C_t < C_{t-1} \right\}}).
+\mu(t) = (-\mathbb{1}_{\left\{ C_t \geq C_{t-1} \right\}} + \mathbb{1}_{\left\{ C_t < C_{t-1} \right\}}).
 ```
 Finally, the reward is:
 ```math 
-r_{1}_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
+r_{1}_{t} = \alpha(\mu(t) + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
 ```
-
-
 With this reward, results can be better. 
 Learning agent found a good policy ![strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
 Why adding a lot of drugs at the beginning and not at the final steps? This is explained by the environment and the reward function. In fact, there is a rule that allows M1 to transform into M2 due to pressure. At the beginning, there are around 512 cancer cells, and globally, there is more pressure in the environment compared to the same environment with fewer cancer cells.
@@ -228,7 +226,9 @@ Despite this, the curves related ![returns_length.png] to returns (discounted cu
 Finally, despite the flat curves, something has been learned. Changing the reward parameters could be a way to obtain a better-shaped curve. Alternatively, we can "sell" our product by saying: "You have an environment, and you can find a policy for your problem that aims to maximize the discounted cumulative return."
 
 I also propose a new reward model without $\alpha$ and which seems relevant in our environment composed at the beggingin of $512$ cancer cells.
-$$r_{2}(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}$$.
+```math
+r_{2}(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}
+```
 We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
 I will also launching with the last rewards used. I did not have expected results with $r_{2}$, i may have a problem of magnitude. The policy learnt does not try to kill all cancer cells but it seems keep to a certain number of cancer cells, and avoids to add drug.
 # 2 June
