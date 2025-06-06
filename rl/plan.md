@@ -237,11 +237,11 @@ I will also launching with the last rewards used. I did not have expected result
  - [x] Analysis different policies with $r_{1}$ badly called sparse reward w ehave different policies given different states susch as image and scalars
  - [x] Push on github sac_tib.py one file as pre-tutorial
  - [x] New model added
- - [x] videos created for $r_{2,t}$ and $\alpha = 0.3$
+ - [x] videos created for $r_{3,t}$ and $\alpha = 0.3$ see below
 ## Simple reward
 ```math
-r_{2,t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha),
-r_{3,t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t}\}}) -d_t*(1-\alpha),
+r_{3,t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha),
+r_{4,t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t}\}}) -d_t*(1-\alpha),
 ```
 
 ## To Do
