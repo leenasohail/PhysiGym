@@ -240,7 +240,10 @@ I will also launching with the last rewards used. I did not have expected result
  - [x] videos created for $r_{3,t}$ and $\alpha = 0.3$ see below
 ## Simple reward
 ```math
-r_{3,t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)//
+r_{3,t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
+```
+
+```math
 r_{4,t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t}\}}) -d_t*(1-\alpha),
 ```
 
