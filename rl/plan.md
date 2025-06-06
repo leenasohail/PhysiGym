@@ -209,7 +209,7 @@ I also added a new term to help the agent
 ```
 Finally, the reward is:
 ```math 
-r_{1}_{t} = \alpha(\mu(t) + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
+r_{1,t} = \alpha(\mu(t) + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
 ```
 With this reward, results can be better. 
 Learning agent found a good policy ![strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
@@ -227,7 +227,7 @@ Finally, despite the flat curves, something has been learned. Changing the rewar
 
 I also propose a new reward model without $\alpha$ and which seems relevant in our environment composed at the beggingin of $512$ cancer cells.
 ```math
-r_{2}(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}
+r_{2,t}=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}
 ```
 We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
 I will also launching with the last rewards used. I did not have expected results with $r_{2}$, i may have a problem of magnitude. The policy learnt does not try to kill all cancer cells but it seems keep to a certain number of cancer cells, and avoids to add drug.
@@ -237,11 +237,11 @@ I will also launching with the last rewards used. I did not have expected result
  - [x] Analysis different policies with $r_{1}$ badly called sparse reward w ehave different policies given different states susch as image and scalars
  - [x] Push on github sac_tib.py one file as pre-tutorial
  - [x] New model added
- - [x] videos created for $r_{2}_{t}$ and $\alpha = 0.3$
+ - [x] videos created for $r_{2,t}$ and $\alpha = 0.3$
 ## Simple reward
 ```math
-r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha),
-r_{3}_{t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t}\}}) -d_t*(1-\alpha),
+r_{2,t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha),
+r_{3,t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t}\}}) -d_t*(1-\alpha),
 ```
 
 ## To Do
