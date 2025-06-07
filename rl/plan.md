@@ -271,3 +271,97 @@ r_{4,t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t
  - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
  - [ ] Adapt the code SAIL+C51
 
+
+# 📋 Tumor Shrinkage Reward Functions with Drug Penalty
+
+Let:
+
+- \( C_t \): tumor cell count at time \( t \), \( C_t \in [0, 512] \)  
+- \( d_t \): drug amount at time \( t \), \( d_t \in [0, 1] \)  
+- \( \Delta C_t = C_{t-1} - C_t \): tumor reduction (positive is good)  
+- \( \alpha \): drug penalty weight  
+- \( \gamma \): tumor shrinkage reward scale  
+
+---
+
+### 1. **Linear Tumor Shrinkage – Drug Penalty**
+
+```math
+r_t = \gamma \cdot \frac{C_{t-1} - C_t}{512} - \alpha \cdot d_t
+```
+
+- Encourages absolute reduction in tumor size  
+- Suggestion: \( \gamma = 10 \), \( \alpha = 1 \)
+
+---
+
+### 2. **Exponential Tumor Reduction Bonus**
+
+```math
+r_t = \gamma \cdot \left(e^{-C_t / 100} - e^{-C_{t-1} / 100}\right) - \alpha \cdot d_t
+```
+
+- More aggressive reward when tumor size is already low
+
+---
+
+### 3. **Relative Shrinkage Speed + Drug Penalty**
+
+```math
+r_t = \gamma \cdot \frac{\max(0, C_{t-1} - C_t)}{C_{t-1} + 1} - \alpha \cdot d_t
+```
+
+- Prioritizes *percentage*-based shrinkage  
+- Prevents division by zero with \( +1 \)
+
+---
+
+### 4. **Quadratic Shrinkage Emphasis**
+
+```math
+r_t = \gamma \cdot \left(\frac{\max(0, C_{t-1} - C_t)}{512}\right)^2 - \alpha \cdot d_t
+```
+
+- Amplifies larger drops in tumor count more than small ones
+
+---
+
+### 5. **Tumor Derivative + Terminal Cure Bonus**
+
+```math
+r_t = \gamma \cdot \frac{C_{t-1} - C_t}{512} - \alpha \cdot d_t + \mathbb{1}_{C_t = 0} \cdot R_{\text{final}}
+```
+
+- Adds a large bonus when tumor is completely eliminated  
+- Example: \( R_{\text{final}} = 50 \)
+
+---
+
+### 6. **Potential-Based Reward Shaping**
+
+Define potential function:
+
+```math
+\Phi(C_t) = -\lambda \cdot \frac{C_t}{512}
+```
+
+Shaped reward:
+
+```math
+r_t = - \alpha \cdot d_t + \Phi(C_t) - \Phi(C_{t-1})
+```
+
+- Encourages forward progress using potential differences  
+- Helps credit assignment
+
+---
+
+## 🔧 Recommended Hyperparameters
+
+| Parameter              | Value | Description                          |
+|------------------------|-------|--------------------------------------|
+| \( \gamma \)           | 10    | Tumor shrinkage reward scale         |
+| \( \alpha \)           | 1     | Drug usage penalty                   |
+| \( \lambda \)          | 10    | Shaping strength for potential-based |
+| \( R_{\text{final}} \) | 50    | Terminal bonus for full cure         |
+
