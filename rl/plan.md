@@ -205,14 +205,12 @@ As a result, the agent stucks in a local policy, essentially trading off the cos
 A solution to that is to increase the term from 10 to 100 which implies $100*\gamma**(100)$ almost equals to $36.6$.
 I also added a new term to help the agent  
 ```math 
-\mu(t) = -(\mathbb{1}_{\left\{ C_t \geq C_{t-1} \right\}} + \mathbb{1}_{\left\{ C_t < C_{t-1} \right\}}).
+\mu(t) = (-\mathbb{1}_{\left\{ C_t \geq C_{t-1} \right\}} + \mathbb{1}_{\left\{ C_t < C_{t-1} \right\}}).
 ```
 Finally, the reward is:
 ```math 
-r_{1}_{t} = \alpha*(-\mathbb{1}_{\{C_t\ge C_{t-1}\}} + \mathbb{1}_{\{C_t<C_{t-1}\}} + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
+r_{1,t} = \alpha(\mu(t) + 100 \cdot \mathbb{1}_{\{C_t = 0\}})+ -d_t*(1-\alpha)
 ```
-
-
 With this reward, results can be better. 
 Learning agent found a good policy ![strategy.png]: it consists of adding a lot of drugs in the half first steps and then letting M1 macrophages kill the cancer cells.
 Why adding a lot of drugs at the beginning and not at the final steps? This is explained by the environment and the reward function. In fact, there is a rule that allows M1 to transform into M2 due to pressure. At the beginning, there are around 512 cancer cells, and globally, there is more pressure in the environment compared to the same environment with fewer cancer cells.
@@ -228,22 +226,29 @@ Despite this, the curves related ![returns_length.png] to returns (discounted cu
 Finally, despite the flat curves, something has been learned. Changing the reward parameters could be a way to obtain a better-shaped curve. Alternatively, we can "sell" our product by saying: "You have an environment, and you can find a policy for your problem that aims to maximize the discounted cumulative return."
 
 I also propose a new reward model without $\alpha$ and which seems relevant in our environment composed at the beggingin of $512$ cancer cells.
-$$r_{2}(t)=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}$$.
+```math
+r_{2,t}=-\frac{\log(C_{t}+1)}{\log(100)}e^{d_{t}-1}
+```
 We have a magnitude between 1.5 and 0 for $\frac{\log(C_{t}+1)}{\log(100)}$ and $e^{d_{t}-1}$ a magnitude between 1.0 and 0.36.
 I will also launching with the last rewards used. I did not have expected results with $r_{2}$, i may have a problem of magnitude. The policy learnt does not try to kill all cancer cells but it seems keep to a certain number of cancer cells, and avoids to add drug.
-# 3 June
+# 2 June
 ## Done
  - [x] Launch SAC with image with the reward called $r_{1}$ => better results in terms of mean episodic return and discounted cumulative return
  - [x] Analysis different policies with $r_{1}$ badly called sparse reward w ehave different policies given different states susch as image and scalars
  - [x] Push on github sac_tib.py one file as pre-tutorial
-
+ - [x] New model added
+ - [x] videos created for $r_{3,t}$ and $\alpha = 0.3$ see below
 ## Simple reward
 ```math
-$r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
+r_{3,t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
 ```
 
+```math
+r_{4,t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t}\}}) -d_t*(1-\alpha),
+```
 
 ## To Do
+- [ ] Write the tutorial for sac_tib, no details, explain important things, such as explain how to create an account, add pip install for numba, torch, tensorboard, tensordict, wandb
  - [In progress] Launch with different rewards function $r_{1}$ seems a good policy but can be improved
  - [In progress] Analysis different policies
  - [ ] Launch on C51 with the $r_{1}$ (image and concentration)
@@ -254,12 +259,109 @@ $r_{2}_{t} = \alpha*\mathbb{1}_{\{C_t\ge C_{t-1}\}} -d_t*(1-\alpha)
  - [ ] Add test codes to avoid any problems
  - [ ] Use pip install to install the new lib
  - [ ] Create two tutorials, teach how to use SAC, C51, RL
-
-
-
-## To Do (not now)
+## PhysiNA (Neural Architectures)
  - [ ] [Add](https://docs.pytorch.org/docs/stable/generated/torch.nn.utils.spectral_norm.html#torch.nn.utils.spectral_norm)
- - [ ] Check for Cmake does not work when you use make install_requirement
+ - [ ] Solve Transformers memory
+ ## PhysiTCA (Temporal credit assignment)
  - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
  - [ ] Adapt the code SAIL+C51
+
+## To Do (not now)
+ - [x] Check for Cmake does not work when you use make install_requirement
+ - [ ] Add SAIL: Self-Imitation Advantage Learning into my C51
+ - [ ] Adapt the code SAIL+C51
+
+
+# 📋 Tumor Shrinkage Reward Functions with Drug Penalty
+
+Let:
+
+- \( C_t \): tumor cell count at time \( t \), \( C_t \in [0, 512] \)  
+- \( d_t \): drug amount at time \( t \), \( d_t \in [0, 1] \)  
+- \( \Delta C_t = C_{t-1} - C_t \): tumor reduction (positive is good)  
+- \( \alpha \): drug penalty weight  
+- \( \gamma \): tumor shrinkage reward scale  
+
+---
+
+### 1. **Linear Tumor Shrinkage – Drug Penalty**
+
+```math
+r_t = \gamma \cdot \frac{C_{t-1} - C_t}{512} - \alpha \cdot d_t
+```
+
+- Encourages absolute reduction in tumor size  
+- Suggestion: \( \gamma = 10 \), \( \alpha = 1 \)
+
+---
+
+### 2. **Exponential Tumor Reduction Bonus**
+
+```math
+r_t = \gamma \cdot \left(e^{-C_t / 100} - e^{-C_{t-1} / 100}\right) - \alpha \cdot d_t
+```
+
+- More aggressive reward when tumor size is already low
+
+---
+
+### 3. **Relative Shrinkage Speed + Drug Penalty**
+
+```math
+r_t = \gamma \cdot \frac{\max(0, C_{t-1} - C_t)}{C_{t-1} + 1} - \alpha \cdot d_t
+```
+
+- Prioritizes *percentage*-based shrinkage  
+- Prevents division by zero with \( +1 \)
+
+---
+
+### 4. **Quadratic Shrinkage Emphasis**
+
+```math
+r_t = \gamma \cdot \left(\frac{\max(0, C_{t-1} - C_t)}{512}\right)^2 - \alpha \cdot d_t
+```
+
+- Amplifies larger drops in tumor count more than small ones
+
+---
+
+### 5. **Tumor Derivative + Terminal Cure Bonus**
+
+```math
+r_t = \gamma \cdot \frac{C_{t-1} - C_t}{512} - \alpha \cdot d_t + \mathbb{1}_{C_t = 0} \cdot R_{\text{final}}
+```
+
+- Adds a large bonus when tumor is completely eliminated  
+- Example: \( R_{\text{final}} = 50 \)
+
+---
+
+### 6. **Potential-Based Reward Shaping**
+
+Define potential function:
+
+```math
+\Phi(C_t) = -\lambda \cdot \frac{C_t}{512}
+```
+
+Shaped reward:
+
+```math
+r_t = - \alpha \cdot d_t + \Phi(C_t) - \Phi(C_{t-1})
+```
+
+- Encourages forward progress using potential differences  
+- Helps credit assignment
+
+---
+
+## 🔧 Recommended Hyperparameters
+
+| Parameter              | Value | Description                          |
+|------------------------|-------|--------------------------------------|
+| \( \gamma \)           | 10    | Tumor shrinkage reward scale         |
+| \( \alpha \)           | 1     | Drug usage penalty                   |
+| \( \lambda \)          | 10    | Shaping strength for potential-based |
+| \( R_{\text{final}} \) | 50    | Terminal bonus for full cure         |
 
