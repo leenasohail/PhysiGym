@@ -388,6 +388,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 return 1
             else:
                 return -1
+        elif self.reward_type == "linear":
+            return (C_prev - C_t) / np.log(C_prev + 1)
         elif self.reward_type == "log_exp":
             return np.log(C_t + 1) / np.log(100)
         elif self.reward_type == "simple":
