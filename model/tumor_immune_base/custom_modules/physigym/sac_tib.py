@@ -569,9 +569,9 @@ class Actor(nn.Module):
 class Args:
     name: str = "sac"
     """the name of this experiment"""
-    weight: float = 0.8
+    weight: float = 0.5
     """weight for the reduction of tumor"""
-    reward_type: str = "sparse"
+    reward_type: str = "linear"
     """type of the reward"""
     seed: int = 1
     """seed of the experiment"""
