@@ -809,7 +809,6 @@ def main():
     df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
-        t0 = time.perf_counter()
         if global_step <= args.learning_starts:
             actions = np.array(env.action_space.sample(), dtype=np.float16)
         else:
@@ -941,8 +940,8 @@ def main():
             "env/drug_1": actions[0],
             "env/reward_value": rewards,
             "env/number_cancer_cells": info["number_cancer_cells"],
-            "env/number_m2": info["number_m2"],
-            "env/number_m1": info["number_m1"],
+            "env/number_cell_1": info["number_cell_1"],
+            "env/number_cell_2": info["number_cell_2"],
         }
         for tag, value in scalars.items():
             writer.add_scalar(tag, value, global_step)
