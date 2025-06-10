@@ -2,7 +2,7 @@
 
 In this tutorial, you will learn how to apply reinforcement learning (RL) to control a biological simulation model.  
 We use the **tumor immune base** model as an example:  
-[tumor_immune_base on GitHub](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base).
+[tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base).
 
 This model consists of three types of cells:
 - **cell_1**: produces an anti-inflammatory factor that negatively impacts tumor cells,
