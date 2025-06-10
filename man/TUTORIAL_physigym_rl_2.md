@@ -31,7 +31,7 @@ In reinforcement learning, our aim is to maximize the expected cumulative reward
 
 Given the received data from the tumor environment (or the environment in general), the learning agent outputs an action. Based on this action, a reward is given to the agent to indicate whether its action was beneficial or not.
 
-In the case of our TME model, the action consists of administering a drug noted $drug_1\in\[0,1\]$.
+In the case of our TME model, the action consists of administering the **drug_1** noted $d_{t}\in\[0,1\]$ for each time step.
 
 ## Installation TME
 
@@ -120,11 +120,11 @@ The reward function is defined as:
 ```math
 r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - (1-\alpha) \cdot d_t
 ```
-- \( C_t \): Number of tumor cells at time step \( t \)
-- \( d_t \): Amount of drug added to the tumor microenvironment at time \( t \)
-- \( \alpha \in [0, 1] \): A trade-off weight parameter
-  - \( \alpha = 1 \): Prioritize killing tumor cells, ignoring drug usage
-  - \( \alpha = 0 \): Avoid drug usage entirely, regardless of tumor growth
+- $C_t$: Number of tumor cells at time step \( t \)
+- $d_t$: Amount of drug added to the tumor microenvironment at time \( t \)
+- $ \alpha \in [0, 1] $: A trade-off weight parameter
+  - $ \alpha = 1 $: Prioritize killing tumor cells, ignoring drug usage
+  - $ \alpha = 0 $: Avoid drug usage entirely, regardless of tumor growth
 
 This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{t-1} + 1)}$
 the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
