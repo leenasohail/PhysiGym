@@ -129,7 +129,7 @@ r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - (1-\alpha) \cdot d_t
 This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{t-1} + 1)}$
 the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
 Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (tumor killing) and **toxicity cost** (drug amount). By adjusting $\alpha$, you can simulate different treatment strategies:
-  - **Aggressive**: \( \alpha \approx 1 \) → Maximize tumor reduction, ignore drug cost.
-  - **Conservative**: \( \alpha \approx 0 \) → Minimize drug use, even if tumor persists.
-  - **Balanced**: \( \alpha \in (0, 1) \) → Trade-off between treatment effectiveness and side effects.
+  - **Aggressive**: $\alpha \approx 1$ → Maximize tumor reduction, ignore drug cost.
+  - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
+  - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
