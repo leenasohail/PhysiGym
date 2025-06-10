@@ -1,0 +1,6 @@
+torch
+torchvision
+torchaudio
+tyro
+wandb
+imageio[ffmpeg]
