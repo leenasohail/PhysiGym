@@ -77,7 +77,7 @@ where:
 - $\pi$ represents the policy (strategy),
 - $s_0$ is the initial state derived from `cells.csv`.
 
-The agent aims to maximize this reward function. In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem. Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
+The agent aims to maximize the reward function by learning an optimal policy or strategy. In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem. Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
 
 Why use a neural network instead of polynomial functions? Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them. Therefore, we will use Deep Reinforcement Learning. For neural network implementation, we will use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
 
