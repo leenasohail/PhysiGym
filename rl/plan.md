@@ -272,15 +272,8 @@ r_{4,t} = \alpha*(\mathbb{1}_{\{C_t\ge C_{t-1}\}}-\mathbb{1}_{\{C_{t-1} \gt C_{t
  - [ ] Adapt the code SAIL+C51
 
 
-# 📋 Tumor Shrinkage Reward Functions with Drug Penalty
+## 📋 Tumor Shrinkage Reward Functions with Drug Penalty
 
-Let:
-
-- \( C_t \): tumor cell count at time \( t \), \( C_t \in [0, 512] \)  
-- \( d_t \): drug amount at time \( t \), \( d_t \in [0, 1] \)  
-- \( \Delta C_t = C_{t-1} - C_t \): tumor reduction (positive is good)  
-- \( \alpha \): drug penalty weight  
-- \( \gamma \): tumor shrinkage reward scale  
 
 ---
 
@@ -291,7 +284,6 @@ r_t = \gamma \cdot \frac{C_{t-1} - C_t}{512} - \alpha \cdot d_t
 ```
 
 - Encourages absolute reduction in tumor size  
-- Suggestion: \( \gamma = 10 \), \( \alpha = 1 \)
 
 ---
 
@@ -315,53 +307,24 @@ r_t = \gamma \cdot \frac{\max(0, C_{t-1} - C_t)}{C_{t-1} + 1} - \alpha \cdot d_t
 - Prevents division by zero with \( +1 \)
 
 ---
-
-### 4. **Quadratic Shrinkage Emphasis**
-
-```math
-r_t = \gamma \cdot \left(\frac{\max(0, C_{t-1} - C_t)}{512}\right)^2 - \alpha \cdot d_t
-```
-
-- Amplifies larger drops in tumor count more than small ones
-
----
-
-### 5. **Tumor Derivative + Terminal Cure Bonus**
+### 4. **Weighted Linear Tumor Shrinkage - Drug Penalty**
 
 ```math
-r_t = \gamma \cdot \frac{C_{t-1} - C_t}{512} - \alpha \cdot d_t + \mathbb{1}_{C_t = 0} \cdot R_{\text{final}}
+r_t = \gamma \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - \alpha \cdot d_t
 ```
 
-- Adds a large bonus when tumor is completely eliminated  
-- Example: \( R_{\text{final}} = 50 \)
+- Encourages weighted reduction in tumor size 
 
----
-
-### 6. **Potential-Based Reward Shaping**
-
-Define potential function:
+### 5. **Relative Tumor Shrinkage - Drug Penalty**
 
 ```math
-\Phi(C_t) = -\lambda \cdot \frac{C_t}{512}
+r_t = \gamma \cdot \frac{C_{t-1} - C_t}{C_{t-1}} - \alpha \cdot d_t
 ```
 
-Shaped reward:
-
-```math
-r_t = - \alpha \cdot d_t + \Phi(C_t) - \Phi(C_{t-1})
-```
-
-- Encourages forward progress using potential differences  
-- Helps credit assignment
-
----
-
-## 🔧 Recommended Hyperparameters
-
-| Parameter              | Value | Description                          |
-|------------------------|-------|--------------------------------------|
-| \( \gamma \)           | 10    | Tumor shrinkage reward scale         |
-| \( \alpha \)           | 1     | Drug usage penalty                   |
-| \( \lambda \)          | 10    | Shaping strength for potential-based |
-| \( R_{\text{final}} \) | 50    | Terminal bonus for full cure         |
-
+# 9 June
+ - [x] Launched with Weighted Linear Tumor Shrinkage - Drug Penalty (almost great)
+ - [x] Launched with Relative Tumor Shrinkage - Drug Penalty (not great)
+ - [x] rename variables from M1, M2, pro-inflammatory factor, anti-inflammatory factor to cell_1, cell_2, anti-tumoral factor, pro-tumoral factor 
+ - [In progress] Tutorial
+# To do
+Goes to 2 June
