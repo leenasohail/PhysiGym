@@ -95,34 +95,41 @@ Before applying any deep reinforcement learning algorithm, you need to install s
 ```bash
 pip install -r model/tumor_immune_base/custom_modules/physigym/requirements.txt
 ```
+⚠️ **Important:** To use **Wandb**, you must create an account, log in with `wandb login`, and link your code to a project using `wandb.init(project="your_project_name")`.
 
-In the [`requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt) file, you will notice a library called [wandb](https://wandb.ai/site). This library allows you to save results in the cloud. To use it, create an account before launching SAC and saving results.
+## Launch a [SAC (Soft Actor-Critic)](https://arxiv.org/pdf/1812.05905)
 
 We applied a Deep Reinforcement Learning Algorithm called [SAC (Soft Actor-Critic)](https://arxiv.org/pdf/1812.05905), which is adapted for continuous action spaces.
 
-The code to be launched is [sac_tib](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/sac_tib.py). To launch it, you need install multiple libraries.
+The [code](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/sac_tib.py). is divided into several parts:
+
+- The first part is dedicated to the **replay buffer**.
+- The second part handles the **neural networks**.
+- The third part is focused on the **environment wrapper**.
+- The final part implements the **reinforcement learning logic**.
+
+Although all components are written in a single file, you are free to separate them into multiple files for better modularity—for example, splitting the **replay buffer**, **neural networks**, and **wrapper** into separate modules. These componenets can also be reused for further work.
+
+The **wrapper** is the component most tightly coupled to the simulation model. It simplifies the interaction between the model and the reinforcement learning logic. Additionally, it can be used to store in info important information at each time step, such as drug dosages and more.
+
+You have to copy [code](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/sac_tib.py) into your PhysiCell folder. Then, you should be carefull with different arguments such as **wandb_entity** which is personal, change it. Besides, you can modify any arguments you want but be aware for instance for reward you should add the reward model into [physicell_model](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/physicell_model.py) and add the right attributed to reward function.
+
+For instance, the reward function used is **linear**:
+The reward function is defined as:
+
+```math
+r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - (1-\alpha) \cdot d_t
 ```
-pip install torch tensorbowandbard tensordict wandb
-```
+- \( C_t \): Number of tumor cells at time step \( t \)
+- \( d_t \): Amount of drug added to the tumor microenvironment at time \( t \)
+- \( \alpha \in [0, 1] \): A trade-off weight parameter
+  - \( \alpha = 1 \): Prioritize killing tumor cells, ignoring drug usage
+  - \( \alpha = 0 \): Avoid drug usage entirely, regardless of tumor growth
 
+This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{t-1} + 1)}$
+the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
+Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (tumor killing) and **toxicity cost** (drug amount). By adjusting $\alpha$, you can simulate different treatment strategies:
+  - **Aggressive**: \( \alpha \approx 1 \) → Maximize tumor reduction, ignore drug cost.
+  - **Conservative**: \( \alpha \approx 0 \) → Minimize drug use, even if tumor persists.
+  - **Balanced**: \( \alpha \in (0, 1) \) → Trade-off between treatment effectiveness and side effects.
 
-
-- A **replay buffer**, mainly used in deep reinforcement learning algorithms.
-- [`wrapper_physicell_tme.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/utils/wrappers/wrapper_physicell_tme.py) – A wrapper for [`physicell_model.py`](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tme/custom_modules/physigym/physicell_model.py).
-
-### 2.3 Launch SAC
-
-First, install the necessary libraries:
-
-```bash
-pip install -r rl/requirements.txt
-```
-
-In the [`requirements.txt`](https://github.com/Dante-Berth/PhysiGym/blob/main/rl/sac/sac_requirements.txt) file, you will notice a library called [wandb](https://wandb.ai/site). This library allows you to save results in the cloud. To use it, create an account before launching SAC and saving results.
-
-Since reinforcement learning can be sensitive to random seeds, it is recommended to run multiple seeds in parallel to ensure consistency across different runs.
-
-Finally, navigate to the root of your PhysiCell folder and run:
-
-```bash
-./rl/launch_sac.sh

@@ -310,7 +310,7 @@ r_t = \gamma \cdot \frac{\max(0, C_{t-1} - C_t)}{C_{t-1} + 1} - \alpha \cdot d_t
 ### 4. **Weighted Linear Tumor Shrinkage - Drug Penalty**
 
 ```math
-r_t = \gamma \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - \alpha \cdot d_t
+r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - (1-\alpha) \cdot d_t
 ```
 
 - Encourages weighted reduction in tumor size 
@@ -318,7 +318,7 @@ r_t = \gamma \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - \alpha \cdot d_t
 ### 5. **Relative Tumor Shrinkage - Drug Penalty**
 
 ```math
-r_t = \gamma \cdot \frac{C_{t-1} - C_t}{C_{t-1}} - \alpha \cdot d_t
+r_t = \alpha \cdot \frac{C_{t-1} - C_t}{C_{t-1}} - (1-\alpha) \cdot d_t
 ```
 
 # 9 June

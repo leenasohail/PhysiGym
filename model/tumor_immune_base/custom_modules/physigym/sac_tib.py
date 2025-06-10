@@ -18,7 +18,12 @@ from tensordict import TensorDict
 from numba import njit, prange
 import numba
 
-numba.set_num_threads(5)
+#### Replay Buffers #####
+
+
+numba.set_num_threads(
+    5
+)  # Can exist a competition between PhysiCell and the code using numba
 
 
 class ReplayBuffer(object):
@@ -417,8 +422,7 @@ class MinimalImgReplayBuffer:
         return o_observation
 
 
-LOG_STD_MAX = 2
-LOG_STD_MIN = -5
+#### Neural Networks #####
 
 
 class PixelPreprocess(nn.Module):
@@ -505,6 +509,9 @@ class QNetwork(nn.Module):
 class Actor(nn.Module):
     """Policy network (Actor)"""
 
+    LOG_STD_MAX = 2
+    LOG_STD_MIN = -5
+
     def __init__(self, env, cfg):
         super().__init__()
         self.cfg = cfg
@@ -542,7 +549,7 @@ class Actor(nn.Module):
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
         log_std = torch.tanh(log_std)
-        log_std = LOG_STD_MIN + 0.5 * (LOG_STD_MAX - LOG_STD_MIN) * (
+        log_std = self.LOG_STD_MIN + 0.5 * (self.LOG_STD_MAX - self.LOG_STD_MIN) * (
             log_std + 1
         )  # Stable variance scaling
 
@@ -579,10 +586,10 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    track: bool = False
     wandb_project_name: str = "SAC_IMAGE_TIB"
     """the wandb's project name"""
     wandb_entity: str = "corporate-manu-sureli"
+    """the wandb's entity name"""
 
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
@@ -617,7 +624,7 @@ class Args:
     """track with wandb"""
 
 
-# Wrapper
+### Wrapper ###
 class PhysiCellModelWrapper(gym.Wrapper):
     def __init__(
         self,
@@ -690,6 +697,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         info["action"] = d_action
         info["reward_drugs"] = r_drugs
         info["reward_cancer_cells"] = r_cancer_cells
+        #### If you reward function is different from a sum you can add a new condition
         if self.reward_type == "log_exp":
             r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
         else:
@@ -698,8 +706,11 @@ class PhysiCellModelWrapper(gym.Wrapper):
         return o_observation, r_reward, b_terminated, b_truncated, info
 
 
+#### Algorithm Logic ####
+### The code is mainly inspired from https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py###
 def main():
     args = tyro.cli(Args)
+    # INITIALISATION/ CREATE FOLDERS
     config = vars(args)
     run_name = f"{args.env_id}__{args.name}_{args.wandb_entity}_{int(time.time())}"
     run_dir = f"runs/{run_name}"
@@ -729,24 +740,26 @@ def main():
         % ("\n".join([f"|{key}|{value}|" for key, value in config.items()])),
     )
 
-    # TRY NOT TO MODIFY: seeding
+    # SEEDING
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
+    # INITIALISATION OF THE ENVIRONMENT
     env = gym.make(
         args.env_id,
         observation_type=args.observation_type,
         reward_type=args.reward_type,
     )
+    # VARIABLE NEEDED FOR THE REPLAY BUFFER
     height = env.unwrapped.height
     width = env.unwrapped.width
     x_min = env.unwrapped.x_min
     y_min = env.unwrapped.y_min
     color_mapping = env.unwrapped.color_mapping
-    cumulative_return = 0
+
     env = PhysiCellModelWrapper(env=env)
     is_gray = True if args.observation_type == "image_gray" else False
     cfg = {"cfg_FeatureExtractor": {}}
@@ -803,6 +816,7 @@ def main():
 
     # TRY NOT TO MODIFY: start the game
     obs, info = env.reset(seed=args.seed)
+    cumulative_return = 0
     episode = 1
     step_episode = 0
     discounted_cumulative_return = 0
