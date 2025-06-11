@@ -203,7 +203,7 @@ python3 custom_modules/physigym/physigym/envs/sac_tib.py
 <!-- bue 20250611: how? -->
 
 
-## Obswerve the Learning Process on Wandb (optional)
+## Observe the Learning Process on Wandb (optional)
 
 Log into your online wandb account and check out the run.
 + https://wandb.ai
