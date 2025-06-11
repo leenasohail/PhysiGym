@@ -1,6 +1,7 @@
-torch
-torchvision
-torchaudio
+gymnasium
+imageio[ffmpeg]
+numba
+numpy
+tensordict
 tyro
 wandb
-imageio[ffmpeg]
