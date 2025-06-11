@@ -104,11 +104,13 @@ def capture_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
 
         # copy files to the model's custom_modules physigym folder
         os.makedirs(f'{s_path_model}custom_modules/physigym/', exist_ok=True)
-        print(f'copy to: {s_path_model}custom_modules/physigym/physicell_model.py ...')
-        shutil.copy(
-            src=f'{s_path_prj}custom_modules/physigym/physigym/envs/physicell_model.py',
-            dst=f'{s_path_model}custom_modules/physigym/',
-        )
+        for s_file in sorted(os.listdir(f'{s_path_prj}custom_modules/physigym/physigym/envs/')):
+            if not (s_file.endswith('__init__.py') or s_file.endswith('physicell_core.py')):
+                print(f'copy to: {s_path_model}custom_modules/physigym/{s_file} ...')
+                shutil.copy(
+                    src=f'{s_path_prj}custom_modules/physigym/physigym/envs/{s_file}',
+                    dst=f'{s_path_model}custom_modules/physigym/',
+                )
 
     # going home
     print("ok!")

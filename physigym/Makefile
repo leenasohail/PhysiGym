@@ -347,6 +347,8 @@ save:
 	rm -fr ./custom_modules/extending/custom_modules
 	rm -fr ./custom_modules/extending/extending.egg-info
 	rm -fr ./custom_modules/extending/UNKNOWN.egg-info
+	rm -fr ./custom_modules/physigym/physigym/__pycache__
+	rm -fr ./custom_modules/physigym/physigym/envs/__pycache__
 	cp -r ./custom_modules/* ./user_projects/$(PROJ)/custom_modules
 
 load:
