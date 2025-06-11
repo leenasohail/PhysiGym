@@ -110,11 +110,12 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
         )
 
         # copy files to the user_project's custom_modules physigym folder
-        print(f'copy from: {s_path_model}custom_modules/physigym/physicell_model.py ...')
-        shutil.copy(
-            src=f'{s_path_model}custom_modules/physigym/physicell_model.py',
-            dst=f'{s_path_prj}custom_modules/physigym/physigym/envs/',
-        )
+        for s_file in sorted(os.listdir(f'{s_path_model}custom_modules/physigym/')):
+            print(f'copy from: {s_path_model}custom_modules/physigym/{s_file} ...')
+            shutil.copy(
+                src=f'{s_path_model}custom_modules/physigym/{s_file}',
+                dst=f'{s_path_prj}custom_modules/physigym/physigym/envs/',
+            )
 
     # going home
     print("ok!")
