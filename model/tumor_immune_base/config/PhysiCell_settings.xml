@@ -79,7 +79,7 @@
                 <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
-        <variable name="pro-inflammatory factor" units="dimensionless" ID="1">
+        <variable name="anti-tumoral factor" units="dimensionless" ID="1">
             <physical_parameter_set>
                 <diffusion_coefficient units="micron^2/min">1000.0</diffusion_coefficient>
                 <decay_rate units="1/min">0.05</decay_rate>
@@ -95,7 +95,7 @@
                 <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
-        <variable name="anti-inflammatory factor" units="dimensionless" ID="2">
+        <variable name="pro-tumoral factor" units="dimensionless" ID="2">
             <physical_parameter_set>
                 <diffusion_coefficient units="micron^2/min">1000.0</diffusion_coefficient>
                 <decay_rate units="1/min">0.1</decay_rate>
@@ -148,8 +148,8 @@
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">1.0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_1" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_2" units="dimensionless">0</asymmetric_division_probability>
                     </standard_asymmetric_division>
                 </cycle>
                 <death>
@@ -200,8 +200,8 @@
                     <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="M1">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="M2">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_1">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_2">1.0</cell_adhesion_affinity>
                     </cell_adhesion_affinities>
                     <options>
                         <set_relative_equilibrium_distance enabled="false" units="dimensionless">1.8</set_relative_equilibrium_distance>
@@ -229,8 +229,8 @@
                             <normalize_each_gradient>false</normalize_each_gradient>
                             <chemotactic_sensitivities>
                                 <chemotactic_sensitivity substrate="debris">0.0</chemotactic_sensitivity>
-                                <chemotactic_sensitivity substrate="pro-inflammatory factor">0.0</chemotactic_sensitivity>
-                                <chemotactic_sensitivity substrate="anti-inflammatory factor">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti-tumoral factor">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="pro-tumoral factor">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="drug_1">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
@@ -244,13 +244,13 @@
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
-                    <substrate name="pro-inflammatory factor">
+                    <substrate name="anti-tumoral factor">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
-                    <substrate name="anti-inflammatory factor">
+                    <substrate name="pro-tumoral factor">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">10.0</uptake_rate>
@@ -269,27 +269,27 @@
                     <other_dead_phagocytosis_rate units="1/min">0</other_dead_phagocytosis_rate>
                     <live_phagocytosis_rates>
                         <phagocytosis_rate name="tumor" units="1/min">0</phagocytosis_rate>
-                        <phagocytosis_rate name="M1" units="1/min">0.0</phagocytosis_rate>
-                        <phagocytosis_rate name="M2" units="1/min">0.0</phagocytosis_rate>
+                        <phagocytosis_rate name="cell_1" units="1/min">0.0</phagocytosis_rate>
+                        <phagocytosis_rate name="cell_2" units="1/min">0.0</phagocytosis_rate>
                     </live_phagocytosis_rates>
                     <attack_rates>
                         <attack_rate name="tumor" units="1/min">0</attack_rate>
-                        <attack_rate name="M1" units="1/min">0.0</attack_rate>
-                        <attack_rate name="M2" units="1/min">0.0</attack_rate>
+                        <attack_rate name="cell_1" units="1/min">0.0</attack_rate>
+                        <attack_rate name="cell_2" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1</attack_damage_rate>
                     <attack_duration units="min">0.1</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0</fusion_rate>
-                        <fusion_rate name="M1" units="1/min">0.0</fusion_rate>
-                        <fusion_rate name="M2" units="1/min">0.0</fusion_rate>
+                        <fusion_rate name="cell_1" units="1/min">0.0</fusion_rate>
+                        <fusion_rate name="cell_2" units="1/min">0.0</fusion_rate>
                     </fusion_rates>
                 </cell_interactions>
                 <cell_transformations>
                     <transformation_rates>
                         <transformation_rate name="tumor" units="1/min">0</transformation_rate>
-                        <transformation_rate name="M1" units="1/min">0.0</transformation_rate>
-                        <transformation_rate name="M2" units="1/min">0.0</transformation_rate>
+                        <transformation_rate name="cell_1" units="1/min">0.0</transformation_rate>
+                        <transformation_rate name="cell_2" units="1/min">0.0</transformation_rate>
                     </transformation_rates>
                 </cell_transformations>
                 <cell_integrity>
@@ -303,7 +303,7 @@
             <initial_parameter_distributions enabled="false">
           </initial_parameter_distributions>
         </cell_definition>
-        <cell_definition name="M1" ID="1">
+        <cell_definition name="cell_1" ID="1">
             <phenotype>
                 <cycle code="5" name="live">
                     <phase_transition_rates units="1/min">
@@ -311,8 +311,8 @@
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1" units="dimensionless">1.0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2" units="dimensionless">0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_1" units="dimensionless">1.0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_2" units="dimensionless">0</asymmetric_division_probability>
                     </standard_asymmetric_division>
                 </cycle>
                 <death>
@@ -363,8 +363,8 @@
                     <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="M1">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="M2">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_1">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_2">1.0</cell_adhesion_affinity>
                     </cell_adhesion_affinities>
                     <options>
                         <set_relative_equilibrium_distance enabled="false" units="dimensionless">1.8</set_relative_equilibrium_distance>
@@ -392,8 +392,8 @@
                             <normalize_each_gradient>false</normalize_each_gradient>
                             <chemotactic_sensitivities>
                                 <chemotactic_sensitivity substrate="debris">0.0</chemotactic_sensitivity>
-                                <chemotactic_sensitivity substrate="pro-inflammatory factor">0.0</chemotactic_sensitivity>
-                                <chemotactic_sensitivity substrate="anti-inflammatory factor">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti-tumoral factor">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="pro-tumoral factor">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="drug_1">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
@@ -407,13 +407,13 @@
                         <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
-                    <substrate name="pro-inflammatory factor">
+                    <substrate name="anti-tumoral factor">
                         <secretion_rate units="1/min">10</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
-                    <substrate name="anti-inflammatory factor">
+                    <substrate name="pro-tumoral factor">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0.0</uptake_rate>
@@ -432,27 +432,27 @@
                     <other_dead_phagocytosis_rate units="1/min">0.0</other_dead_phagocytosis_rate>
                     <live_phagocytosis_rates>
                         <phagocytosis_rate name="tumor" units="1/min">0.0</phagocytosis_rate>
-                        <phagocytosis_rate name="M1" units="1/min">0.0</phagocytosis_rate>
-                        <phagocytosis_rate name="M2" units="1/min">0.0</phagocytosis_rate>
+                        <phagocytosis_rate name="cell_1" units="1/min">0.0</phagocytosis_rate>
+                        <phagocytosis_rate name="cell_2" units="1/min">0.0</phagocytosis_rate>
                     </live_phagocytosis_rates>
                     <attack_rates>
                         <attack_rate name="tumor" units="1/min">0.0</attack_rate>
-                        <attack_rate name="M1" units="1/min">0.0</attack_rate>
-                        <attack_rate name="M2" units="1/min">0.0</attack_rate>
+                        <attack_rate name="cell_1" units="1/min">0.0</attack_rate>
+                        <attack_rate name="cell_2" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1.0</attack_damage_rate>
                     <attack_duration units="min">0.1</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
-                        <fusion_rate name="M1" units="1/min">0.0</fusion_rate>
-                        <fusion_rate name="M2" units="1/min">0.0</fusion_rate>
+                        <fusion_rate name="cell_1" units="1/min">0.0</fusion_rate>
+                        <fusion_rate name="cell_2" units="1/min">0.0</fusion_rate>
                     </fusion_rates>
                 </cell_interactions>
                 <cell_transformations>
                     <transformation_rates>
                         <transformation_rate name="tumor" units="1/min">0.0</transformation_rate>
-                        <transformation_rate name="M1" units="1/min">0.0</transformation_rate>
-                        <transformation_rate name="M2" units="1/min">0.0</transformation_rate>
+                        <transformation_rate name="cell_1" units="1/min">0.0</transformation_rate>
+                        <transformation_rate name="cell_2" units="1/min">0.0</transformation_rate>
                     </transformation_rates>
                 </cell_transformations>
                 <cell_integrity>
@@ -466,7 +466,7 @@
             <initial_parameter_distributions enabled="false">
           </initial_parameter_distributions>
         </cell_definition>
-        <cell_definition name="M2" ID="2">
+        <cell_definition name="cell_2" ID="2">
             <phenotype>
                 <cycle code="5" name="live">
                     <phase_transition_rates units="1/min">
@@ -474,8 +474,8 @@
                     </phase_transition_rates>
                     <standard_asymmetric_division enabled="True">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M1" units="dimensionless">0.2</asymmetric_division_probability>
-                        <asymmetric_division_probability name="M2" units="dimensionless">0.8</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_1" units="dimensionless">0.2</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_2" units="dimensionless">0.8</asymmetric_division_probability>
                     </standard_asymmetric_division>
                 </cycle>
                 <death>
@@ -526,8 +526,8 @@
                     <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="M1">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="M2">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_1">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_2">1.0</cell_adhesion_affinity>
                     </cell_adhesion_affinities>
                     <options>
                         <set_relative_equilibrium_distance enabled="false" units="dimensionless">1.8</set_relative_equilibrium_distance>
@@ -555,8 +555,8 @@
                             <normalize_each_gradient>false</normalize_each_gradient>
                             <chemotactic_sensitivities>
                                 <chemotactic_sensitivity substrate="debris">0.2</chemotactic_sensitivity>
-                                <chemotactic_sensitivity substrate="pro-inflammatory factor">0.0</chemotactic_sensitivity>
-                                <chemotactic_sensitivity substrate="anti-inflammatory factor">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="anti-tumoral factor">0.0</chemotactic_sensitivity>
+                                <chemotactic_sensitivity substrate="pro-tumoral factor">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="drug_1">0.0</chemotactic_sensitivity>
                                 <chemotactic_sensitivity substrate="substrate">0.0</chemotactic_sensitivity>
                             </chemotactic_sensitivities>
@@ -570,13 +570,13 @@
                         <uptake_rate units="1/min">10.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
-                    <substrate name="pro-inflammatory factor">
+                    <substrate name="anti-tumoral factor">
                         <secretion_rate units="1/min">0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
-                    <substrate name="anti-inflammatory factor">
+                    <substrate name="pro-tumoral factor">
                         <secretion_rate units="1/min">10</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0.0</uptake_rate>
@@ -595,27 +595,27 @@
                     <other_dead_phagocytosis_rate units="1/min">0</other_dead_phagocytosis_rate>
                     <live_phagocytosis_rates>
                         <phagocytosis_rate name="tumor" units="1/min">0.0</phagocytosis_rate>
-                        <phagocytosis_rate name="M1" units="1/min">0.0</phagocytosis_rate>
-                        <phagocytosis_rate name="M2" units="1/min">0.0</phagocytosis_rate>
+                        <phagocytosis_rate name="cell_1" units="1/min">0.0</phagocytosis_rate>
+                        <phagocytosis_rate name="cell_2" units="1/min">0.0</phagocytosis_rate>
                     </live_phagocytosis_rates>
                     <attack_rates>
                         <attack_rate name="tumor" units="1/min">0.0</attack_rate>
-                        <attack_rate name="M1" units="1/min">0.0</attack_rate>
-                        <attack_rate name="M2" units="1/min">0.0</attack_rate>
+                        <attack_rate name="cell_1" units="1/min">0.0</attack_rate>
+                        <attack_rate name="cell_2" units="1/min">0.0</attack_rate>
                     </attack_rates>
                     <attack_damage_rate units="1/min">1.0</attack_damage_rate>
                     <attack_duration units="min">0.1</attack_duration>
                     <fusion_rates>
                         <fusion_rate name="tumor" units="1/min">0.0</fusion_rate>
-                        <fusion_rate name="M1" units="1/min">0.0</fusion_rate>
-                        <fusion_rate name="M2" units="1/min">0.0</fusion_rate>
+                        <fusion_rate name="cell_1" units="1/min">0.0</fusion_rate>
+                        <fusion_rate name="cell_2" units="1/min">0.0</fusion_rate>
                     </fusion_rates>
                 </cell_interactions>
                 <cell_transformations>
                     <transformation_rates>
                         <transformation_rate name="tumor" units="1/min">0.0</transformation_rate>
-                        <transformation_rate name="M1" units="1/min">0.0</transformation_rate>
-                        <transformation_rate name="M2" units="1/min">0.0</transformation_rate>
+                        <transformation_rate name="cell_1" units="1/min">0.0</transformation_rate>
+                        <transformation_rate name="cell_2" units="1/min">0.0</transformation_rate>
                     </transformation_rates>
                 </cell_transformations>
                 <cell_integrity>

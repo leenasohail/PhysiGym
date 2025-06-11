@@ -209,14 +209,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             ]
         )
 
-        self.nb_m1 = len(
+        self.nb_cell_1 = len(
             self.df_cell.loc[
-                (self.df_cell.dead == 0.0) & (self.df_cell.type == "M1"), :
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_1"), :
             ]
         )
-        self.nb_m2 = len(
+        self.nb_cell_2 = len(
             self.df_cell.loc[
-                (self.df_cell.dead == 0.0) & (self.df_cell.type == "M2"), :
+                (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_2"), :
             ]
         )
 
@@ -324,8 +324,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         info = {
             "number_cancer_cells": self.nb_cancer_cells,
             "df_cell": self.df_cell,
-            "number_m1": self.nb_m1,
-            "number_m2": self.nb_m2,
+            "number_cell_1": self.nb_cell_1,
+            "number_cell_2": self.nb_cell_1,
         }
 
         # output
@@ -371,17 +371,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         C_t = self.np_ratio_nb_cancer_cells * self.init_cancer_cells
         C_prev = C_prev = self.np_ratio_old_nb_cancer_cells * self.init_cancer_cells
-        return self.normalize(
-            C_t=C_t, C_prev=C_prev, r_min=-0.05, r_max=0.05, max_cells=512
-        )
+        return self.normalize(C_t=C_t, C_prev=C_prev)
 
-    def normalize(self, C_t, C_prev, r_min=-0.05, r_max=0.05, max_cells=512):
-        if self.reward_type == "log":
-            r = np.log(C_t / C_prev)
-            r_clipped = np.clip(r, r_min, r_max)
-            normalized = (r_clipped - r_min) / (r_max - r_min)
-            return 1 - normalized
-        elif self.reward_type == "sparse":
+    def normalize(self, C_t, C_prev):
+        if self.reward_type == "sparse":
             if C_prev * C_t == 0:
                 return 100
             elif C_prev > C_t:
@@ -390,13 +383,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 return -1
         elif self.reward_type == "linear":
             return (C_prev - C_t) / np.log(C_prev + 1)
-        elif self.reward_type == "log_exp":
-            return np.log(C_t + 1) / np.log(100)
         elif self.reward_type == "simple":
             return 1 if C_prev > C_t else 0
         else:
-            normalized = min(C_t, max_cells) / max_cells
-            return 1 - normalized
+            raise f"The reward type is not implemented{self.reward_type}"
 
     def get_reset_values(self):
         self.np_ratio_old_nb_cancer_cells = None
