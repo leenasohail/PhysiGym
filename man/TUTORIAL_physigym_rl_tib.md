@@ -82,14 +82,46 @@ where:
 - $\pi$ represents the policy (strategy),
 - $s_0$ is the initial state derived from `cells.csv`.
 
+RL frameworks are characterized by four essential elements that define a \textbf{Markov Decision Process (MDP)} $MDP = \{S,A,T,R\}$.
+\begin{enumerate}
+    \item $S$ the state space
+    \item $A$ the action space
+    \item  p the transition $p(s_{t+1}|s_{t},a)$ is given by PhysiCell.
+    \item $R: \mathbb{S}\times \mathbb{A}\times \mathbb{S} \to \mathbb{R}$ the reward is determined by the current action, the current state, and the subsequent state. This feedback is provided to the agent to assess whether the action contributes to achieving its objective.
+\end{enumerate}
+
 The agent aims to maximize the reward function by learning an optimal policy or strategy.
 In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem.
+In our current state, the reward function is 
+For instance, the reward function used is **linear**:
+The reward function is defined as:
+
+```math
+r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t
+```
+- $C_t$: Number of tumor cells at time step $t$
+- $C_{init}$ : Number of tumor cells at initial time step
+- $d_t$: Amount of drug added to the tumor microenvironment at time $t$
+- $ \alpha \in [0, 1] $: A trade-off weight parameter
+  - $ \alpha = 1 $: Prioritize killing tumor cells, ignoring drug usage
+  - $ \alpha = 0 $: Avoid drug usage entirely, regardless of tumor growth
+
+This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{init})}$
+the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
+Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (tumor killing) and **toxicity cost** (drug amount). By adjusting $\alpha$, you can simulate different treatment strategies:
+  - **Aggressive**: $\alpha \approx 1$ → Maximize tumor reduction, ignore drug cost.
+  - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
+  - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
+
+The **action space** refers to the **drug_1** a value between zero and one and finally the **state space** is a gray image of size $[0,1]**(x_{max}-x_{min})*(y_{max}-y_{min})$, you can find [$x_{min},x_{max},y_{min},y_{max}$](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/PhysiCell_settings.xml) 
+
 Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
 
 Why use a neural network instead of polynomial functions?
 Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them.
 Therefore, we will use Deep Reinforcement Learning.
 For neural network implementation, we will use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
+
 
 ## Required Libraries
 
@@ -175,25 +207,6 @@ The [code](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_
 The **wrapper** is the component most tightly coupled to the simulation model. It simplifies the interaction between the model and the reinforcement learning logic. Additionally, it can be used to store in info important information at each time step, such as drug dosages and more.
 
 You have to copy [code](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/sac_tib.py) into your PhysiCell folder. Then, you should be carefull with different arguments such as **wandb_entity** which is personal, change it. Besides, you can modify any arguments you want but be aware for instance for reward you should add the reward model into [physicell_model](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/physicell_model.py) and add the right attributed to reward function.
-
-For instance, the reward function used is **linear**:
-The reward function is defined as:
-
-```math
-r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{t-1}+1)} - (1-\alpha) \cdot d_t
-```
-- $C_t$: Number of tumor cells at time step \( t \)
-- $d_t$: Amount of drug added to the tumor microenvironment at time \( t \)
-- $ \alpha \in [0, 1] $: A trade-off weight parameter
-  - $ \alpha = 1 $: Prioritize killing tumor cells, ignoring drug usage
-  - $ \alpha = 0 $: Avoid drug usage entirely, regardless of tumor growth
-
-This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{t-1} + 1)}$
-the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
-Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (tumor killing) and **toxicity cost** (drug amount). By adjusting $\alpha$, you can simulate different treatment strategies:
-  - **Aggressive**: $\alpha \approx 1$ → Maximize tumor reduction, ignore drug cost.
-  - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
-  - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
 
 Run the Code:
