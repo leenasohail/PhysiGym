@@ -126,6 +126,7 @@ Scroll down to **class Args** and adjust the following settings:
 <!-- bue 20250611: anythong else, if you only wanna run with tenserboard? -->
 
 You will be asked to create a W&B account, use an existing W&B account, or don't visualize my results.
+
 Chose: don't visualize my results!
 
 
@@ -207,7 +208,7 @@ Open another command line shell.
 ```bash
 tensorboard --logdir wandb/
 ```
-Open the Click on the link:
+Open the link:
 + http://localhost:6006/
 
 For updating the visualization to the last processed time steps, you have to reload the webpage.
