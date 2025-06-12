@@ -1,6 +1,0 @@
-tumor,anti-inflammatory factor,decreases,apoptosis,0.0,5,4,0
-tumor,contact with anti-tumoral,increases,apoptosis,0.05,5,4,0
-anti-tumoral,tumor-inflammation,increases,transform to pro-tumoral,0.5,5,4,0
-pro-tumoral,drug_1,increases,transform to anti-tumoral,0.5,5,4,0
-anti-tumoral,contact with tumor,decreases,migration speed,1e-2,5,4,0
-tumor,pressure,decreases,cycle entry,0.00005,15,3,0
