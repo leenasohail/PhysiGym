@@ -114,7 +114,6 @@ All other required libraries can be installed via the model-specific **requireme
 pip3 install -r model/tumor_immune_base/custom_modules/physigym/requirements.txt
 ```
 
-
 Use your favorite text editor (here we use nano) to open the **sac_tib.py** file.
 
 ```bash
@@ -123,8 +122,11 @@ nano custom_modules/physigym/physigym/envs/sac_tib.py
 
 Scroll down to **class Args** and adjust the following settings:
 + cuda: bool = *True or False*
-+ wandb\_track: bool = False
++ wandb\_track: bool = True
 <!-- bue 20250611: anythong else, if you only wanna run with tenserboard? -->
+
+You will be asked to create a W&B account, use an existing W&B account, or don't visualize my results.
+Chose: don't visualize my results!
 
 
 ## Wandb Library (optional)
@@ -200,10 +202,20 @@ python3 custom_modules/physigym/physigym/envs/sac_tib.py
 ```
 
 ## Observe the Learning Process with Tenserbord
-<!-- bue 20250611: how? -->
+
+Open another command line shell.
+```bash
+tensorboard --logdir wandb/
+```
+Open the Click on the link:
++ http://localhost:6006/
+
+For updating the visualization to the last processed time steps, you have to reload the webpage.
 
 
 ## Observe the Learning Process on Wandb (optional)
 
 Log into your online wandb account and check out the run.
+The visualization will update automatically.
+
 + https://wandb.ai
