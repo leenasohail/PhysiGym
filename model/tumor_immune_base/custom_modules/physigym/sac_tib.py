@@ -1,25 +1,51 @@
-import gymnasium as gym
-from gymnasium.spaces import Box
-import numpy as np
-import physigym  # import the Gymnasium PhysiCell bridge module
+#####
+# title: model/tumor_immune_base/custom_modules/physigym/sac_tib.py
+#
+# language: python3
+# main libraries: gymnasium, physigym, torch
+#
+# date: 2024-spring
+# license: BSD-3-Clause
+# author: Alexandre Bertin, Elmar Bucher
+# original source code: https://github.com/Dante-Berth/PhysiGym
+#
+# description:
+#     sac implementation for tumor immune base model
+#####
+
+#### IMPORT LIBRARIES ####
+# Standard Python Libraries
+import os
 import random
 import time
 from dataclasses import dataclass
+
+# Gymnasium PhysiCell bridge module
+import physigym
+
+# Gymnasium
+import gymnasium as gym
+from gymnasium.spaces import Box
 import numpy as np
+
+# Torch ecosystem
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import wandb
-import tyro
-import os
 from torch.utils.tensorboard import SummaryWriter
 from tensordict import TensorDict
-from numba import njit, prange
+
+import wandb
+import tyro
+
 import numba
+from numba import njit, prange
 
 #### Replay Buffers #####
-
+# description:
+#     two different replay buffers implemented one for scalars while the other is optimized to output image
+#####
 
 numba.set_num_threads(
     5
@@ -724,15 +750,12 @@ def main():
             monitor_gym=True,
             save_code=True,
         )
+        run_dir = wandb.run.dir
         print("Wandb selected")
     else:
         print("Tensorboard selected")
 
     os.makedirs(run_dir, exist_ok=True)
-    image_folder = run_dir + "/image"
-    os.makedirs(image_folder, exist_ok=True)
-    model_dir = run_dir + "/models"
-    os.makedirs(model_dir, exist_ok=True)
     writer = SummaryWriter(run_dir)
     writer.add_text(
         "hyperparameters",
@@ -747,22 +770,25 @@ def main():
     torch.backends.cudnn.deterministic = args.torch_deterministic
 
     device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
-    # INITIALISATION OF THE ENVIRONMENT
+    # initialisation of the environment
     env = gym.make(
         args.env_id,
         observation_type=args.observation_type,
         reward_type=args.reward_type,
     )
-    # VARIABLE NEEDED FOR THE REPLAY BUFFER
+    # Variable needed for the replay buffer which outputs image
     height = env.unwrapped.height
     width = env.unwrapped.width
     x_min = env.unwrapped.x_min
     y_min = env.unwrapped.y_min
     color_mapping = env.unwrapped.color_mapping
 
+    # Wrapper
     env = PhysiCellModelWrapper(env=env)
+    # Varibales
     is_gray = True if args.observation_type == "image_gray" else False
     cfg = {"cfg_FeatureExtractor": {}}
+    # Neural Networks/ Optimisers init.
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
     qf2 = QNetwork(env, cfg).to(device)
@@ -790,6 +816,7 @@ def main():
         name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
     }
     action_dim = np.array(env.action_space.shape).prod()
+    # Replay buffer
     if args.observation_type == "simple":
         rb = ReplayBuffer(
             state_dim=np.array(env.observation_space.shape).prod(),
@@ -814,7 +841,7 @@ def main():
             image_gray=is_gray,
         )
 
-    # TRY NOT TO MODIFY: start the game
+    # Start the env and init, tracking values
     obs, info = env.reset(seed=args.seed)
     cumulative_return = 0
     episode = 1
@@ -830,18 +857,17 @@ def main():
             x = torch.Tensor(x).to(device).unsqueeze(0)
             actions, _, _ = actor.get_action(x)
             actions = actions.detach().squeeze(0).cpu().numpy()
-        # TRY NOT TO MODIFY: execute the game and log data.
+        # execute a step forward and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         step_episode += 1
         next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
         cumulative_return += rewards
-        discounted_cumulative_return += rewards * args.gamma
+        discounted_cumulative_return += rewards * args.gamma ** (step_episode)
         if args.observation_type == "simple":
             rb.add(obs, actions, rewards, next_obs, done)
         else:
             rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done, type_to_int)
-        # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
         obs = next_obs.copy()
         df_cell_obs = (
             next_df_cell_obs.copy() if "image" in args.observation_type else None
@@ -936,7 +962,7 @@ def main():
                 for tag, value in losses.items():
                     writer.add_scalar(tag, value, global_step)
 
-            # update the target networks
+            # Update the target networks
             if global_step % args.target_network_frequency == 0:
                 for param, target_param in zip(
                     qf1.parameters(), qf1_target.parameters()
@@ -956,20 +982,23 @@ def main():
             "env/number_cancer_cells": info["number_cancer_cells"],
             "env/number_cell_1": info["number_cell_1"],
             "env/number_cell_2": info["number_cell_2"],
+            "env/reward_cancer_cells": info["reward_cancer_cells"],
+            "env/reward_drugs": info["reward_drugs"],
         }
         for tag, value in scalars.items():
-            writer.add_scalar(tag, value, global_step)
+            writer.add_scalar(tag, value, episode)
         if done:
-            writer.add_scalar(
-                "charts/episodic_return", cumulative_return / step_episode, global_step
-            )
-            writer.add_scalar("charts/episodic_length", step_episode, global_step)
             norm_coeff = (1 - args.gamma ** (step_episode + 1)) / (1 - args.gamma)
-            writer.add_scalar(
-                "charts/normalized_discounted_episodic_return",
-                cumulative_return / norm_coeff,
-                global_step,
-            )
+            scalars = {
+                "charts/episodic_return": cumulative_return / step_episode,
+                "charts/cumulative_return": cumulative_return,
+                "charts/episodic_length": step_episode,
+                "charts/discounted_cumulative_return": discounted_cumulative_return,
+                "charts/normalized_discounted_episodic_return": discounted_cumulative_return
+                / norm_coeff,
+            }
+            for tag, value in scalars.items():
+                writer.add_scalar(tag, value, episode)
             episode += 1
             step_episode = 0
             discounted_cumulative_return = 0
