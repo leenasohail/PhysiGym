@@ -39,12 +39,10 @@ o_observation, d_info = env.reset()
 # time step loop
 b_episode_over = False
 while not b_episode_over:
-
     # policy according to o_observation
     d_observation = o_observation
     d_action = {
-        "drug_apoptosis": np.array([randrange(30)]),
-        "drug_reducing_antiapoptosis": np.array([randrange(30)]),
+        "drug_1": np.array([randrange(1)]),
     }
 
     # action

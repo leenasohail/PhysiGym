@@ -31,11 +31,11 @@ from random import randrange
 
 # function
 def run(
-        s_settingxml="config/PhysiCell_settings.xml",
-        r_maxtime=1440.0,
-        i_thread=8,
-        i_seed=3,
-    ):
+    s_settingxml="config/PhysiCell_settings.xml",
+    r_maxtime=1440.0,
+    i_thread=8,
+    i_seed=3,
+):
     # load PhysiCell Gymnasium environment
     # %matplotlib
     # env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode='human', render_fps=10)
@@ -64,8 +64,7 @@ def run(
             # policy according to o_observation
             d_observation = o_observation
             d_action = {
-                "drug_apoptosis": np.array([randrange(1)]),
-                "drug_reducing_antiapoptosis": np.array([randrange(1)]),
+                "drug_1": np.array([randrange(1)]),
             }
             print(f"Reward:{r_reward}")
             print(f"Info: {d_info}")
