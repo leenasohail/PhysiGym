@@ -154,16 +154,16 @@ class TestPhysigymEpisode(object):
 
 
 
-class TestPhysigymTme(object):
+class TestPhysigymTib(object):
     """tests for the physigym tme model."""
 
     def test_physigym_tme_classic(self):
         os.chdir(s_path_physigym)
-        o_result = subprocess.run(['python3', 'install_physigym.py', 'tme', '-f'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3', 'install_physigym.py', 'tumor_immune_base', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.rmtree('output/', ignore_errors=True)
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
-        o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tme'], check=False, capture_output=True)
+        o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tumor_immune_base'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
@@ -177,7 +177,7 @@ class TestPhysigymTme(object):
         shutil.rmtree('output/')
 
 
-    def test_physigym_tme_embedded(self):
+    def test_physigym_tib_embedded(self):
         os.chdir(s_path_physigym)
         o_result = subprocess.run(
             ["python3", "install_physigym.py", "tme", "-f"],
@@ -186,7 +186,7 @@ class TestPhysigymTme(object):
         )
         os.chdir(s_path_physicell)
         shutil.copy(
-            src="user_projects/physigym_tme/run_physigym_tme_episodes.py",
+            src="user_projects/physigym_tumor_immune_base/run_physigym_tib_episodes.py",
             dst=s_path_physicell,
         )
         shutil.rmtree("output/", ignore_errors=True)
@@ -196,7 +196,7 @@ class TestPhysigymTme(object):
             capture_output=True,
         )
         o_result = subprocess.run(
-            ["make", "load", "PROJ=physigym_tme"],
+            ["make", "load", "PROJ=physigym_tumor_immune_base"],
             check=False,
             capture_output=True,
         )
@@ -207,7 +207,7 @@ class TestPhysigymTme(object):
         o_result = subprocess.run(
             [
                 "python3",
-                "run_physigym_tme_episodes.py",
+                "physigym_tumor_immune_base.py",
                 "--max_time", "1440.0",
                 "--thread", "4",
                 "--seed", "none",
