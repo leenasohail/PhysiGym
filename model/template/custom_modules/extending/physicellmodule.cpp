@@ -114,6 +114,7 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
         std::cout << "reset cells ..." << std::endl;
         for (Cell* pCell: (*all_cells)) {
             pCell->lyse_cell();
+            pCell->die();
         }
         BioFVM::reset_max_basic_agent_ID();
 
