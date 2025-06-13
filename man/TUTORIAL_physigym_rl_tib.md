@@ -157,8 +157,7 @@ Scroll down to **class Args** and adjust the following settings:
 + wandb\_track: bool = True
 <!-- bue 20250611: anythong else, if you only wanna run with tenserboard? -->
 
-You will be asked to create a W&B account, use an existing W&B account, or don't visualize my results.
-
+You will be asked to create a W&B account, use an existing W&B account, or don't visualize my results. \
 Chose: don't visualize my results!
 
 
@@ -168,7 +167,7 @@ Chose: don't visualize my results!
 |-----------------------------|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
 | **Weights & Biases (Wandb)** | A platform for experiment tracking, visualization, and collaboration in ML projects.                | [wandb.ai](https://wandb.ai/site)                                    |
 
-⚠️  To make use of the **wandb** library, you must create an account.
+&#x26A0; To make use of the **wandb** library, you must create an account.
 The cost-free version will do.
 
 + https://wandb.ai
