@@ -738,24 +738,30 @@ def main():
     args = tyro.cli(Args)
     # INITIALISATION/ CREATE FOLDERS
     config = vars(args)
-    run_name = f"{args.env_id}__{args.name}_{args.wandb_entity}_{int(time.time())}"
-    run_dir = f"runs/{run_name}"
+    custom_run_name = f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}_weight_{args.weight}_rewardtype_{args.reward_type}_time_{int(time.time())}"
     if args.wandb_track:
-        wandb.init(
+        run = wandb.init(
             project=args.wandb_project_name,
             entity=args.wandb_entity,
-            name=f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}_weight_{args.weight}_rewardtype_{args.reward_type}",
-            sync_tensorboard=True,
+            name=custom_run_name,
+            sync_tensorboard=False,
             config=config,
             monitor_gym=True,
             save_code=True,
         )
-        run_dir = wandb.run.dir
+        wandb_base_dir = run.dir  # e.g. wandb/run-20250612_123456-abcdef
+
+        # Create a subfolder using your meaningful name
+        run_dir = os.path.join(wandb_base_dir, custom_run_name)
+        os.makedirs(run_dir, exist_ok=True)
         print("Wandb selected")
     else:
+        run_dir = os.path.join("tensorboard", custom_run_name)
         print("Tensorboard selected")
 
-    os.makedirs(run_dir, exist_ok=True)
+    # Organize output folders using run_dir
+    os.makedirs(os.path.join(run_dir, "image"), exist_ok=True)
+    os.makedirs(os.path.join(run_dir, "models"), exist_ok=True)
     writer = SummaryWriter(run_dir)
     writer.add_text(
         "hyperparameters",
