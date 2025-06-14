@@ -760,8 +760,8 @@ def main():
         print("Tensorboard selected")
 
     # Organize output folders using run_dir
-    os.makedirs(os.path.join(run_dir, "image"), exist_ok=True)
-    os.makedirs(os.path.join(run_dir, "models"), exist_ok=True)
+    # os.makedirs(os.path.join(run_dir, "image"), exist_ok=True)
+    # os.makedirs(os.path.join(run_dir, "models"), exist_ok=True)
     writer = SummaryWriter(run_dir)
     writer.add_text(
         "hyperparameters",
