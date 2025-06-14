@@ -17,26 +17,7 @@ For a detailed description of the rules governing cell behavior, see the [cell_r
 
 ![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tumor_immune_base.png)
 
-## Problem Statement
-
-How can we find a treatment regime that reduces tumor size while minimizing drug usage?
-In other words, we aim to learn a **policy** — a mapping from states to actions — that defines the optimal amount of drug to apply over time.
-
-A suitable framework to solve this control problem is **Reinforcement Learning (RL)**, which we will use in this tutorial.
-
-First, we will have to recall some important elements in Reinforcement Learning.
-
-## Reinforcement Learning Theory and Example
-
-In reinforcement learning, we aim to maximize the expected cumulative reward.
-The reward function provides feedback to the learning agent.
-Since reinforcement learning primarily involves trial and error, the agent observes the environment (which may consist of scalar values or images, in the case of agent-based models).
-For instance, images can be fed to the learning agent as input.
-
-Given the received data from the tumor environment (or the environment in general), the learning agent outputs an action.
-Based on this action, a reward is given to the agent to indicate whether its action was beneficial or not.
-
-In the case of our TME model, the action consists of administering the **drug_1** noted $d_{t}\in\[0,1\]$ for each time step.
+Before speaking reinforcement learning, let's install the model.
 
 ## Installation TME
 
@@ -66,11 +47,37 @@ make
 
 ## Applying Deep Reinforcement Learning on the Tumor Immune Base Model
 
-### 2. Reinforcement Learn a Policy for the Model
+### 1. Problem Statement
 
-#### 2.1 Introduction
+How can we find a treatment regime that reduces tumor size while minimizing drug usage?
+In other words, we aim to learn a **policy** — a mapping from states to actions — that defines the optimal amount of drug to apply over time.
 
-In Reinforcement Learning (RL), the objective is to maximize the expected cumulative reward:
+A suitable framework to solve this control problem is **Reinforcement Learning (RL)**, which we will use in this tutorial.
+
+First, we will have to recall some important elements in Reinforcement Learning.
+
+### 2. Reinforcement Learning short explanation
+
+In reinforcement learning (RL), the goal is to **maximize the expected cumulative reward** over time. The **reward function** provides feedback to the agent, indicating how beneficial or harmful its actions are.
+
+The RL agent interacts with an environment — such as our **tumor microenvironment (TME) model** — which provides observations. These observations can be **scalars** or **images** (e.g., generated from an agent-based simulator). The agent processes this input to decide on an action.
+
+In our TME case, the **action** corresponds to the administration of a drug, denoted by:
+
+$$
+d_t \in [0, 1]
+$$
+
+at each time step.
+
+After the action is taken, the agent receives a **reward** that reflects the effect of the drug on the tumor environment — for example, reducing tumor size while avoiding excessive drug use.
+
+Through trial and error, the agent learns a strategy (policy) that balances these objectives over time.
+
+#### Reinforcement Learning detailed
+
+
+In Reinforcement Learning (RL), the objective is to maximize the **expected cumulative reward**:
 
 ```math
 \underset{\pi}{\arg\max} \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
@@ -92,8 +99,6 @@ RL frameworks are characterized by four essential elements that define a \textbf
 
 The agent aims to maximize the reward function by learning an optimal policy or strategy.
 In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem.
-In our current state, the reward function is 
-For instance, the reward function used is **linear**:
 The reward function is defined as:
 
 ```math
@@ -218,7 +223,7 @@ python3 custom_modules/physigym/physigym/envs/sac_tib.py
 
 Open another command line shell.
 ```bash
-tensorboard --logdir wandb/
+tensorboard --logdir tensorboard/
 ```
 Open the link:
 + http://localhost:6006/
