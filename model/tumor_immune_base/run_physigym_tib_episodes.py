@@ -63,9 +63,7 @@ def run(
         while not b_episode_over:
             # policy according to o_observation
             d_observation = o_observation
-            d_action = {
-                "drug_1": np.array([randrange(1)]),
-            }
+            d_action = {"drug_1": np.array([0.5], dtype=np.float16)}
             print(f"Reward:{r_reward}")
             print(f"Info: {d_info}")
             # action

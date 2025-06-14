@@ -41,9 +41,7 @@ b_episode_over = False
 while not b_episode_over:
     # policy according to o_observation
     d_observation = o_observation
-    d_action = {
-        "drug_1": np.array([randrange(1)]),
-    }
+    d_action = {"drug_1": np.array([0.5], dtype=np.float16)}
 
     # action
     o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)

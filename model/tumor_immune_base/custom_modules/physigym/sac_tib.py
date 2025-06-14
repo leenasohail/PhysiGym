@@ -42,6 +42,299 @@ import tyro
 import numba
 from numba import njit, prange
 
+#### Arguments #####
+# description:
+#     The class's arguments you may change such as:
+#       - wandb_entity
+####
+
+
+@dataclass
+class Args:
+    name: str = "sac"
+    """the name of this experiment"""
+    weight: float = 0.5
+    """weight for the reduction of tumor"""
+    reward_type: str = "linear"
+    """type of the reward"""
+    seed: int = 1
+    """seed of the experiment"""
+    torch_deterministic: bool = True
+    """if toggled, `torch.backends.cudnn.deterministic=False`"""
+    cuda: bool = True
+    """if toggled, cuda will be enabled by default"""
+    wandb_project_name: str = "SAC_IMAGE_TIB"
+    """the wandb's project name"""
+    wandb_entity: str = "corporate-manu-sureli"
+    """the wandb's entity name"""
+
+    # Algorithm specific arguments
+    env_id: str = "physigym/ModelPhysiCellEnv-v0"
+    """the id of the environment"""
+    observation_type: str = "simple"
+    """the type of observation"""
+    total_timesteps: int = int(1e6)
+    """the learning rate of the optimizer"""
+    buffer_size: int = int(1e6)
+    """the replay memory buffer size"""
+    gamma: float = 0.99
+    """the discount factor gamma"""
+    tau: float = 0.005
+    """target smoothing coefficient (default: 0.005)"""
+    batch_size: int = 256
+    """the batch size of sample from the reply memory"""
+    learning_starts: float = 10e3
+    """timestep to start learning"""
+    policy_lr: float = 3e-4
+    """the learning rate of the policy network optimizer"""
+    q_lr: float = 3e-4
+    """the learning rate of the Q network network optimizer"""
+    policy_frequency: int = 2
+    """the frequency of training policy (delayed)"""
+    target_network_frequency: int = 1  # Denis Yarats' implementation delays this by 2.
+    """the frequency of updates for the target nerworks"""
+    alpha: float = 0.2
+    """Entropy regularization coefficient."""
+    autotune: bool = True
+    """automatic tuning of the entropy coefficient"""
+    wandb_track: bool = True
+    """track with wandb"""
+
+
+#### Neural Networks #####
+# description:
+#     A list of torch objects mainly Neural Networks (Actor/Critic)
+####
+
+class PixelPreprocess(nn.Module):
+    """
+    Normalizes pixel observations to [-0.5, 0.5].
+    """
+
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, x):
+        return x.div(255.0).sub(0.5)
+
+
+class FeatureExtractor(nn.Module):
+    """Handles both image-based and vector-based state inputs dynamically."""
+
+    def __init__(self, env, cfg):
+        super().__init__()
+        self.cfg = cfg
+
+        obs_shape = env.observation_space.shape
+        self.is_image = len(obs_shape) == 3  # Check if input is an image (C, H, W)
+
+        if self.is_image:
+            # CNN feature extractor
+            num_channels = 8
+            layers = [
+                PixelPreprocess(),
+                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
+                nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 5, stride=2),
+                nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=2),
+                nn.Mish(inplace=False),
+                nn.Conv2d(num_channels, num_channels, 3, stride=1),
+                nn.Flatten(),
+            ]
+            self.feature_extractor = nn.Sequential(*layers)
+            self.feature_size = self._get_feature_size(obs_shape)
+        else:
+            # Directly flatten vector input
+            self.feature_extractor = nn.Identity()
+            self.feature_size = np.prod(obs_shape)
+
+    def _get_feature_size(self, obs_shape):
+        """Pass a dummy tensor through CNN to compute feature size dynamically."""
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, *obs_shape)
+            out = self.feature_extractor(dummy_input)
+            return int(np.prod(out.shape[1:]))
+
+    def forward(self, x):
+        if self.is_image:
+            x = self.feature_extractor(x)  # Apply CNN
+            x = x.view(x.size(0), -1)  # Flatten
+        return x
+
+
+class QNetwork(nn.Module):
+    """Critic network (Q-function)"""
+
+    def __init__(self, env, cfg):
+        super().__init__()
+        self.cfg = cfg
+        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
+
+        # Fully connected layers
+        self.fc1 = nn.LazyLinear(256)
+        self.fc2 = nn.LazyLinear(256)
+        self.fc3 = nn.LazyLinear(1)
+        self.mish = nn.Mish()
+
+    def forward(self, x, a):
+        x = self.feature_extractor(x)  # Extract features
+        x = torch.cat([x, a], dim=1)  # Concatenate state and action
+
+        x = self.mish(self.fc1(x))
+        x = self.mish(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+class Actor(nn.Module):
+    """Policy network (Actor)"""
+
+    LOG_STD_MAX = 2
+    LOG_STD_MIN = -5
+
+    def __init__(self, env, cfg):
+        super().__init__()
+        self.cfg = cfg
+        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
+        action_dim = np.prod(env.action_space.shape)
+
+        # Fully connected layers
+        self.fc1 = nn.LazyLinear(256)
+        self.fc2 = nn.LazyLinear(256)
+        self.fc_mean = nn.LazyLinear(action_dim)
+        self.fc_logstd = nn.LazyLinear(action_dim)
+        self.relu = nn.ReLU()
+        # Action scaling
+        self.register_buffer(
+            "action_scale",
+            torch.tensor(
+                (env.action_space.high - env.action_space.low) / 2.0,
+                dtype=torch.float32,
+            ),
+        )
+        self.register_buffer(
+            "action_bias",
+            torch.tensor(
+                (env.action_space.high + env.action_space.low) / 2.0,
+                dtype=torch.float32,
+            ),
+        )
+
+    def forward(self, x):
+        x = self.feature_extractor(x)  # Extract features
+
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+
+        mean = self.fc_mean(x)
+        log_std = self.fc_logstd(x)
+        log_std = torch.tanh(log_std)
+        log_std = self.LOG_STD_MIN + 0.5 * (self.LOG_STD_MAX - self.LOG_STD_MIN) * (
+            log_std + 1
+        )  # Stable variance scaling
+
+        return mean, log_std
+
+    def get_action(self, x):
+        mean, log_std = self(x)
+        std = log_std.exp()
+        normal = torch.distributions.Normal(mean, std)
+
+        x_t = normal.rsample()  # Reparameterization trick
+        y_t = torch.tanh(x_t)
+        action = y_t * self.action_scale + self.action_bias
+
+        log_prob = normal.log_prob(x_t)
+        log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + 1e-6)
+        log_prob = log_prob.sum(1, keepdim=True)
+
+        mean = torch.tanh(mean) * self.action_scale + self.action_bias
+        return action, log_prob, mean
+
+
+### Wrapper ###
+class PhysiCellModelWrapper(gym.Wrapper):
+    def __init__(
+        self,
+        env: gym.Env,
+        list_variable_name: list[str] = [
+            "drug_1",
+        ],
+        weight: float = 0.8,
+    ):
+        """
+        Args:
+            env (gym.Env): The environment to wrap.
+            list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
+            weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
+        """
+        super().__init__(env)
+
+        # Check that all variable names are strings
+        for variable_name in list_variable_name:
+            if not isinstance(variable_name, str):
+                raise ValueError(
+                    f"Expected variable_name to be of type str, but got {type(variable_name).__name__}"
+                )
+
+        self.list_variable_name = list_variable_name
+
+        low = np.array(
+            [
+                env.action_space[variable_name].low[0]
+                for variable_name in list_variable_name
+            ]
+        )
+        high = np.array(
+            [
+                env.action_space[variable_name].high[0]
+                for variable_name in list_variable_name
+            ]
+        )
+        self._action_space = Box(low=low, high=high, dtype=np.float64)
+
+        self.weight = weight
+        self.reward_type = env.unwrapped.reward_type
+
+    @property
+    def action_space(self):
+        """Returns the flattened action space for the wrapper."""
+        return self._action_space
+
+    def step(self, action: np.ndarray):
+        """
+        Steps through the environment using the flattened action.
+
+        Args:
+            action (np.ndarray): The flattened action array.
+
+        Returns:
+            Tuple: Observation, reward, terminated, truncated, info.
+        """
+        d_action = {
+            variable_name: np.array([value])
+            for variable_name, value in zip(self.list_variable_name, action)
+        }
+        # Take a step in the environment
+        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(
+            d_action
+        )
+
+        r_drugs = np.mean(action)
+
+        info["action"] = d_action
+        info["reward_drugs"] = r_drugs
+        info["reward_cancer_cells"] = r_cancer_cells
+        #### If you reward function is different from a sum you can add a new condition
+        if self.reward_type == "log_exp":
+            r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
+        else:
+            r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+
+        return o_observation, r_reward, b_terminated, b_truncated, info
+
+
 #### Replay Buffers #####
 # description:
 #     two different replay buffers implemented one for scalars while the other is optimized to output image
@@ -446,290 +739,6 @@ class MinimalImgReplayBuffer:
         )
 
         return o_observation
-
-
-#### Neural Networks #####
-
-
-class PixelPreprocess(nn.Module):
-    """
-    Normalizes pixel observations to [-0.5, 0.5].
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x):
-        return x.div(255.0).sub(0.5)
-
-
-class FeatureExtractor(nn.Module):
-    """Handles both image-based and vector-based state inputs dynamically."""
-
-    def __init__(self, env, cfg):
-        super().__init__()
-        self.cfg = cfg
-
-        obs_shape = env.observation_space.shape
-        self.is_image = len(obs_shape) == 3  # Check if input is an image (C, H, W)
-
-        if self.is_image:
-            # CNN feature extractor
-            num_channels = 8
-            layers = [
-                PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 5, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=1),
-                nn.Flatten(),
-            ]
-            self.feature_extractor = nn.Sequential(*layers)
-            self.feature_size = self._get_feature_size(obs_shape)
-        else:
-            # Directly flatten vector input
-            self.feature_extractor = nn.Identity()
-            self.feature_size = np.prod(obs_shape)
-
-    def _get_feature_size(self, obs_shape):
-        """Pass a dummy tensor through CNN to compute feature size dynamically."""
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, *obs_shape)
-            out = self.feature_extractor(dummy_input)
-            return int(np.prod(out.shape[1:]))
-
-    def forward(self, x):
-        if self.is_image:
-            x = self.feature_extractor(x)  # Apply CNN
-            x = x.view(x.size(0), -1)  # Flatten
-        return x
-
-
-class QNetwork(nn.Module):
-    """Critic network (Q-function)"""
-
-    def __init__(self, env, cfg):
-        super().__init__()
-        self.cfg = cfg
-        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
-
-        # Fully connected layers
-        self.fc1 = nn.LazyLinear(256)
-        self.fc2 = nn.LazyLinear(256)
-        self.fc3 = nn.LazyLinear(1)
-        self.mish = nn.Mish()
-
-    def forward(self, x, a):
-        x = self.feature_extractor(x)  # Extract features
-        x = torch.cat([x, a], dim=1)  # Concatenate state and action
-
-        x = self.mish(self.fc1(x))
-        x = self.mish(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-
-class Actor(nn.Module):
-    """Policy network (Actor)"""
-
-    LOG_STD_MAX = 2
-    LOG_STD_MIN = -5
-
-    def __init__(self, env, cfg):
-        super().__init__()
-        self.cfg = cfg
-        self.feature_extractor = FeatureExtractor(env, cfg["cfg_FeatureExtractor"])
-        action_dim = np.prod(env.action_space.shape)
-
-        # Fully connected layers
-        self.fc1 = nn.LazyLinear(256)
-        self.fc2 = nn.LazyLinear(256)
-        self.fc_mean = nn.LazyLinear(action_dim)
-        self.fc_logstd = nn.LazyLinear(action_dim)
-        self.relu = nn.ReLU()
-        # Action scaling
-        self.register_buffer(
-            "action_scale",
-            torch.tensor(
-                (env.action_space.high - env.action_space.low) / 2.0,
-                dtype=torch.float32,
-            ),
-        )
-        self.register_buffer(
-            "action_bias",
-            torch.tensor(
-                (env.action_space.high + env.action_space.low) / 2.0,
-                dtype=torch.float32,
-            ),
-        )
-
-    def forward(self, x):
-        x = self.feature_extractor(x)  # Extract features
-
-        x = self.relu(self.fc1(x))
-        x = self.relu(self.fc2(x))
-
-        mean = self.fc_mean(x)
-        log_std = self.fc_logstd(x)
-        log_std = torch.tanh(log_std)
-        log_std = self.LOG_STD_MIN + 0.5 * (self.LOG_STD_MAX - self.LOG_STD_MIN) * (
-            log_std + 1
-        )  # Stable variance scaling
-
-        return mean, log_std
-
-    def get_action(self, x):
-        mean, log_std = self(x)
-        std = log_std.exp()
-        normal = torch.distributions.Normal(mean, std)
-
-        x_t = normal.rsample()  # Reparameterization trick
-        y_t = torch.tanh(x_t)
-        action = y_t * self.action_scale + self.action_bias
-
-        log_prob = normal.log_prob(x_t)
-        log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + 1e-6)
-        log_prob = log_prob.sum(1, keepdim=True)
-
-        mean = torch.tanh(mean) * self.action_scale + self.action_bias
-        return action, log_prob, mean
-
-
-@dataclass
-class Args:
-    name: str = "sac"
-    """the name of this experiment"""
-    weight: float = 0.5
-    """weight for the reduction of tumor"""
-    reward_type: str = "linear"
-    """type of the reward"""
-    seed: int = 1
-    """seed of the experiment"""
-    torch_deterministic: bool = True
-    """if toggled, `torch.backends.cudnn.deterministic=False`"""
-    cuda: bool = True
-    """if toggled, cuda will be enabled by default"""
-    wandb_project_name: str = "SAC_IMAGE_TIB"
-    """the wandb's project name"""
-    wandb_entity: str = "corporate-manu-sureli"
-    """the wandb's entity name"""
-
-    # Algorithm specific arguments
-    env_id: str = "physigym/ModelPhysiCellEnv-v0"
-    """the id of the environment"""
-    observation_type: str = "simple"
-    """the type of observation"""
-    total_timesteps: int = int(1e6)
-    """the learning rate of the optimizer"""
-    buffer_size: int = int(1e6)
-    """the replay memory buffer size"""
-    gamma: float = 0.99
-    """the discount factor gamma"""
-    tau: float = 0.005
-    """target smoothing coefficient (default: 0.005)"""
-    batch_size: int = 256
-    """the batch size of sample from the reply memory"""
-    learning_starts: float = 10e3
-    """timestep to start learning"""
-    policy_lr: float = 3e-4
-    """the learning rate of the policy network optimizer"""
-    q_lr: float = 3e-4
-    """the learning rate of the Q network network optimizer"""
-    policy_frequency: int = 2
-    """the frequency of training policy (delayed)"""
-    target_network_frequency: int = 1  # Denis Yarats' implementation delays this by 2.
-    """the frequency of updates for the target nerworks"""
-    alpha: float = 0.2
-    """Entropy regularization coefficient."""
-    autotune: bool = True
-    """automatic tuning of the entropy coefficient"""
-    wandb_track: bool = True
-    """track with wandb"""
-
-
-### Wrapper ###
-class PhysiCellModelWrapper(gym.Wrapper):
-    def __init__(
-        self,
-        env: gym.Env,
-        list_variable_name: list[str] = [
-            "drug_1",
-        ],
-        weight: float = 0.8,
-    ):
-        """
-        Args:
-            env (gym.Env): The environment to wrap.
-            list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
-            weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
-        """
-        super().__init__(env)
-
-        # Check that all variable names are strings
-        for variable_name in list_variable_name:
-            if not isinstance(variable_name, str):
-                raise ValueError(
-                    f"Expected variable_name to be of type str, but got {type(variable_name).__name__}"
-                )
-
-        self.list_variable_name = list_variable_name
-
-        low = np.array(
-            [
-                env.action_space[variable_name].low[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        high = np.array(
-            [
-                env.action_space[variable_name].high[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        self._action_space = Box(low=low, high=high, dtype=np.float64)
-
-        self.weight = weight
-        self.reward_type = env.unwrapped.reward_type
-
-    @property
-    def action_space(self):
-        """Returns the flattened action space for the wrapper."""
-        return self._action_space
-
-    def step(self, action: np.ndarray):
-        """
-        Steps through the environment using the flattened action.
-
-        Args:
-            action (np.ndarray): The flattened action array.
-
-        Returns:
-            Tuple: Observation, reward, terminated, truncated, info.
-        """
-        d_action = {
-            variable_name: np.array([value])
-            for variable_name, value in zip(self.list_variable_name, action)
-        }
-        # Take a step in the environment
-        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(
-            d_action
-        )
-
-        r_drugs = np.mean(action)
-
-        info["action"] = d_action
-        info["reward_drugs"] = r_drugs
-        info["reward_cancer_cells"] = r_cancer_cells
-        #### If you reward function is different from a sum you can add a new condition
-        if self.reward_type == "log_exp":
-            r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
-        else:
-            r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
-
-        return o_observation, r_reward, b_terminated, b_truncated, info
 
 
 #### Algorithm Logic ####
