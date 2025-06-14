@@ -1,0 +1,23 @@
+#####
+# title: run_physigym_tib_rl.txt
+#
+# language: python3
+#
+# date: 2025-spring
+# license: bsb-3-clause
+# author: Alexandre Bertin, Elmar Bucher
+# input: https://gymnasium.farama.org/main/
+# original source code: https://github.com/Dante-Berth/PhysiGym
+#
+# run:
+#   1a. nano custom_modules/physigym/physigym/envs/sac_tib.py
+#   1b. under class Args: set cuda: bool = True or False
+#   1c. under class Args: set wandb_track: bool = False
+#   1d. to save press: Ctrl+x  
+#   2.  python3 custom_modules/physigym/physigym/envs/sac_tib.py
+#   3.  tensorboard --logdir runs/
+#   4.  open http://localhost:6006/
+#  
+# description:
+#   instruction to run and analyse reinforcement learning on the physigym model.
+#####
