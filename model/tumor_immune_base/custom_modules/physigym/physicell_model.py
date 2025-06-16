@@ -182,7 +182,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(self.grid_size, self.grid_size, self.num_cell_types),
+                shape=(self.num_cell_types, self.grid_size, self.grid_size),
                 dtype=np.uint8,
             )
         elif self.observation_type == "transformer":
@@ -300,9 +300,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             ).astype(np.uint8)
             o_observation = grayscale_image[np.newaxis, :, :]
             o_observation = np.array(o_observation, dtype=float)
+
         elif self.observation_type == "image_cell_types":
             image = np.zeros(
-                (self.grid_size, self.grid_size, self.num_cell_types), dtype=np.float32
+                (self.num_cell_types, self.grid_size, self.grid_size), dtype=np.float32
             )
 
             # Only
@@ -328,7 +329,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             x_bin = np.clip(x_bin, 0, self.grid_size - 1)
             y_bin = np.clip(y_bin, 0, self.grid_size - 1)
 
-            np.add.at(image, (y_bin, x_bin, cell_type_indices), 1 / self.ratio_img_size)
+            np.add.at(image, (cell_type_indices, y_bin, x_bin), 1 / self.ratio_img_size)
             o_observation = (image * 255).astype(np.uint8)
 
         elif self.observation_type == "transformer":

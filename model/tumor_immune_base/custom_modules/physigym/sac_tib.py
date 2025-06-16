@@ -377,7 +377,7 @@ class ReplayBuffer(object):
 
         self.state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
         self.next_state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
-        self.action = np.empty((self.buffer_size, action_dim), dtype=np.float32)
+        self.action = np.empty((self.buffer_size, *action_dim), dtype=np.float32)
         self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
         self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
 
