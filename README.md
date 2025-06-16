@@ -31,12 +31,13 @@ More precisely, [PhysiCell](https://github.com/MathCancer/PhysiCell) is an agent
 
 [Gymnasium](https://gymnasium.farama.org/main/) is the API standard for reinforcement learning, written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)).
 
-The Python-based physigym module presented here was written on top of the python_with_physicell extend module from the [physicellembedding](https://github.com/elmbeech/physicellembedding) project, which makes it possible to extend the python interpreter to interact with PhysiCell models in the Python language.
+The Python-based physigym module presented here was written on top of the python\_with\_physicell extend module from the [physicellembedding](https://github.com/elmbeech/physicellembedding) project, which makes it possible to extend the python interpreter to interact with PhysiCell models in the Python language.
 
-Both, physigym and extend, are PhysiCell custom_modules.
+Both, physigym and extend, are PhysiCell custom\_modules.
 
 Walking through the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md), you will gain the understanding needed to tackle more complex PhysiCell-based reinforcement learning projects.
-You will set up a very basic template model that can figure as a starting point for your own project.
+First, you will set up a very basic template model that can figure as a starting point for your own project.
+Then you will learn on a somewhat more complex tumor\_immune\_base model how to deep reinforcement learn a policy using the sac (soft actor critic) algorithm.
 
 **Limitations:** Because of the way how PhysiCell is implemented and run, it is not possible to generate more than one PhysiCell Gymnasium environment per runtime. A runtime warning will be thrown if you try to do so.
 
@@ -74,7 +75,9 @@ Within the PhysiGym library, we tried to stick to the documentation policy laid 
 # Contributions:
 
 + Concept and implementation: Alexandre Bertin, Elmar Bucher
-+ Involved: Emmanuel Rachelson, Heber Lima da Rocha, Marcelo Hurtado, Paul Macklin, Randy Heiland, Vera Pancaldi, Vincent François
++ Involved: Emmanuel Rachelson, Heber Lima da Rocha, Marcelo Hurtado, Owen Griere, Paul Macklin, Randy Heiland, Vera Pancaldi, Vincent François
+
+If you like to contribute to the software with models or rl algorithms, please make a pull request to the [development branch](https://github.com/elmbeech/PhysiGym/tree/development).
 
 
 # Funding:
@@ -89,16 +92,16 @@ To be BibTeX.
 
 # Road Map:
 
-+ add rl part.
-+ finalize paper.
++ add more models and rl algorithm.
+
 
 # Release Notes:
 
++ 1.0.0 (2025-07-14): first public release.
 + 0.4.0 (2025-02-28): models, rl, os portability, unit tests, and documentation complete.
-+ 0.3.1 (2025-02-05): custom_modules/embedding to custom_module/extending change.
++ 0.3.1 (2025-02-05): custom\_modules/embedding to custom\_module/extending change.
 + 0.3.0 (2025-01-16): complete physigym PhysiCell >= v1.14.2 compatibility.
 + 0.2.1 (2024-11-29): physicell gymnasium environment limitation handling.
 + 0.2.0 (2024-10-27): physigym PhysiCell v1.13.1 to v1.14.n adaption.
 + 0.1.0 (2024-06-20): the basic physigym implementation works.
 + 0.0.0 (2024-04-15): physigym rises from the ashes.
-
