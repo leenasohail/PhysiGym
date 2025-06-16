@@ -65,12 +65,20 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         verbose=False,
         observation_type="simple",
         reward_type="normalize",
+        grid_size=64,
     ):
         self.observation_type = "simple" if None else observation_type
-        if self.observation_type not in ["simple", "image_gray", "transformer"]:
+        if self.observation_type not in [
+            "simple",
+            "image_gray",
+            "image_cell_types",
+            "transformer",
+        ]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
+        if self.observation_type == "image_cell_types":
+            self.grid_size = grid_size
 
         # Corrected usage of super()
         super().__init__(
@@ -89,6 +97,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.np_ratio_old_nb_cancer_cells = None
         self.reward_type = reward_type
         self.type_map = {t: i for i, t in enumerate(self.unique_cell_types)}
+        self.ratio_img_size = (
+            min(self.width, self.height) / grid_size
+            if self.observation_type == "image_cell_types"
+            else None
+        )
 
     def get_action_space(self):
         """
@@ -161,6 +174,16 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             # Define the Box space for the image
             o_observation_space = spaces.Box(
                 low=0, high=255, shape=(1, self.height, self.width), dtype=np.uint8
+            )
+
+        elif self.observation_type == "image_cell_types":
+            # Define the Box space for the image
+            # Step 2: Create empty image [64, 64, num_cell_types]
+            o_observation_space = spaces.Box(
+                low=0,
+                high=255,
+                shape=(self.grid_size, self.grid_size, self.num_cell_types),
+                dtype=np.uint8,
             )
         elif self.observation_type == "transformer":
             o_observation_space = spaces.Dict(
@@ -277,6 +300,36 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             ).astype(np.uint8)
             o_observation = grayscale_image[np.newaxis, :, :]
             o_observation = np.array(o_observation, dtype=float)
+        elif self.observation_type == "image_cell_types":
+            image = np.zeros(
+                (self.grid_size, self.grid_size, self.num_cell_types), dtype=np.float32
+            )
+
+            # Only
+            df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
+
+            # Maybe we can put it at the beggining ?
+            type_to_index = {t: i for i, t in enumerate(self.unique_cell_types)}
+            cell_type_indices = df_alive["type"].map(type_to_index).to_numpy()
+
+            # Discretize
+            x_bin = (
+                (df_alive["x"] - self.x_min)
+                / (self.x_max - self.x_min)
+                * (self.grid_size - 1)
+            ).astype(int)
+            y_bin = (
+                (df_alive["y"] - self.y_min)
+                / (self.y_max - self.y_min)
+                * (self.grid_size - 1)
+            ).astype(int)
+
+            # Clip in case of rounding issues
+            x_bin = np.clip(x_bin, 0, self.grid_size - 1)
+            y_bin = np.clip(y_bin, 0, self.grid_size - 1)
+
+            np.add.at(image, (y_bin, x_bin, cell_type_indices), 1 / self.ratio_img_size)
+            o_observation = (image * 255).astype(np.uint8)
 
         elif self.observation_type == "transformer":
             x = self.df_cell["x"].to_numpy()
@@ -383,6 +436,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 return -1
         elif self.reward_type == "linear":
             return (C_prev - C_t) / np.log(C_prev + 1)
+        elif self.reward_type == "dummy_linear":
+            return (C_prev - C_t) / np.log(self.init_cancer_cells)
         elif self.reward_type == "simple":
             return 1 if C_prev > C_t else 0
         else:

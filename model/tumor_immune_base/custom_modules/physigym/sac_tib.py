@@ -106,6 +106,7 @@ class Args:
 #     A list of torch objects mainly Neural Networks (Actor/Critic)
 ####
 
+
 class PixelPreprocess(nn.Module):
     """
     Normalizes pixel observations to [-0.5, 0.5].
@@ -364,8 +365,8 @@ class ReplayBuffer(object):
         Initializes the replay buffer.
 
         Parameters:
-        - state_dim (int): Dimensionality of the state space.
-        - action_dim (int): Dimensionality of the action space.
+        - state_dim tuple(int): Dimensionality of the state space.
+        - action_dim tuple(int): Dimensionality of the action space.
         - device (torch.device): Device where tensors should be stored.
         - buffer_size (int): Maximum size of the replay buffer.
         - batch_size (int): Number of samples per batch.
@@ -374,8 +375,8 @@ class ReplayBuffer(object):
         self.device = device
         self.buffer_size = int(buffer_size)
 
-        self.state = np.empty((self.buffer_size, state_dim), dtype=state_type)
-        self.next_state = np.empty((self.buffer_size, state_dim), dtype=state_type)
+        self.state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
+        self.next_state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
         self.action = np.empty((self.buffer_size, action_dim), dtype=np.float32)
         self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
         self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
