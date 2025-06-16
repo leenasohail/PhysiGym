@@ -5,11 +5,13 @@
 + python library dependencies: gymnasium, lxml, matplotlib, numpy, pandas, (ipython, PyQt6)
 + date:
 + license: <has to be comatiple with bsb-3-clause>
-+ authors:
-    original work 2015-2025, Paul Mackli, the BioFVM Project and the PhysiCell Project.
-    modified work 2024-2025, Elmar Bucher, physicell embedding.
-    modified work 2024-2025, Alexandre Bertin, Elmar Bucher, physigym.
++ authors: \
+    original work 2015-2025, Paul Mackli, the BioFVM Project and the PhysiCell Project. \
+    modified work 2024-2025, Elmar Bucher, physicell embedding. \
+    modified work 2024-2025, Alexandre Bertin, Elmar Bucher, physigym. \
     modified work YYYY-YYYY, <your name goes here>.
 
-description:
++ description: \
     most minimalistic physigym physicell user_project.
+
+source: <https:// your url goes here>
