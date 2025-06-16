@@ -92,7 +92,7 @@ To be BibTeX.
 
 # Road Map:
 
-+ add more models and rl algorithm.
++ Add more models and rl algorithm.
 
 
 # Release Notes:
