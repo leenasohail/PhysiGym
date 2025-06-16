@@ -117,6 +117,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     def get_reset_values(self):
         return None
+
     ### end dummy functions ###
 
     # metadata
@@ -240,6 +241,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.unique_cell_types = sorted(
             [cell_def.xpath("./@name")[0] for cell_def in cell_definitions]
         )
+        self.num_cell_types = len(self.unique_cell_types)
         self.type_to_idx = {
             cell_type: idx for idx, cell_type in enumerate(self.unique_cell_types)
         }
@@ -256,7 +258,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
         r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
         self.r_time_max = r_time_max - r_dt_gym
-        self.max_steps = r_time_max//r_dt_gym
+        self.max_steps = r_time_max // r_dt_gym
 
         # handle spaces
         if self.verbose:
@@ -394,7 +396,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: declare PhysiCell model instance.")
 
-
         # output folder
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
         physicell.start(self.settingxml, self.episode != 0)
@@ -513,7 +514,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: action.")
 
-        #if self.autoreset:
+        # if self.autoreset:
         #    o_observation, d_info = self.reset()
         #    r_reward = self.get_reward()
         #    b_terminated = False

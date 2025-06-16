@@ -833,10 +833,10 @@ def main():
     }
     action_dim = np.array(env.action_space.shape).prod()
     # Replay buffer
-    if args.observation_type == "simple":
+    if args.observation_type == "simple" or args.observation_type == "image_cell_types":
         rb = ReplayBuffer(
-            state_dim=np.array(env.observation_space.shape).prod(),
-            action_dim=np.array(env.action_space.shape).prod(),
+            state_dim=env.observation_space.shape,
+            action_dim=env.action_space.shape,
             device=device,
             buffer_size=args.buffer_size,
             batch_size=args.batch_size,
