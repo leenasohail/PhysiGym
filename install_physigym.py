@@ -117,6 +117,10 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
                 dst=f'{s_path_prj}custom_modules/physigym/physigym/envs/',
             )
 
+        # copy the user_project's img folder
+        print(f'copy from: {s_path_model}img/ ...')
+        shutil.copytree(src=f'{s_path_model}img/', dst=f'{s_path_prj}img/')
+
     # going home
     print("ok!")
 

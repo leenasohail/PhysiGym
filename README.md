@@ -31,9 +31,9 @@ More precisely, [PhysiCell](https://github.com/MathCancer/PhysiCell) is an agent
 
 [Gymnasium](https://gymnasium.farama.org/main/) is the API standard for reinforcement learning, written in [Python](https://en.wikipedia.org/wiki/Python_(programming_language)).
 
-The Python-based physigym module presented here was written on top of the python\_with\_physicell extend module from the [physicellembedding](https://github.com/elmbeech/physicellembedding) project, which makes it possible to extend the python interpreter to interact with PhysiCell models in the Python language.
+The Python-based physigym module presented here was written on top of the python\_with\_physicell extending module from the [physicellembedding](https://github.com/elmbeech/physicellembedding) project, which makes it possible to extend the python interpreter to interact with PhysiCell models in the Python language.
 
-Both, physigym and extend, are PhysiCell custom\_modules.
+Both, physigym and extending, are PhysiCell custom\_modules.
 
 Walking through the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md), you will gain the understanding needed to tackle more complex PhysiCell-based reinforcement learning projects.
 First, you will set up a very basic template model that can figure as a starting point for your own project.

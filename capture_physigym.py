@@ -85,7 +85,7 @@ def capture_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
         # copy files to the model's custom_modules folder
         os.makedirs(f'{s_path_model}custom_modules/', exist_ok=True)
         for s_file in sorted(os.listdir(f'{s_path_prj}custom_modules/')):
-            if os.path.isfile(f'{s_path_prj}custom_modules/{s_file}') and not (s_file in {'empty.txt','LICENSE'}):
+            if os.path.isfile(f'{s_path_prj}custom_modules/{s_file}') and not (s_file in {'empty.txt','LICENSE','studio_debug.log'}):
                 print(f'copy to: {s_path_model}custom_modules/{s_file} ...')
                 shutil.copy(
                     src=f'{s_path_prj}custom_modules/{s_file}',
@@ -94,7 +94,7 @@ def capture_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
             elif os.path.isdir(f'{s_path_prj}custom_modules/{s_file}') and not (s_file in {'extending','physigym'}):
                 shutil.copytree(src=f'{s_path_prj}custom_modules/{s_file}/', dst=f'{s_path_model}custom_modules/{s_file}/')
 
-        # copy files to the model's custom_modules extendingfolder
+        # copy files to the model's custom_modules extending folder
         os.makedirs(f'{s_path_model}custom_modules/extending/', exist_ok=True)
         print(f'copy to: {s_path_model}custom_modules/extending/physicellmodule.cpp ...')
         shutil.copy(
@@ -111,6 +111,11 @@ def capture_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
                     src=f'{s_path_prj}custom_modules/physigym/physigym/envs/{s_file}',
                     dst=f'{s_path_model}custom_modules/physigym/',
                 )
+
+        # copy the user_project's img folder
+        print(f'copy to: {s_path_model}img/ ...')
+        shutil.copytree(src=f'{s_path_prj}img/', dst=f'{s_path_model}img/')
+
 
     # going home
     print("ok!")
