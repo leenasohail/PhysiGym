@@ -2,7 +2,7 @@
 
 In this tutorial, you will learn how to apply reinforcement learning (RL) to control a biological simulation model.
 We use the **tumor immune base** model as an example:
-[tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base).
+[tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base_2).
 
 This model consists of three types of cells:
 - **cell_1**: produces an anti-inflammatory factor that negatively impacts tumor cells by increasing the probability of apoptosis,
@@ -50,8 +50,8 @@ The child class [**physicell_model.py**](https://github.com/Dante-Berth/PhysiGym
 
 This function returns different types of images:
 
-- The **first image** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color.
-- The **second type** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
+- The **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
+- The **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
 
 In addition to the images, the function also computes the **concentration of cells** for each cell type.
 
