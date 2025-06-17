@@ -754,7 +754,7 @@ def main():
             project=args.wandb_project_name,
             entity=args.wandb_entity,
             name=custom_run_name,
-            sync_tensorboard=False,
+            sync_tensorboard=True,
             config=config,
             monitor_gym=True,
             save_code=True,

@@ -2,7 +2,7 @@
 
 In this tutorial, you will learn how to apply reinforcement learning (RL) to control a biological simulation model.
 We use the **tumor immune base** model as an example:
-[tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base).
+[tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base_2).
 
 This model consists of three types of cells:
 - **cell_1**: produces an anti-inflammatory factor that negatively impacts tumor cells by increasing the probability of apoptosis,
@@ -44,6 +44,18 @@ make load PROJ=physigym_tumor_immune_base
 ```bash
 make
 ```
+
+### 2. Details about the model
+The child class [**physicell_model.py**](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/physicell_model.py), which is specific to the model, contains an important function: **get_observation**, as demonstrated in the [TUTORIAL_physigym_model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym_model.md).
+
+This function returns different types of images:
+
+- The **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
+- The **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
+
+In addition to the images, the function also computes the **concentration of cells** for each cell type.
+
+
 
 ## Applying Deep Reinforcement Learning on the Tumor Immune Base Model
 
@@ -159,7 +171,7 @@ nano custom_modules/physigym/physigym/envs/sac_tib.py
 
 Scroll down to **class Args** and adjust the following settings:
 + cuda: bool = *True or False*
-+ wandb\_track: bool = True
++ wandb\_track: bool = True , False if you only want to run with tensorboard else True for wandb 
 <!-- bue 20250611: anythong else, if you only wanna run with tenserboard? -->
 
 You will be asked to create a W&B account, use an existing W&B account, or don't visualize my results. \
@@ -197,7 +209,7 @@ Scroll down to **class Args** and adjust the following settings:
 <!-- bue 20250611: anythong else? -->
 
 
-## Launch Deep Reinforcemnt Learn Algorythm
+## Launch Deep Reinforcemnt Learn Algorithm
 
 We applied a Deep Reinforcement Learning Algorithm called [SAC (Soft Actor-Critic)](https://arxiv.org/pdf/1812.05905), which is adapted for continuous action spaces.
 
@@ -219,7 +231,7 @@ Run the Code:
 python3 custom_modules/physigym/physigym/envs/sac_tib.py
 ```
 
-## Observe the Learning Process with Tenserbord
+## Observe the Learning Process with Tensorboard
 
 Open another command line shell.
 ```bash
