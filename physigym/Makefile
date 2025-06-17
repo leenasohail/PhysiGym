@@ -69,7 +69,7 @@ python-instruction:
 	@echo ""
 
 install-requirement:
-	pip3 install --requirement custom_modules/physigym/requirements.txt
+	pip3 install --force-reinstall --editable custom_modules/physigym
 
 
 ### BEGIN make classic related compiler infromation

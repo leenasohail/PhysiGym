@@ -22,7 +22,7 @@ cd ../PhysiCell
 make clean data-cleanup reset
 make list-user-projects
 make load PROJ=physigym_template
-make install-requirement  # to install python3 dependencies
+make install-requirement  # only the first time needed to install the physigym python3 dependencies
 make
 ```
 
@@ -39,7 +39,7 @@ env.close()
 exit()
 ```
 
-7. Check out the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md) to understand what you just ran.
+7. Check out the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym_model.md) to understand what you just ran.
 
 
 ## How to fetch the latest version from this PhysiCell user project into this source code repository
