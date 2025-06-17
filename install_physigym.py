@@ -82,6 +82,7 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
         # copy files to the user_project's root folder
         print('copy from: PHYSICELL ...')
         shutil.copy('PHYSICELL', s_path_prj)
+        shutil.copy('LICENSE', s_path_prj)
         for s_file in sorted(os.listdir(s_path_model)):
             if os.path.isfile(f'{s_path_model}{s_file}'):
                 print(f'copy from: {s_path_model}{s_file} ...')
