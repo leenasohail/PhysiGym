@@ -70,7 +70,8 @@ studio -c config/PhysiCell_settings.xml
 ```
 
 
-1.2 In the studio, make the following changes and additions, and don't forget to save.
+1.2 In the studio, make the following changes and additions.
+Don't forget to save!
 
 + Config Basics: Max Time = 10080 [min] which is 7 [days].
 + Microenvironment: rename my_substrate to drug.
@@ -498,6 +499,9 @@ mcdsts.plot_timeseries(title='total cell count over time', ext='jpeg')
 mcdsts.plot_timeseries(focus_cat='cell_type', focus_num='apoptosis_rate', frame='cell_df', title='mean apoptosis rate over time', ext='jpeg')
 mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug concentration over time', ext='jpeg')
 ```
+
+![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tutorial.gif)
+![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tutorial_timeseries.jpeg)
 
 
 ## The [episode](https://github.com/Dante-Berth/PhysiGym/tree/main/model/episode) model.
