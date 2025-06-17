@@ -74,7 +74,7 @@ def capture_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
         # copy files to the model's root folder
         os.makedirs(s_path_model, exist_ok=True)
         for s_file in sorted(os.listdir(s_path_prj)):
-            if os.path.isfile(f'{s_path_prj}{s_file}') and not (s_file in {'main.cpp','Makefile','PHYSICELL','studio_debug.log','VERSION.txt'}):
+            if os.path.isfile(f'{s_path_prj}{s_file}') and not (s_file in {'LICENSE', 'main.cpp','Makefile','PHYSICELL','studio_debug.log','VERSION.txt'}):
                 print(f'copy to: {s_path_model}{s_file} ...')
                 shutil.copy(src=f'{s_path_prj}{s_file}', dst=s_path_model)
 
