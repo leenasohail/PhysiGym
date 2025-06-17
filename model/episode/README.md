@@ -8,7 +8,7 @@
 + authors: \
     original work 2015-2025, Paul Mackli, the BioFVM Project and the PhysiCell Project. \
     modified work 2024-2025, Elmar Bucher, physicell embedding. \
-    modified work 2024-2025, Alexandre Bertin, Elmar Bucher, physigym. \
+    modified work 2024-2025, Alexandre Bertin, Elmar Bucher, physigym.
 
 + description: \
     physigym physicell user_project based on the physicell episode sample project
@@ -16,4 +16,4 @@
     + https://github.com/MathCancer/PhysiCell/tree/master/sample_projects/episode
     + https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md
 
-source: https://github.com/Dante-Berth/PhysiGym/tree/main/model
++ source: https://github.com/Dante-Berth/PhysiGym/tree/main/model
