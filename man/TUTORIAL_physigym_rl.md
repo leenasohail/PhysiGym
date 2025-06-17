@@ -2,7 +2,7 @@
 
 In this tutorial, you will learn how to apply reinforcement learning (RL) to control a biological simulation model.
 We use the **tumor immune base** model as an example:
-[tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base_2).
+[tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base).
 
 This model consists of three types of cells:
 - **cell_1**: produces an anti-inflammatory factor that negatively impacts tumor cells by increasing the probability of apoptosis,
@@ -15,7 +15,7 @@ Additionally, cell types cell_1 and cell_2 cells are attracted to debris in the 
 
 For a detailed description of the rules governing cell behavior, see the [cell_rules.csv](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/cell_rules.csv) file.
 
-![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tumor_immune_base.png)
+![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tumor_immune_base_2.png)
 
 Before speaking reinforcement learning, let's install the model.
 
@@ -111,7 +111,7 @@ RL frameworks are characterized by four essential elements that define a \textbf
 
 The agent aims to maximize the reward function by learning an optimal policy or strategy.
 In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem.
-The reward function is defined as:
+The **reward function** in this model is defined as:
 
 ```math
 r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t
@@ -119,9 +119,9 @@ r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t
 - $C_t$: Number of tumor cells at time step $t$
 - $C_{init}$ : Number of tumor cells at initial time step
 - $d_t$: Amount of drug added to the tumor microenvironment at time $t$
-- $ \alpha \in [0, 1] $: A trade-off weight parameter
-  - $ \alpha = 1 $: Prioritize killing tumor cells, ignoring drug usage
-  - $ \alpha = 0 $: Avoid drug usage entirely, regardless of tumor growth
+- $\alpha \in [0, 1]$: A trade-off weight parameter
+  - $\alpha = 1$: Prioritize killing tumor cells, ignoring drug usage
+  - $\alpha = 0$: Avoid drug usage entirely, regardless of tumor growth
 
 This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{init})}$
 the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
@@ -130,7 +130,26 @@ Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (
   - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
-The **action space** refers to the **drug_1** a value between zero and one and finally the **state space** is a gray image of size $[0,1]**(x_{max}-x_{min})*(y_{max}-y_{min})$, you can find [$x_{min},x_{max},y_{min},y_{max}$](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/PhysiCell_settings.xml) 
+The **state space** in this model can take three different forms:
+
+1. **Grayscale image (`image_gray`)**:  
+   This is the full spatial image where each pixel represents the environment in grayscale, converted from an RGB rendering. Each cell type is assigned an RGB color initially, which is then transformed into a single-channel gray image.  
+   Its size is approximately $[0,1]^{(x_{\text{max}} - x_{\text{min}}) \times (y_{\text{max}} - y_{\text{min}})}$, where the coordinates can be found in the [PhysiCell settings file](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/PhysiCell_settings.xml).
+
+2. **Multi-channel image (`image_cell_types`)**:  
+   A 3D tensor of shape `(cell_types, grid_size, grid_size)`, where each channel corresponds to the presence of a specific cell type in the grid. This representation allows direct access to spatial distributions of each type. In some cases, one of the channels may have reduced dimensionality for performance reasons.
+
+3. **Cell concentration vector**:  
+   A 1D vector containing the total concentration (or count) of each cell type across the environment. This is a low-dimensional, non-spatial summary of the system state.
+
+---
+
+The **action space** consists of a single continuous variable:  
+- **drug_1** ∈ [0, 1], representing the intensity or dosage of a drug intervention applied at each step.
+
+
+
+
 
 Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
 
