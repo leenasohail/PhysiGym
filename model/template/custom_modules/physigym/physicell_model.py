@@ -10,7 +10,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     model specific implementation of the custom_modules/extend module
+#     model specific implementation of the custom_modules/extending module
 #     comaptible Gymnasium environment.
 # + https://gymnasium.farama.org/main/
 # + https://gymnasium.farama.org/main/introduction/create_custom_env/

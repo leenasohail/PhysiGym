@@ -1,7 +1,0 @@
-gymnasium
-ipython
-lxml
-matplotlib
-numpy
-pandas
-pyqt6

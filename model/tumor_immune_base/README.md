@@ -20,5 +20,7 @@
     modified work 2024-2025, Alexandre Bertin, Owen Griere tumor_immune_base model. \
     modified work 2024-2025, Alexandre Bertin sac_tib.py.
 
-description:
++ description: \
     simple but complex enough model for non-trivial reinforcement learning.
+
++ source: https://github.com/Dante-Berth/PhysiGym/tree/main/model
