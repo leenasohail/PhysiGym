@@ -45,17 +45,6 @@ make load PROJ=physigym_tumor_immune_base
 make
 ```
 
-### 2. Details about the model
-The child class [**physicell_model.py**](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/physicell_model.py), which is specific to the model, contains an important function: **get_observation**, as demonstrated in the [TUTORIAL_physigym_model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym_model.md).
-
-This function returns different types of images:
-
-- The **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
-- The **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
-
-In addition to the images, the function also computes the **concentration of cells** for each cell type.
-
-
 
 ## Applying Deep Reinforcement Learning on the Tumor Immune Base Model
 
@@ -132,16 +121,10 @@ Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (
 
 The **state space** in this model can take three different forms:
 
-1. **Grayscale image (`image_gray`)**:  
-   This is the full spatial image where each pixel represents the environment in grayscale, converted from an RGB rendering. Each cell type is assigned an RGB color initially, which is then transformed into a single-channel gray image.  
-   Its size is approximately $[0,1]^{(x_{\text{max}} - x_{\text{min}}) \times (y_{\text{max}} - y_{\text{min}})}$, where the coordinates can be found in the [PhysiCell settings file](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/PhysiCell_settings.xml).
+  - The **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
+  - The **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
 
-2. **Multi-channel image (`image_cell_types`)**:  
-   A 3D tensor of shape `(cell_types, grid_size, grid_size)`, where each channel corresponds to the presence of a specific cell type in the grid. This representation allows direct access to spatial distributions of each type. In some cases, one of the channels may have reduced dimensionality for performance reasons.
-
-3. **Cell concentration vector**:  
-   A 1D vector containing the total concentration (or count) of each cell type across the environment. This is a low-dimensional, non-spatial summary of the system state.
-
+In addition to the images, the function also computes the concentration of cells for each cell type noted **simple**.
 ---
 
 The **action space** consists of a single continuous variable:  
