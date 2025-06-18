@@ -15,7 +15,7 @@ Additionally, cell types cell_1 and cell_2 cells are attracted to debris in the 
 
 For a detailed description of the rules governing cell behavior, see the [cell_rules.csv](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/cell_rules.csv) file.
 
-![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tumor_immune_base_2.png)
+![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tumor_immune_base.png)
 
 Before speaking reinforcement learning, let's install the model.
 

@@ -55,7 +55,7 @@ class Args:
     """the name of this experiment"""
     weight: float = 0.5
     """weight for the reduction of tumor"""
-    reward_type: str = "linear"
+    reward_type: str = "dummy_linear"
     """type of the reward"""
     seed: int = 1
     """seed of the experiment"""
@@ -71,7 +71,7 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "simple"
+    observation_type: str = "image_cell_types"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
