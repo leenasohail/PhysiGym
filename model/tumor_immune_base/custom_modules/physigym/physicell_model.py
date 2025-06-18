@@ -309,9 +309,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             # Only
             df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
 
-            # Maybe we can put it at the beggining ?
-            type_to_index = {t: i for i, t in enumerate(self.unique_cell_types)}
-            cell_type_indices = df_alive["type"].map(type_to_index).to_numpy()
+            cell_type_indices = df_alive["type"].map(self.type_map).to_numpy()
 
             # Discretize
             x_bin = (
@@ -331,6 +329,46 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
             np.add.at(image, (cell_type_indices, y_bin, x_bin), 1 / self.ratio_img_size)
             o_observation = (image * 255).astype(np.uint8)
+
+        elif self.observation_type == "image_cell_colors":
+            image = np.zeros((3, self.grid_size, self.grid_size), dtype=np.float32)
+
+            # Filter alive cells
+            df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
+            cell_type_indices = df_alive["type"].map(self.type_to_index).to_numpy()
+            # Create type → RGB color mapping (shape: (num_cell_types, 3))
+            type_colors = np.stack(
+                [self.cell_type_to_color[t] for t in self.unique_cell_types]
+            )  # float32 or uint8
+
+            # Get the RGB color for each alive cell from its type
+            colors = type_colors[cell_type_indices].T.astype(
+                np.float32
+            )  # shape: (3, N)
+
+            # Discretize spatial coordinates
+            x_bin = (
+                (df_alive["x"] - self.x_min)
+                / (self.x_max - self.x_min)
+                * (self.grid_size - 1)
+            ).astype(int)
+            y_bin = (
+                (df_alive["y"] - self.y_min)
+                / (self.y_max - self.y_min)
+                * (self.grid_size - 1)
+            ).astype(int)
+
+            # Clip to bounds
+            x_bin = np.clip(x_bin, 0, self.grid_size - 1)
+            y_bin = np.clip(y_bin, 0, self.grid_size - 1)
+
+            # Accumulate RGB color per pixel using np.add.at
+            normalization = 1.0 / self.ratio_img_size
+            for c in range(3):
+                np.add.at(image[c], (y_bin, x_bin), colors[c] * normalization)
+
+            # Scale to [0, 255] and cast
+            o_observation = image.astype(np.uint8)
 
         elif self.observation_type == "transformer":
             x = self.df_cell["x"].to_numpy()
@@ -379,7 +417,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "number_cancer_cells": self.nb_cancer_cells,
             "df_cell": self.df_cell,
             "number_cell_1": self.nb_cell_1,
-            "number_cell_2": self.nb_cell_1,
+            "number_cell_2": self.nb_cell_2,
         }
 
         # output
@@ -428,19 +466,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return self.normalize(C_t=C_t, C_prev=C_prev)
 
     def normalize(self, C_t, C_prev):
-        if self.reward_type == "sparse":
-            if C_prev * C_t == 0:
-                return 100
-            elif C_prev > C_t:
-                return 1
-            else:
-                return -1
-        elif self.reward_type == "linear":
-            return (C_prev - C_t) / np.log(C_prev + 1)
-        elif self.reward_type == "dummy_linear":
+        if self.reward_type == "dummy_linear":
             return (C_prev - C_t) / np.log(self.init_cancer_cells)
-        elif self.reward_type == "simple":
-            return 1 if C_prev > C_t else 0
         else:
             raise f"The reward type is not implemented{self.reward_type}"
 
