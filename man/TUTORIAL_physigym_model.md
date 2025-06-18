@@ -500,8 +500,8 @@ mcdsts.plot_timeseries(focus_cat='cell_type', focus_num='apoptosis_rate', frame=
 mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug concentration over time', ext='jpeg')
 ```
 
-![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tutorial.gif)
-![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tutorial_timeseries.jpeg)
+![Tutorial Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tutorial.gif)
+![Tutorial Model Time Series](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tutorial_timeseries.jpeg)
 
 
 ## The [episode](https://github.com/Dante-Berth/PhysiGym/tree/main/model/episode) model.
@@ -563,7 +563,7 @@ import physigym
 env = gymnasium.make(
      'physigym/ModelPhysiCellEnv-v0',
      settingxml='config/PhysiCell_settings.xml',
-     figsize=(8,6),
+     figsize=(12,6),
      render_mode='human',
      render_fps=10
 )
@@ -600,3 +600,5 @@ while not b_episode_over:
 # drop the environment
 env.close()
 ```
+
+![Episode Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_episode.gif)
