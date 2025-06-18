@@ -100,6 +100,7 @@ RL frameworks are characterized by four essential elements that define a \textbf
 
 The agent aims to maximize the reward function by learning an optimal policy or strategy.
 In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem.
+
 The **reward function** in this model is defined as:
 
 ```math
@@ -111,7 +112,6 @@ r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t
 - $\alpha \in [0, 1]$: A trade-off weight parameter
   - $\alpha = 1$: Prioritize killing tumor cells, ignoring drug usage
   - $\alpha = 0$: Avoid drug usage entirely, regardless of tumor growth
-
 This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{init})}$
 the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
 Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (tumor killing) and **toxicity cost** (drug amount). By adjusting $\alpha$, you can simulate different treatment strategies:
@@ -120,7 +120,6 @@ Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
 The **state space** in this model can take three different forms:
-
   - The **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
   - The **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
 
