@@ -228,10 +228,14 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.x_max = int(self.x_root.xpath("//domain/x_max")[0].text)
         self.y_min = int(self.x_root.xpath("//domain/y_min")[0].text)
         self.y_max = int(self.x_root.xpath("//domain/y_max")[0].text)
+        self.z_min = int(self.x_root.xpath("//domain/z_min")[0].text)
+        self.z_max = int(self.x_root.xpath("//domain/z_max")[0].text)
         self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
         self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
+        self.dz = int(self.x_root.xpath("//domain/dz")[0].text)
         self.width = self.x_max + 2 * self.dx - self.x_min
         self.height = self.y_max + 2 * self.dy - self.y_min
+        self.depth = self.z_max + 2 * self.dz - self.z_min
 
         cell_definitions = self.x_root.xpath("//cell_definitions/cell_definition")
         self.color_mapping = {}  # This will map type IDs to specific colors

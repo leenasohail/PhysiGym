@@ -64,7 +64,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         render_fps=10,
         verbose=False,
         observation_type="simple",
-        reward_type="normalize",
+        reward_type="dummy_linear",
         grid_size=64,
     ):
         self.observation_type = "simple" if None else observation_type
