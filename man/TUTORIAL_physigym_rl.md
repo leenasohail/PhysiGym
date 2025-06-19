@@ -1,7 +1,7 @@
 # PhysiGym and Reinforcement Learning with Gymnasium
 
 In this tutorial, you will learn how to apply reinforcement learning (RL) to control a biological simulation model.
-We use the **tumor immune base** model as an example:
+We use the **tumor immune base** (TIB) model as an example:
 [tumor_immune_base](https://github.com/Dante-Berth/PhysiGym/tree/main/model/tumor_immune_base).
 
 This model consists of three types of cells:
@@ -11,7 +11,7 @@ This model consists of three types of cells:
 
 Under environmental pressure, cell type **cell_1** can transform into cell type **cell_2**.
 The drug **drug_1** can reverse this transformation, turning cell type **cell_2** back into cell type **cell_1**.
-Additionally, cell types cell_1 and cell_2 cells are attracted to debris in the environment.
+Additionally, cell types **cell_1** and **cell_2** cells are attracted to debris in the environment.
 
 For a detailed description of the rules governing cell behavior, see the [cell_rules.csv](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/cell_rules.csv) file.
 
@@ -19,18 +19,17 @@ For a detailed description of the rules governing cell behavior, see the [cell_r
 
 Before speaking reinforcement learning, let's install the model.
 
-## Installation TME
 
-### 0. Install and Load the Model (Bash)
+## Install, Load, and Compile the Model (Bash)
 
-#### Install the model:
+### 1. Install:
 
 ```bash
 cd path/to/PhysiGym
 python3 install_physigym.py tumor_immune_base -f
 ```
 
-#### Load the model:
+### 1. Load:
 
 ```bash
 cd ../PhysiCell
@@ -39,7 +38,7 @@ make list-user-projects
 make load PROJ=physigym_tumor_immune_base
 ```
 
-### 1. Compile (Bash)
+#### 3. Compile:
 
 ```bash
 make
@@ -47,6 +46,7 @@ make
 
 
 ## Applying Deep Reinforcement Learning on the Tumor Immune Base Model
+
 
 ### 1. Problem Statement
 
@@ -57,13 +57,14 @@ A suitable framework to solve this control problem is **Reinforcement Learning (
 
 First, we will have to recall some important elements in Reinforcement Learning.
 
+
 ### 2. Reinforcement Learning short explanation
 
 In reinforcement learning (RL), the goal is to **maximize the expected cumulative reward** over time. The **reward function** provides feedback to the agent, indicating how beneficial or harmful its actions are.
 
-The RL agent interacts with an environment — such as our **tumor microenvironment (TME) model** — which provides observations. These observations can be **scalars** or **images** (e.g., generated from an agent-based simulator). The agent processes this input to decide on an action.
+The RL agent interacts with an environment — such as our **TIB model** — which provides observations. These observations can be **scalars** or **images** (e.g., generated from an agent-based simulator). The agent processes this input to decide on an action.
 
-In our TME case, the **action** corresponds to the administration of a drug, denoted by:
+In our TIB case, the **action** corresponds to the administration of a drug, denoted by:
 
 $$
 d_t \in [0, 1]
@@ -75,8 +76,8 @@ After the action is taken, the agent receives a **reward** that reflects the eff
 
 Through trial and error, the agent learns a strategy (policy) that balances these objectives over time.
 
-#### Reinforcement Learning detailed
 
+#### Reinforcement Learning detailed
 
 In Reinforcement Learning (RL), the objective is to maximize the **expected cumulative reward**:
 
@@ -85,60 +86,55 @@ In Reinforcement Learning (RL), the objective is to maximize the **expected cumu
 ```
 
 where:
-- $\gamma$ is the discount factor,
-- $r_t$ is the reward function,
-- $\pi$ represents the policy (strategy),
+- $\gamma$ is the discount factor.
+- $r_t$ is the reward function.
+- $\pi$ represents the policy (strategy).
 - $s_0$ is the initial state derived from `cells.csv`.
 
 RL frameworks are characterized by four essential elements that define a \textbf{Markov Decision Process (MDP)} $MDP = \{S,A,T,R\}$.
-\begin{enumerate}
-    \item $S$ the state space
-    \item $A$ the action space
-    \item  p the transition $p(s_{t+1}|s_{t},a)$ is given by PhysiCell.
-    \item $R: \mathbb{S}\times \mathbb{A}\times \mathbb{S} \to \mathbb{R}$ the reward is determined by the current action, the current state, and the subsequent state. This feedback is provided to the agent to assess whether the action contributes to achieving its objective.
-\end{enumerate}
+- $S$ the state space.
+- $A$ the action space.
+- p the transition $p(s_{t+1}|s_{t},a)$ is given by PhysiCell.
+- $R: \mathbb{S}\times \mathbb{A}\times \mathbb{S} \to \mathbb{R}$ the reward is determined by the current action, the current state, and the subsequent state.
+This feedback is provided to the agent to assess whether the action contributes to achieving its objective.
 
 The agent aims to maximize the reward function by learning an optimal policy or strategy.
-In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem.
+In the next section, we will use a deep reinforcement learning algorithm to solve this problem.
 
 The **reward function** in this model is defined as:
 
 ```math
 r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t
 ```
-- $C_t$: Number of tumor cells at time step $t$
-- $C_{init}$ : Number of tumor cells at initial time step
-- $d_t$: Amount of drug added to the tumor microenvironment at time $t$
-- $\alpha \in [0, 1]$: A trade-off weight parameter
-  - $\alpha = 1$: Prioritize killing tumor cells, ignoring drug usage
-  - $\alpha = 0$: Avoid drug usage entirely, regardless of tumor growth
-This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{init})}$
-the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward. While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
-Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (tumor killing) and **toxicity cost** (drug amount). By adjusting $\alpha$, you can simulate different treatment strategies:
+
+- $C_t$: Number of tumor cells at time step $t$.
+- $C_{init}$ : Number of tumor cells at initial time step.
+- $d_t$: Amount of drug added to the tumor microenvironment at time $t$.
+- $\alpha \in [0, 1]$: A trade-off weight parameter.
+  - $\alpha = 1$: Prioritize killing tumor cells, ignoring drug usage.
+  - $\alpha = 0$: Avoid drug usage entirely, regardless of tumor growth.
+This reward has two main components: $\frac{C_{t-1} - C_t}{\log(C_{init})}$ the reduction term encourages reduction in tumor size, where the numerator measures how many tumor cells were eliminated weighted by the denominator which normalizes the reward.
+While the second term, $- (1 - \alpha) \cdot d_t$ refers as the drug penalty term.
+Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (tumor killing) and **toxicity cost** (drug amount).
+By adjusting $\alpha$, you can simulate different treatment strategies:
   - **Aggressive**: $\alpha \approx 1$ → Maximize tumor reduction, ignore drug cost.
   - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
 The **state space** in this model can take three different forms:
-  - The **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
-  - The **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
+- **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
+- **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
+- **simple** is a mathematical function that computes the **cell count for each cell type**.
 
-In addition to the images, the function also computes the concentration of cells for each cell type noted **simple**.
----
-
-The **action space** consists of a single continuous variable:  
+The **action space** consists of a single continuous variable:
 - **drug_1** ∈ [0, 1], representing the intensity or dosage of a drug intervention applied at each step.
-
-
-
-
 
 Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
 
 Why use a neural network instead of polynomial functions?
 Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them.
 Therefore, we will use Deep Reinforcement Learning.
-For neural network implementation, we will use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
+For neural network implementation, we use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
 
 
 ## Required Libraries
@@ -146,11 +142,11 @@ For neural network implementation, we will use [PyTorch](https://pytorch.org/), 
 The deep reinforcement learning code relies on several Python libraries.
 The main libraries are listed below:
 
-| Library                      | Description                                                                                         | Link                                                                 |
-|-----------------------------|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| **PyTorch**                 | A popular deep learning framework that provides tensor operations and automatic differentiation.    | [pytorch.org](https://pytorch.org/)                                  |
-| **Tensordict**             | A PyTorch-compatible library for structured, dictionary-like tensors used in RL pipelines.          | [docs.pytorch.org/tensordict](https://docs.pytorch.org/tensordict/stable/index.html) |
-| **TensorBoard**            | A visualization toolkit for monitoring training metrics like loss, accuracy, and more.              | [tensorflow.org/tensorboard](https://www.tensorflow.org/tensorboard) |
+| Library | Description | Link |
+|---|---|---|
+| **PyTorch** | A popular deep learning framework that provides tensor operations and automatic differentiation. | [pytorch.org](https://pytorch.org/) |
+| **Tensordict** | A PyTorch-compatible library for structured, dictionary-like tensors used in RL pipelines. | [docs.pytorch.org/tensordict](https://docs.pytorch.org/tensordict/stable/index.html) |
+| **TensorBoard** | A visualization toolkit for monitoring training metrics like loss, accuracy, and more. | [tensorflow.org/tensorboard](https://www.tensorflow.org/tensorboard) |
 
 The specifics, how to install **pytorch** (torch, torchvison, torchaudio), differes based on your operating system, python distribution, and available hardware (CPU and/or Nvidia GPU).
 For that reason, please follow the pytorch stabile build installation instruction here:
@@ -172,18 +168,20 @@ nano custom_modules/physigym/physigym/envs/sac_tib.py
 
 Scroll down to **class Args** and adjust the following settings:
 + cuda: bool = *True or False*
-+ wandb\_track: bool = True , False if you only want to run with tensorboard else True for wandb 
-<!-- bue 20250611: anythong else, if you only wanna run with tenserboard? -->
++ wandb\_track: bool = *False*
 
+<!-- bue 20250611: anythong else, if you only wanna run with tenserboard?
 You will be asked to create a W&B account, use an existing W&B account, or don't visualize my results. \
 Chose: don't visualize my results!
-
+-->
 
 ## Wandb Library (optional)
 
-| Library                      | Description                                                                                         | Link                                                                 |
-|-----------------------------|-----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| **Weights & Biases (Wandb)** | A platform for experiment tracking, visualization, and collaboration in ML projects.                | [wandb.ai](https://wandb.ai/site)                                    |
+Basically, wandb is an online version of the tenseboard library, with some aditional features.
+
+| Library | Description | Link|
+|---|---|---|
+| **Weights & Biases (Wandb)** | A platform for experiment tracking, visualization, and collaboration in machine learning projects. | [wandb.ai](https://wandb.ai/site) |
 
 &#x26A0; To make use of the **wandb** library, you must create an account.
 The cost-free version will do.
@@ -207,24 +205,24 @@ Scroll down to **class Args** and adjust the following settings:
 + wandb\_track: bool = True
 + wandb\_entity: str = *"username-company"*  # this is your wandb team string!
 + wandb\_project\_name: strl = *"sac_tib_tutorial"*
-<!-- bue 20250611: anythong else? -->
 
 
 ## Launch Deep Reinforcemnt Learn Algorithm
 
 We applied a Deep Reinforcement Learning Algorithm called [SAC (Soft Actor-Critic)](https://arxiv.org/pdf/1812.05905), which is adapted for continuous action spaces.
 
-The [code](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/sac_tib.py). is divided into several parts:
+The [code](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/sac_tib.py) is divided into several parts:
 
-- The first part is dedicated to the **replay buffer**.
+- The first part is focused on the **environment wrapper**.
 - The second part handles the **neural networks**.
-- The third part is focused on the **environment wrapper**.
+- The thirdpart is dedicated to the **replay buffer**.
 - The final part implements the **reinforcement learning logic**.
 
-The **wrapper** is the component most tightly coupled to the simulation model. It simplifies the interaction between the model and the reinforcement learning logic. Additionally, it can be used to store in info important information at each time step, such as drug dosages and more.
-
-You have to copy [code](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/sac_tib.py) into your PhysiCell folder. Then, you should be carefull with different arguments such as **wandb_entity** which is personal, change it. Besides, you can modify any arguments you want but be aware for instance for reward you should add the reward model into [physicell_model](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/physicell_model.py) and add the right attributed to reward function.
-
+The **wrapper** is the component most tightly coupled to the simulation model.
+It simplifies the interaction between the model and the reinforcement learning logic.
+Additionally, it can be used to store in info important information at each time step, such as drug dosages and more.
+You should be carefull with different arguments (class Args) such as **wandb_entity** which is personal, change it.
+Besides, you can modify any arguments you want but be aware for instance for reward you should add the reward model into [physicell_model](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/custom_modules/physigym/physicell_model.py) and add the right attributed to reward function.
 
 Run the Code:
 
