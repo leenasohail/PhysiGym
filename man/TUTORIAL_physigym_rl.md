@@ -253,9 +253,10 @@ The visualization will update automatically.
 
 ## Results
 You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tummor_immune_base_results_dcr.png)
- that the learning agent has maximized the expected discounted return: $
+ that the learning agent has maximized the expected discounted return: 
+```math
 \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right]
-$
+```
 
 The **y-axis** represents the expected return, while the **x-axis** represents the training steps. Note that although it is labeled as *3 million steps*, it does **not** correspond to 3 million environment interaction steps — in reality, it represents **fewer** than 3 million actual interactions.
 
