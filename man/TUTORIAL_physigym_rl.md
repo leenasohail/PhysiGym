@@ -252,7 +252,7 @@ The visualization will update automatically.
 + https://wandb.ai
 
 ## Results
-You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tumor_immune_base.png)
+You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tummor_immune_base_results_dcr.png)
  that the learning agent has maximized the expected discounted return: $
 \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right]
 $
