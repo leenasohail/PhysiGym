@@ -29,7 +29,7 @@ cd path/to/PhysiGym
 python3 install_physigym.py tumor_immune_base -f
 ```
 
-### 1. Load:
+### 2. Load:
 
 ```bash
 cd ../PhysiCell
