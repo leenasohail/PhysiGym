@@ -34,7 +34,6 @@ physicell.flag_envphysigym = False
 def calculate_rgb(value):
     return int(round(value * 255))
 
-
 # List of base color values as floats (e.g., 0.5 for 50%)
 base_colors = [
     (0.5, 0.5, 0.5),  # Gray
@@ -257,11 +256,15 @@ class CorePhysiCellEnv(gymnasium.Env):
             key: tuple(np.array(value) * 255)
             for key, value in self.color_mapping.items()
         }
+
         # max time
         # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
         r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
         r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
-        self.r_time_max = r_time_max - r_dt_gym
+        self.r_dt_gym = r_dt_gym
+        self.r_time_max = r_time_max
+        self.i_step_max = self.r_time_max // self.r_dt_gym
+        self.i_time_current = -1
 
         # handle spaces
         if self.verbose:
@@ -269,15 +272,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.action_space = self.get_action_space()
         self.observation_space = self.get_observation_space()
 
-        # set autoreset flag
-        # self.autoreset = False
-
         # set global physigym enviroment flag
         physicell.flag_envphysigym = True
 
         # output
         if self.verbose:
             print(f"physigym: ok!")
+
 
     def render(self):
         """
@@ -319,6 +320,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"ok!")
         return a_img
+
 
     def reset(self, seed=None, options={}):
         """
@@ -383,6 +385,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # rewrite setting xml file
         self.x_tree.write(self.settingxml, pretty_print=True)
+
         # seed self.np_random number generator
         super().reset(seed=i_seed)
         if self.verbose:
@@ -403,6 +406,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
         physicell.start(self.settingxml, self.episode != 0)
         self.get_reset_values()
+
         # observe domain
         if self.verbose:
             print(f"physigym: domain observation.")
@@ -429,6 +433,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: ok!")
         return o_observation, d_info
 
+
     def get_truncated(self):
         """
         input:
@@ -446,13 +451,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         # processing
         b_truncated = False
-        r_time_current = physicell.get_parameter(
-            "time"
-        )  # achtung: time has to be declared as parameter of type float in the settings.xml file!
-        b_truncated = r_time_current > self.r_time_max
+        # achtung: time has to be declared as parameter of type float in the settings.xml file!
+        r_time_current = physicell.get_parameter("time")
+        print(f"current python3 time: {round(r_time_current, 3)}")
+        b_truncated = self.i_time_current == int(r_time_current)
+        self.i_time_current = int(r_time_current)
 
         # output
         return b_truncated
+
 
     def step(self, action):
         """
@@ -516,14 +523,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         # do action
         if self.verbose:
             print(f"physigym: action.")
-
-        # if self.autoreset:
-        #    o_observation, d_info = self.reset()
-        #    r_reward = self.get_reward()
-        #    b_terminated = False
-        #    b_truncated = False
-        #    self.autoreset = False
-        #    return o_observation, r_reward, b_terminated, b_truncated, d_info
 
         for (
             s_action,
@@ -614,7 +613,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         b_terminated = self.get_terminated()
         b_truncated = self.get_truncated()
         d_info = self.get_info()
-        # self.autoreset = b_terminated or b_truncated
 
         # get revard
         r_reward = self.get_reward()
@@ -630,17 +628,16 @@ class CorePhysiCellEnv(gymnasium.Env):
                 plt.pause(1 / self.metadata["render_fps"])
 
         # check if episode finish
-        # if self.autoreset:
-        #    if self.verbose:
-        #        print(
-        #            f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
-        #        )
-        #    physicell.stop()
+        if b_terminated or b_truncated:
+            if self.verbose:
+                print(f'physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated}).')
+            physicell.stop()
 
         # output
         if self.verbose:
             print(f"physigym: ok!")
         return o_observation, r_reward, b_terminated, b_truncated, d_info
+
 
     def close(self):
         """
@@ -675,6 +672,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             )
             print(f"physigym: ok!")
 
+
     def verbose_true(self):
         """
         input:
@@ -698,6 +696,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         print(f"physigym: set env.verbose = True.")
         self.verbose = True
+
 
     def verbose_false(self):
         """
