@@ -34,6 +34,7 @@ physicell.flag_envphysigym = False
 def calculate_rgb(value):
     return int(round(value * 255))
 
+
 # List of base color values as floats (e.g., 0.5 for 50%)
 base_colors = [
     (0.5, 0.5, 0.5),  # Gray
@@ -259,11 +260,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # max time
         # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
-        r_time_max = float(self.x_root.xpath("//overall/max_time")[0].text)
-        r_dt_gym = float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
-        self.r_dt_gym = r_dt_gym
-        self.r_time_max = r_time_max
-        self.i_step_max = self.r_time_max // self.r_dt_gym
         self.i_time_current = -1
 
         # handle spaces
@@ -278,7 +274,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output
         if self.verbose:
             print(f"physigym: ok!")
-
 
     def render(self):
         """
@@ -320,7 +315,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"ok!")
         return a_img
-
 
     def reset(self, seed=None, options={}):
         """
@@ -433,7 +427,6 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: ok!")
         return o_observation, d_info
 
-
     def get_truncated(self):
         """
         input:
@@ -459,7 +452,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         return b_truncated
-
 
     def step(self, action):
         """
@@ -630,14 +622,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         # check if episode finish
         if b_terminated or b_truncated:
             if self.verbose:
-                print(f'physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated}).')
+                print(
+                    f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
+                )
             physicell.stop()
 
         # output
         if self.verbose:
             print(f"physigym: ok!")
         return o_observation, r_reward, b_terminated, b_truncated, d_info
-
 
     def close(self):
         """
@@ -672,7 +665,6 @@ class CorePhysiCellEnv(gymnasium.Env):
             )
             print(f"physigym: ok!")
 
-
     def verbose_true(self):
         """
         input:
@@ -696,7 +688,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         print(f"physigym: set env.verbose = True.")
         self.verbose = True
-
 
     def verbose_false(self):
         """
