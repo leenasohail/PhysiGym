@@ -850,7 +850,7 @@ def main():
     action_dim = np.array(env.action_space.shape).prod()
     # Replay buffer
     if (
-        args.observation_type == "concentrations"
+        args.observation_type == "simple"
         or args.observation_type == "image_cell_types"
     ):
         rb = ReplayBuffer(
@@ -899,7 +899,7 @@ def main():
         done = terminations or truncations
         cumulative_return += rewards
         discounted_cumulative_return += rewards * args.gamma ** (step_episode)
-        if args.observation_type == "concentrations":
+        if args.observation_type == "simple":
             rb.add(obs, actions, rewards, next_obs, done)
         else:
             rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done, type_to_int)
