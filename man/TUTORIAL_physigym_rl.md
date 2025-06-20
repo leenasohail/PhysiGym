@@ -127,7 +127,7 @@ In addition to the images, the function also computes the concentration of cells
 ---
 
 The **action space** consists of a single continuous variable:  
-- **drug_1** ∈ [0, 1], representing the intensity or dosage of a drug intervention applied at each step.
+- **drug_1**$<=> d_{t}\in[0, 1]$, representing the intensity or dosage of a drug intervention applied at each step.
 
 
 Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
