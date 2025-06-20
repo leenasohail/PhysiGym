@@ -13,17 +13,17 @@
 
 ## run:
 ```python
-            import gymnasium
-            import physigym
+    import gymnasium
+    import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+    env = gymnasium.make('physigym/ModelPhysiCellEnv')
 
-            env.close()
+    env.close()
 
 ```
 
 ## description:
 ```
-            function to drop shutdown physigym environment.
-        
+    function to drop shutdown physigym environment.
+
 ```
