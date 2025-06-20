@@ -350,15 +350,7 @@ class Actor(nn.Module):
 
 #### Replay Buffers ####
 #
-# description:
-#   Two different replay buffers implemented one for scalars
-#   while the other is optimized to output image.
 ####
-
-numba.set_num_threads(
-    5
-)  # Can exist a competition between PhysiCell and the code using numba
-
 
 class ReplayBuffer(object):
     """
@@ -466,296 +458,6 @@ class ReplayBuffer(object):
         return sample
 
 
-@njit(parallel=True)
-def colorize_batch(
-    batch_x: np.ndarray,  # (B, N)
-    batch_y: np.ndarray,  # (B, N)
-    batch_t: np.ndarray,  # (B, N)
-    type_to_color_array: np.ndarray,
-    o_batch: np.ndarray,  # (B, C, H, W)
-    use_grayscale: bool = False,
-    normalize: bool = False,
-):
-    B, N = batch_x.shape
-    for i in prange(B):
-        x_valid = batch_x[i]
-        y_valid = batch_y[i]
-        types_valid = batch_t[i]
-
-        for j in range(len(x_valid)):
-            type_idx = types_valid[j]
-
-            if 0 <= type_idx < type_to_color_array.shape[0]:
-                r = type_to_color_array[type_idx, 0]
-                g = type_to_color_array[type_idx, 1]
-                b = type_to_color_array[type_idx, 2]
-            else:
-                r = g = b = 0
-
-            if normalize:
-                r *= 255
-                g *= 255
-                b *= 255
-
-            x = x_valid[j]
-            y = y_valid[j]
-
-            if use_grayscale:
-                gray = r * 0.2989 + g * 0.5870 + b * 0.1140
-                o_batch[i, 0, x, y] = int(gray)
-            else:
-                o_batch[i, 0, x, y] = int(r)
-                o_batch[i, 1, x, y] = int(g)
-                o_batch[i, 2, x, y] = int(b)
-
-
-@njit(parallel=True)
-def colorize(
-    x_valid: np.ndarray,
-    y_valid: np.ndarray,
-    types_valid: np.ndarray,
-    type_to_color_array: np.ndarray,
-    o_observation: np.ndarray,
-    use_grayscale: bool = False,
-    normalize: bool = False,
-):
-    n = x_valid.shape[0]
-    for i in prange(n):
-        type_idx = types_valid[i]
-
-        if 0 <= type_idx < type_to_color_array.shape[0]:
-            r = type_to_color_array[type_idx, 0]
-            g = type_to_color_array[type_idx, 1]
-            b = type_to_color_array[type_idx, 2]
-        else:
-            r = g = b = 0
-
-        if normalize:
-            r *= 255
-            g *= 255
-            b *= 255
-
-        x = x_valid[i]
-        y = y_valid[i]
-
-        if use_grayscale:
-            gray = r * 0.2989 + g * 0.5870 + b * 0.1140
-            o_observation[0, x, y] = int(gray)
-        else:
-            o_observation[0, x, y] = int(r)
-            o_observation[1, x, y] = int(g)
-            o_observation[2, x, y] = int(b)
-
-
-class MinimalImgReplayBuffer:
-    def __init__(
-        self,
-        action_dim: int,
-        device: torch.device,
-        buffer_size: int,
-        batch_size: int,
-        height: int,
-        width: int,
-        x_min: int,
-        y_min: int,
-        type_to_color: dict,
-        image_gray: bool,
-        num_workers: int = 10,
-    ):
-        self.device = device
-        self.buffer_size = int(buffer_size)
-
-        self.state = [None] * self.buffer_size
-        self.next_state = [None] * self.buffer_size
-        self.action = np.empty((self.buffer_size, action_dim), dtype=np.float32)
-        self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
-        self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
-
-        self.buffer_index = 0
-        self.full = False
-        self.batch_size = batch_size
-
-        self.height = height
-        self.width = width
-        self.x_min = x_min
-        self.y_min = y_min
-        self.image_gray = image_gray
-        self.num_workers = num_workers
-
-        self.type_to_color_array = self._make_type_to_color_array(type_to_color)
-
-    def _make_type_to_color_array(self, type_to_color):
-        max_type = max(type_to_color.keys())
-        color_array = np.zeros((max_type + 1, 3), dtype=np.uint8)
-        for t, color in type_to_color.items():
-            color_array[t] = np.array(color, dtype=np.uint8)
-        return color_array
-
-    def __len__(self):
-        return self.buffer_size if self.full else self.buffer_index
-
-    def add(self, df_cell, action, reward, next_df_cell, done, type_to_int):
-        state_array = self.extract_minimal_array(df_cell, type_to_int)
-        next_state_array = self.extract_minimal_array(next_df_cell, type_to_int)
-
-        self.state[self.buffer_index] = state_array
-        self.next_state[self.buffer_index] = next_state_array
-        self.action[self.buffer_index] = action
-        self.reward[self.buffer_index] = reward
-        self.done[self.buffer_index] = done
-
-        self.buffer_index = (self.buffer_index + 1) % self.buffer_size
-        self.full = self.full or self.buffer_index == 0
-
-    def extract_minimal_array(self, df_cell, type_to_int):
-        x = df_cell["x"].to_numpy()
-        y = df_cell["y"].to_numpy()
-        type_labels = df_cell["type"].map(type_to_int).to_numpy()
-        return np.stack([x, y, type_labels], axis=1)
-
-    def batch_convert(self, state_list, grayscale: bool):
-        B = len(state_list)
-        N = max(s.shape[0] for s in state_list)
-
-        # Preallocate arrays
-        batch_x = np.zeros((B, N), dtype=np.int32)
-        batch_y = np.zeros((B, N), dtype=np.int32)
-        batch_t = np.zeros((B, N), dtype=np.int32)
-        mask = np.zeros((B, N), dtype=np.bool_)
-
-        for i, s in enumerate(state_list):
-            x = (s[:, 0] - self.x_min).astype(int)
-            y = (s[:, 1] - self.y_min).astype(int)
-            t = s[:, 2].astype(int)
-
-            valid = (0 <= x) & (x < self.height) & (0 <= y) & (y < self.width)
-            num_valid = valid.sum()
-
-            batch_x[i, :num_valid] = x[valid]
-            batch_y[i, :num_valid] = y[valid]
-            batch_t[i, :num_valid] = t[valid]
-            mask[i, :num_valid] = True
-
-        C = 1 if grayscale else 3
-        o_batch = np.zeros((B, C, self.height, self.width), dtype=np.uint8)
-
-        # Call Numba-accelerated colorization
-        colorize_batch(
-            batch_x,
-            batch_y,
-            batch_t,
-            self.type_to_color_array,
-            o_batch,
-            grayscale,
-            False,
-        )
-
-        return o_batch
-
-    def sample(self, batch_size=None):
-        batch_size = self.batch_size if batch_size is None else batch_size
-        assert self.full or (self.buffer_index > batch_size), (
-            "Buffer does not have enough samples"
-        )
-
-        sample_index = np.random.randint(
-            0, self.buffer_size if self.full else self.buffer_index, batch_size
-        )
-
-        state_list = [self.state[i] for i in sample_index]
-        next_state_list = [self.next_state[i] for i in sample_index]
-
-        action = torch.as_tensor(self.action[sample_index], device=self.device)
-        reward = torch.as_tensor(self.reward[sample_index], device=self.device)
-        done = torch.as_tensor(self.done[sample_index], device=self.device)
-
-        state_images = self.batch_convert(state_list, grayscale=self.image_gray)
-        next_state_images = self.batch_convert(
-            next_state_list, grayscale=self.image_gray
-        )
-
-        state_tensor = torch.from_numpy(np.stack(state_images)).float()
-        next_state_tensor = torch.from_numpy(np.stack(next_state_images)).float()
-
-        return TensorDict(
-            {
-                "state": state_tensor,
-                "action": action,
-                "reward": reward,
-                "next_state": next_state_tensor,
-                "done": done,
-            },
-            batch_size=batch_size,
-            device=self.device,
-        )
-
-    def minimal_array_to_image(self, state_array):
-        x = state_array[:, 0]
-        y = state_array[:, 1]
-        type_int = state_array[:, 2].astype(int)
-
-        x_norm = (x - self.x_min).astype(int)
-        y_norm = (y - self.y_min).astype(int)
-
-        o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
-
-        valid_mask = (
-            (0 <= x_norm)
-            & (x_norm < self.height)
-            & (0 <= y_norm)
-            & (y_norm < self.width)
-        )
-
-        x_valid = x_norm[valid_mask]
-        y_valid = y_norm[valid_mask]
-        types_valid = type_int[valid_mask]
-
-        colorize(
-            x_valid,
-            y_valid,
-            types_valid,
-            self.type_to_color_array,
-            o_observation,
-            False,
-            False,
-        )
-
-        return o_observation
-
-    def minimal_array_to_grayscale(self, state_array):
-        x = state_array[:, 0]
-        y = state_array[:, 1]
-        type_int = state_array[:, 2].astype(int)
-
-        x_norm = (x - self.x_min).astype(int)
-        y_norm = (y - self.y_min).astype(int)
-
-        o_observation = np.zeros((1, self.height, self.width), dtype=np.uint8)
-
-        valid_mask = (
-            (0 <= x_norm)
-            & (x_norm < self.height)
-            & (0 <= y_norm)
-            & (y_norm < self.width)
-        )
-
-        x_valid = x_norm[valid_mask]
-        y_valid = y_norm[valid_mask]
-        types_valid = type_int[valid_mask]
-
-        colorize(
-            x_valid,
-            y_valid,
-            types_valid,
-            self.type_to_color_array,
-            o_observation,
-            True,
-            normalize=False,
-        )
-
-        return o_observation
-
-
 #### Algorithm Logic ####
 #
 # description:
@@ -812,17 +514,9 @@ def main():
         observation_type=args.observation_type,
         reward_type=args.reward_type,
     )
-    # Variable needed for the replay buffer which outputs image
-    height = env.unwrapped.height
-    width = env.unwrapped.width
-    x_min = env.unwrapped.x_min
-    y_min = env.unwrapped.y_min
-    color_mapping = env.unwrapped.color_mapping
 
     # Wrapper
     env = PhysiCellModelWrapper(env=env)
-    # Varibales
-    is_gray = True if args.observation_type == "image_gray" else False
     cfg = {"cfg_FeatureExtractor": {}}
     # Neural Networks/ Optimisers init.
     actor = Actor(env, cfg).to(device)
@@ -848,34 +542,16 @@ def main():
         a_optimizer = optim.Adam([log_alpha], lr=args.q_lr)
     else:
         alpha = args.alpha
-    type_to_int = {
-        name: idx for idx, name in enumerate(sorted(env.unwrapped.unique_cell_types))
-    }
-    action_dim = np.array(env.action_space.shape).prod()
-    # Replay buffer
-    if args.observation_type == "simple" or args.observation_type == "image_cell_types":
-        rb = ReplayBuffer(
-            state_dim=env.observation_space.shape,
-            action_dim=env.action_space.shape,
-            device=device,
-            buffer_size=args.buffer_size,
-            batch_size=args.batch_size,
-            state_type=env.observation_space.dtype,
-        )
 
-    else:
-        rb = MinimalImgReplayBuffer(
-            action_dim=action_dim,
-            device=device,
-            buffer_size=args.buffer_size,
-            batch_size=args.batch_size,
-            height=height,
-            width=width,
-            x_min=x_min,
-            y_min=y_min,
-            type_to_color={v: color_mapping[k] for k, v in type_to_int.items()},
-            image_gray=is_gray,
-        )
+    rb = ReplayBuffer(
+        state_dim=env.observation_space.shape,
+        action_dim=env.action_space.shape,
+        device=device,
+        buffer_size=args.buffer_size,
+        batch_size=args.batch_size,
+        state_type=env.observation_space.dtype,
+    )
+
 
     # Start the env and init, tracking values
     obs, info = env.reset(seed=args.seed)
@@ -883,7 +559,6 @@ def main():
     episode = 1
     step_episode = 0
     discounted_cumulative_return = 0
-    df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
         if global_step <= args.learning_starts:
@@ -896,21 +571,11 @@ def main():
         # execute a step forward and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
         step_episode += 1
-        next_df_cell_obs = info["df_cell"] if "image" in args.observation_type else None
         done = terminations or truncations
         cumulative_return += rewards
         discounted_cumulative_return += rewards * args.gamma ** (step_episode)
-        if (
-            args.observation_type == "simple"
-            and args.observation_type == "image_cell_types"
-        ):
-            rb.add(obs, actions, rewards, next_obs, done)
-        else:
-            rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done, type_to_int)
+        rb.add(obs, actions, rewards, next_obs, done)
         obs = next_obs.copy()
-        df_cell_obs = (
-            next_df_cell_obs.copy() if "image" in args.observation_type else None
-        )
         if global_step == args.batch_size:
             data = rb.sample()
             data_next_state = data["next_state"]

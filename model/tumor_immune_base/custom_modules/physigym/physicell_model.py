@@ -70,9 +70,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.observation_type = "simple" if None else observation_type
         if self.observation_type not in [
             "simple",
-            "image_gray",
             "image_cell_types",
-            "transformer",
         ]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
@@ -176,28 +174,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 low=0, high=255, shape=(1, self.height, self.width), dtype=np.uint8
             )
 
-        elif self.observation_type == "image_cell_types":
-            # Define the Box space for the image
-            # Step 2: Create empty image [64, 64, num_cell_types]
-            o_observation_space = spaces.Box(
-                low=0,
-                high=255,
-                shape=(self.num_cell_types, self.grid_size, self.grid_size),
-                dtype=np.uint8,
-            )
-        elif self.observation_type == "transformer":
-            o_observation_space = spaces.Dict(
-                {
-                    "type": spaces.Sequence(
-                        spaces.Discrete(len(self.unique_cell_types))
-                    ),
-                    "dead": spaces.Sequence(spaces.Discrete(2)),
-                    "pos": spaces.Sequence(
-                        spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32)
-                    ),
-                }
-            )
-
         else:
             raise f"Error unknown observation type: {o_observation_space}"
 
@@ -272,35 +248,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation = normalized_concentration_cells / self.init_cancer_cells - 1
             o_observation = np.array(o_observation, dtype=float)
 
-        elif self.observation_type == "image_gray":
-            x = self.df_cell["x"].to_numpy()
-            y = self.df_cell["y"].to_numpy()
-            cell_id = self.df_cell["ID"].to_numpy()
-            # Normalizing the coordinates to fit into the image grid
-            x_normalized = (x - self.x_min).astype(int)
-            y_normalized = (y - self.y_min).astype(int)
-            # Extracting the x, y coordinates and cell id into a numpy array
-            self.df_cell["color"] = self.df_cell["type"].map(
-                lambda t: self.color_mapping.get(t, (0, 0, 0))
-            )  # Default to black if type not found
-            self.df_cell["color"] = self.df_cell.apply(
-                lambda row: [0, 0, 0] if row["dead"] != 0.0 else row["color"], axis=1
-            )
-
-            o_observation = np.zeros((3, self.height, self.width), dtype=np.uint8)
-            # Assign colors to the image grid
-            for i in range(len(cell_id)):
-                o_observation[:, x_normalized[i], y_normalized[i]] = self.df_cell[
-                    "color"
-                ].iloc[i]
-
-            grayscale_image = np.dot(
-                o_observation.transpose(1, 2, 0),
-                [0.2989, 0.5870, 0.1140],
-            ).astype(np.uint8)
-            o_observation = grayscale_image[np.newaxis, :, :]
-            o_observation = np.array(o_observation, dtype=float)
-
         elif self.observation_type == "image_cell_types":
             image = np.zeros(
                 (self.num_cell_types, self.grid_size, self.grid_size), dtype=np.float32
@@ -330,68 +277,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             np.add.at(image, (cell_type_indices, y_bin, x_bin), 1 / self.ratio_img_size)
             o_observation = (image * 255).astype(np.uint8)
 
-        elif self.observation_type == "image_cell_colors":
-            image = np.zeros((3, self.grid_size, self.grid_size), dtype=np.float32)
-
-            # Filter alive cells
-            df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
-            cell_type_indices = df_alive["type"].map(self.type_to_index).to_numpy()
-            # Create type → RGB color mapping (shape: (num_cell_types, 3))
-            type_colors = np.stack(
-                [self.cell_type_to_color[t] for t in self.unique_cell_types]
-            )  # float32 or uint8
-
-            # Get the RGB color for each alive cell from its type
-            colors = type_colors[cell_type_indices].T.astype(
-                np.float32
-            )  # shape: (3, N)
-
-            # Discretize spatial coordinates
-            x_bin = (
-                (df_alive["x"] - self.x_min)
-                / (self.x_max - self.x_min)
-                * (self.grid_size - 1)
-            ).astype(int)
-            y_bin = (
-                (df_alive["y"] - self.y_min)
-                / (self.y_max - self.y_min)
-                * (self.grid_size - 1)
-            ).astype(int)
-
-            # Clip to bounds
-            x_bin = np.clip(x_bin, 0, self.grid_size - 1)
-            y_bin = np.clip(y_bin, 0, self.grid_size - 1)
-
-            # Accumulate RGB color per pixel using np.add.at
-            normalization = 1.0 / self.ratio_img_size
-            for c in range(3):
-                np.add.at(image[c], (y_bin, x_bin), colors[c] * normalization)
-
-            # Scale to [0, 255] and cast
-            o_observation = image.astype(np.uint8)
-
-        elif self.observation_type == "transformer":
-            x = self.df_cell["x"].to_numpy()
-            y = self.df_cell["y"].to_numpy()
-            cell_id = self.df_cell["ID"].to_numpy()
-            # Normalizing the coordinates to fit into the image grid
-            x_normalized = (x - self.x_min) / (self.x_max - self.x_min)
-            y_normalized = (y - self.y_min) / (self.y_max - self.y_min)
-            types = (
-                self.df_cell["type"]
-                .map(self.type_map)
-                .fillna(0)
-                .to_numpy(dtype=np.int64)
-                .reshape(-1, 1)
-            )
-            dead = self.df_cell["dead"].to_numpy(dtype=np.int64).reshape(-1, 1)
-            o_observation = {
-                "type": types,  # shape (num_cells,)
-                "dead": dead,  # shape (num_cells,)
-                "pos": np.stack(
-                    [x_normalized, y_normalized], axis=1
-                ),  # shape (num_cells, 2)
-            }
         else:
             raise f"Observation type: {self.observation_type} does not exist"
         return o_observation
