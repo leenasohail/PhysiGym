@@ -11,7 +11,7 @@ This model consists of three types of cells:
 
 Under environmental pressure, cell type **cell_1** can transform into cell type **cell_2**.
 The drug **drug_1** can reverse this transformation, turning cell type **cell_2** back into cell type **cell_1**.
-Additionally, cell types cell_1 and cell_2 cells are attracted to debris in the environment.
+Additionally, cell types **cell_1** and **cell_2** cells are attracted to debris in the environment.
 
 For a detailed description of the rules governing cell behavior, see the [cell_rules.csv](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/cell_rules.csv) file.
 
@@ -51,7 +51,7 @@ make
 ### 1. Problem Statement
 
 How can we find a treatment regime that reduces tumor size while minimizing drug usage?
-In other words, we aim to learn a **policy** — a mapping from states to actions — that defines the optimal amount of drug to apply over time.
+In other words, we aim to learn a **policy**  a mapping from states to actions that defines the optimal amount of drug to apply over time.
 
 A suitable framework to solve this control problem is **Reinforcement Learning (RL)**, which we will use in this tutorial.
 
@@ -90,7 +90,7 @@ where:
 - $\pi$ represents the policy (strategy),
 - $s_0$ is the initial state derived from `cells.csv`.
 
-RL frameworks are characterized by four essential elements that define a \textbf{Markov Decision Process (MDP)} $MDP = \{S,A,T,R\}$.
+RL frameworks are characterized by four essential elements that define a $\textbf{Markov Decision Process (MDP)}$ $MDP = \{S,A,T,R\}$.
 \begin{enumerate}
     \item $S$ the state space
     \item $A$ the action space
