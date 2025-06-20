@@ -51,6 +51,7 @@ from numba import njit, prange
 #   cuda, wandb_track, wandb_entity.
 ####
 
+
 @dataclass
 class Args:
     name: str = "sac"
@@ -110,6 +111,7 @@ class Args:
 # description:
 #   PhysiCell Gymnasium environment wrapper.
 #####
+
 
 class PhysiCellModelWrapper(gym.Wrapper):
     def __init__(
@@ -197,6 +199,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
 # description:
 #   A list of torch objects mainly Neural Networks (Actor/Critic).
 ####
+
 
 class PixelPreprocess(nn.Module):
     """
@@ -760,6 +763,7 @@ class MinimalImgReplayBuffer:
 #   https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
 ####
 
+
 def main():
     args = tyro.cli(Args)
     # INITIALISATION/ CREATE FOLDERS
@@ -849,10 +853,7 @@ def main():
     }
     action_dim = np.array(env.action_space.shape).prod()
     # Replay buffer
-    if (
-        args.observation_type == "simple"
-        or args.observation_type == "image_cell_types"
-    ):
+    if args.observation_type == "simple" or args.observation_type == "image_cell_types":
         rb = ReplayBuffer(
             state_dim=env.observation_space.shape,
             action_dim=env.action_space.shape,
@@ -899,7 +900,10 @@ def main():
         done = terminations or truncations
         cumulative_return += rewards
         discounted_cumulative_return += rewards * args.gamma ** (step_episode)
-        if args.observation_type == "simple":
+        if (
+            args.observation_type == "simple"
+            and args.observation_type == "image_cell_types"
+        ):
             rb.add(obs, actions, rewards, next_obs, done)
         else:
             rb.add(df_cell_obs, actions, rewards, next_df_cell_obs, done, type_to_int)
