@@ -90,13 +90,11 @@ where:
 - $\pi$ represents the policy (strategy),
 - $s_0$ is the initial state derived from `cells.csv`.
 
-RL frameworks are characterized by four essential elements that define a $\textbf{Markov Decision Process (MDP)}$ $MDP = \{S,A,T,R\}$.
-\begin{enumerate}
-    \item $S$ the state space
-    \item $A$ the action space
-    \item  p the transition $p(s_{t+1}|s_{t},a)$ is given by PhysiCell.
-    \item $R: \mathbb{S}\times \mathbb{A}\times \mathbb{S} \to \mathbb{R}$ the reward is determined by the current action, the current state, and the subsequent state. This feedback is provided to the agent to assess whether the action contributes to achieving its objective.
-\end{enumerate}
+RL frameworks are characterized by four essential elements that define a $\textbf{Markov Decision Process (MDP)}$ $MDP = \{S,A,T,R\}$:
+ - $S$ the state space
+ - $A$ the action space
+ -  p the transition $p(s_{t+1}|s_{t},a)$ is given by PhysiCell.
+ - $R: \mathbb{S}\times \mathbb{A}\times \mathbb{S} \to \mathbb{R}$ the reward is determined by the current action, the current state, and the subsequent state. This feedback is provided to the agent to assess whether the action contributes to achieving its objective.
 
 The agent aims to maximize the reward function by learning an optimal policy or strategy.
 In the next chapter, we will use a deep reinforcement learning algorithm to solve our problem.
