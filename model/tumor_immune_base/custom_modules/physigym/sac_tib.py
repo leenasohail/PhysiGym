@@ -13,6 +13,7 @@
 #     sac implementation for tumor immune base model
 #####
 
+
 #### IMPORT LIBRARIES ####
 # Standard Python Libraries
 import os
@@ -42,12 +43,13 @@ import tyro
 import numba
 from numba import njit, prange
 
-#### Arguments #####
-# description:
-#     The class's arguments you may change such as:
-#       - wandb_entity
-####
 
+#### Arguments ####
+#
+# description:
+#   The class's arguments you may change such as:
+#   cuda, wandb_track, wandb_entity.
+####
 
 @dataclass
 class Args:
@@ -63,10 +65,14 @@ class Args:
     """if toggled, `torch.backends.cudnn.deterministic=False`"""
     cuda: bool = True
     """if toggled, cuda will be enabled by default"""
-    wandb_project_name: str = "SAC_IMAGE_TIB"
-    """the wandb's project name"""
+
+    # Weights and Biases specific arguments
+    wandb_track: bool = True
+    """track with wandb"""
     wandb_entity: str = "corporate-manu-sureli"
     """the wandb's entity name"""
+    wandb_project_name: str = "SAC_IMAGE_TIB"
+    """the wandb's project name"""
 
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
@@ -97,15 +103,100 @@ class Args:
     """Entropy regularization coefficient."""
     autotune: bool = True
     """automatic tuning of the entropy coefficient"""
-    wandb_track: bool = True
-    """track with wandb"""
 
 
-#### Neural Networks #####
+#### Wrapper ####
+#
 # description:
-#     A list of torch objects mainly Neural Networks (Actor/Critic)
-####
+#   PhysiCell Gymnasium environment wrapper.
+#####
 
+class PhysiCellModelWrapper(gym.Wrapper):
+    def __init__(
+        self,
+        env: gym.Env,
+        list_variable_name: list[str] = [
+            "drug_1",
+        ],
+        weight: float = 0.8,
+    ):
+        """
+        Args:
+            env (gym.Env): The environment to wrap.
+            list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
+            weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
+        """
+        super().__init__(env)
+
+        # Check that all variable names are strings
+        for variable_name in list_variable_name:
+            if not isinstance(variable_name, str):
+                raise ValueError(
+                    f"Expected variable_name to be of type str, but got {type(variable_name).__name__}"
+                )
+
+        self.list_variable_name = list_variable_name
+
+        low = np.array(
+            [
+                env.action_space[variable_name].low[0]
+                for variable_name in list_variable_name
+            ]
+        )
+        high = np.array(
+            [
+                env.action_space[variable_name].high[0]
+                for variable_name in list_variable_name
+            ]
+        )
+        self._action_space = Box(low=low, high=high, dtype=np.float64)
+
+        self.weight = weight
+        self.reward_type = env.unwrapped.reward_type
+
+    @property
+    def action_space(self):
+        """Returns the flattened action space for the wrapper."""
+        return self._action_space
+
+    def step(self, action: np.ndarray):
+        """
+        Steps through the environment using the flattened action.
+
+        Args:
+            action (np.ndarray): The flattened action array.
+
+        Returns:
+            Tuple: Observation, reward, terminated, truncated, info.
+        """
+        d_action = {
+            variable_name: np.array([value])
+            for variable_name, value in zip(self.list_variable_name, action)
+        }
+        # Take a step in the environment
+        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(
+            d_action
+        )
+
+        r_drugs = np.mean(action)
+
+        info["action"] = d_action
+        info["reward_drugs"] = r_drugs
+        info["reward_cancer_cells"] = r_cancer_cells
+        # If you reward function is different from a sum you can add a new condition
+        if self.reward_type == "log_exp":
+            r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
+        else:
+            r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+
+        return o_observation, r_reward, b_terminated, b_truncated, info
+
+
+#### Neural Networks ####
+#
+# description:
+#   A list of torch objects mainly Neural Networks (Actor/Critic).
+####
 
 class PixelPreprocess(nn.Module):
     """
@@ -254,92 +345,12 @@ class Actor(nn.Module):
         return action, log_prob, mean
 
 
-### Wrapper ###
-class PhysiCellModelWrapper(gym.Wrapper):
-    def __init__(
-        self,
-        env: gym.Env,
-        list_variable_name: list[str] = [
-            "drug_1",
-        ],
-        weight: float = 0.8,
-    ):
-        """
-        Args:
-            env (gym.Env): The environment to wrap.
-            list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
-            weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
-        """
-        super().__init__(env)
-
-        # Check that all variable names are strings
-        for variable_name in list_variable_name:
-            if not isinstance(variable_name, str):
-                raise ValueError(
-                    f"Expected variable_name to be of type str, but got {type(variable_name).__name__}"
-                )
-
-        self.list_variable_name = list_variable_name
-
-        low = np.array(
-            [
-                env.action_space[variable_name].low[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        high = np.array(
-            [
-                env.action_space[variable_name].high[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        self._action_space = Box(low=low, high=high, dtype=np.float64)
-
-        self.weight = weight
-        self.reward_type = env.unwrapped.reward_type
-
-    @property
-    def action_space(self):
-        """Returns the flattened action space for the wrapper."""
-        return self._action_space
-
-    def step(self, action: np.ndarray):
-        """
-        Steps through the environment using the flattened action.
-
-        Args:
-            action (np.ndarray): The flattened action array.
-
-        Returns:
-            Tuple: Observation, reward, terminated, truncated, info.
-        """
-        d_action = {
-            variable_name: np.array([value])
-            for variable_name, value in zip(self.list_variable_name, action)
-        }
-        # Take a step in the environment
-        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(
-            d_action
-        )
-
-        r_drugs = np.mean(action)
-
-        info["action"] = d_action
-        info["reward_drugs"] = r_drugs
-        info["reward_cancer_cells"] = r_cancer_cells
-        #### If you reward function is different from a sum you can add a new condition
-        if self.reward_type == "log_exp":
-            r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
-        else:
-            r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
-
-        return o_observation, r_reward, b_terminated, b_truncated, info
-
-
-#### Replay Buffers #####
+#### Replay Buffers ####
+#
 # description:
-#     two different replay buffers implemented one for scalars while the other is optimized to output image
-#####
+#   Two different replay buffers implemented one for scalars
+#   while the other is optimized to output image.
+####
 
 numba.set_num_threads(
     5
@@ -743,7 +754,12 @@ class MinimalImgReplayBuffer:
 
 
 #### Algorithm Logic ####
-### The code is mainly inspired from https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py###
+#
+# description:
+#   The code is mainly inspired from:
+#   https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
+####
+
 def main():
     args = tyro.cli(Args)
     # INITIALISATION/ CREATE FOLDERS
