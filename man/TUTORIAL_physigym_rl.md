@@ -29,7 +29,9 @@ cd path/to/PhysiGym
 python3 install_physigym.py tumor_immune_base -f
 ```
 
+
 ### 2. Load:
+
 
 ```bash
 cd ../PhysiCell
@@ -51,7 +53,7 @@ make
 ### 1. Problem Statement
 
 How can we find a treatment regime that reduces tumor size while minimizing drug usage?
-In other words, we aim to learn a **policy** — a mapping from states to actions — that defines the optimal amount of drug to apply over time.
+In other words, we aim to learn a **policy**  a mapping from states to actions that defines the optimal amount of drug to apply over time.
 
 A suitable framework to solve this control problem is **Reinforcement Learning (RL)**, which we will use in this tutorial.
 
@@ -122,6 +124,7 @@ By adjusting $\alpha$, you can simulate different treatment strategies:
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
 The **state space** in this model can take three different forms:
+
 - **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
 - **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
 - **simple** is a mathematical function that computes the **cell count for each cell type**.
@@ -133,6 +136,7 @@ Deep reinforcement learning is necessary because our policy is a neural network,
 
 Why use a neural network instead of polynomial functions?
 Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them.
+
 Therefore, we will use Deep Reinforcement Learning.
 For neural network implementation, we use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
 
@@ -259,7 +263,9 @@ You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGy
 The **y-axis** represents the expected return, while the **x-axis** represents the training steps. Note that although it is labeled as *3 million steps*, it does **not** correspond to 3 million environment interaction steps — in reality, it represents **fewer** than 3 million actual interactions.
 
 The figure shows three different learning curves corresponding to different state space representations. In our environment, the **concentrations** and **image_cell_types** state spaces achieve a higher discounted cumulative return compared to **image_gray**.
+A video of the dynamic treatment regime proposed: [800 episode with image](man/video/tumor_immune_base_ep_800.mp4).
 
 This difference in performance can be attributed to factors such as the choice of hyperparameters. To improve performance further, one could retain the more effective state representations and focus on optimizing neural network architectures and hyperparameters. This is where Deep Reinforcement Learning becomes more challenging — it may be due to suboptimal tuning or that certain state spaces (like **image_gray**) are inherently less informative for the environment in question.
 
 Conducting deeper research across various environments to compare the effectiveness of different state representations is a promising direction for future work.
+
