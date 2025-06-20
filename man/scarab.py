@@ -17,12 +17,23 @@
 #     for source code reference api documentation.
 ####
 
+# library I
+import os
+import subprocess
 
-# library
+# install and compile template project
+print('physigym template model: install, load, and compile ...')
+o_result = subprocess.run(['python3', 'install_physigym.py', 'template', '-f'], check=False, capture_output=True)
+os.chdir('../PhysiCell')
+o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
+o_result = subprocess.run(['make', 'load', 'PROJ=physigym_template'], check=False, capture_output=True)
+o_result = subprocess.run(['make'], check=False, capture_output=True)
+#print('\n', o_result)
+
+# library II
 from extending import physicell  # import the Python/PhysiCell API module
 import gymnasium
 import physigym  # import the Gymnasium PhysiCell bridge module
-import os
 
 
 # function
@@ -100,9 +111,6 @@ def docstring_md(s_function, ls_doc, s_header=None, s_opath='../PhysiGym/man/doc
 
 
 # load classes
-os.chdir('../PhysiCell')
-#coreenv = physigym.envs.physicell_core.CorePhysiCellEnv
-#env = physigym.envs.physicell_core.ModelPhysiCellEnv
 env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
 
 
@@ -163,6 +171,10 @@ docstring_md(
 docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.get_terminated',
     ls_doc = physigym.envs.ModelPhysiCellEnv.get_terminated.__doc__.split('\n'),
+)
+docstring_md(
+    s_function = 'physigym.envs.ModelPhysiCellEnv.get_reset_values',
+    ls_doc = physigym.envs.ModelPhysiCellEnv.get_reset_values.__doc__.split('\n'),
 )
 docstring_md(
     s_function = 'physigym.envs.ModelPhysiCellEnv.get_reward',

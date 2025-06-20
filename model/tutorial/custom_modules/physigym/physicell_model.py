@@ -211,6 +211,22 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return b_terminated
 
 
+    def get_reset_values(self):
+        """
+        input:
+
+        output:
+
+        run:
+            internal function, user defined.
+
+        description:
+            function to reset model specific self.variables. e.g.:
+            self.my_variable = None
+        """
+        pass
+
+
     def get_reward(self):
         """
         input:
@@ -326,3 +342,4 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #s_path = self.x_root.xpath('//save/folder')[0].text + '/render_mode_human/'
         #os.makedirs(s_path, exist_ok=True)
         #self.fig.savefig(f'{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg', facecolor='white')
+

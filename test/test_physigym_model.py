@@ -20,14 +20,13 @@
 
 # load library
 import os
-import platform
 import subprocess
 import shutil
 
 # const
 s_path_physigym = os.getcwd()
-s_path_physicell = "/".join(
-    s_path_physigym.replace("\\", "/").split("/")[:-1] + ["PhysiCell"]
+s_path_physicell = '/'.join(
+    s_path_physigym.replace('\\', '/').split('/')[:-1] + ['PhysiCell']
 )
 
 
@@ -153,11 +152,10 @@ class TestPhysigymEpisode(object):
         shutil.rmtree('output/')
 
 
-
 class TestPhysigymTib(object):
-    """tests for the physigym tme model."""
+    ''' tests for the physigym tme model.'''
 
-    def test_physigym_tme_classic(self):
+    def test_physigym_tib_classic(self):
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'tumor_immune_base', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
@@ -178,48 +176,18 @@ class TestPhysigymTib(object):
 
 
     def test_physigym_tib_embedded(self):
+        ''' note: be hooked up to the internet to run this test successfully.'''
         os.chdir(s_path_physigym)
-        o_result = subprocess.run(
-            ["python3", "install_physigym.py", "tme", "-f"],
-            check=False,
-            capture_output=True,
-        )
+        o_result = subprocess.run(['python3', 'install_physigym.py', 'tumor_immune_base', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
-        shutil.copy(
-            src="user_projects/physigym_tumor_immune_base/run_physigym_tib_episodes.py",
-            dst=s_path_physicell,
-        )
-        shutil.rmtree("output/", ignore_errors=True)
-        o_result = subprocess.run(
-            ["make", "data-cleanup", "clean", "reset"],
-            check=False,
-            capture_output=True,
-        )
-        o_result = subprocess.run(
-            ["make", "load", "PROJ=physigym_tumor_immune_base"],
-            check=False,
-            capture_output=True,
-        )
-        o_result = subprocess.run(["make"],
-            check=False,
-            capture_output=True,
-        )
-        o_result = subprocess.run(
-            [
-                "python3",
-                "physigym_tumor_immune_base.py",
-                "--max_time", "1440.0",
-                "--thread", "4",
-                "--seed", "none",
-            ],
-            check=False,
-            capture_output=True,
-        )
-        # print('\n', o_result)
-        assert (
-            (os.path.exists("output/episode00000000/output00000005.xml"))
-            and (os.path.exists("output/episode00000001/output00000005.xml"))
-            and (os.path.exists("output/episode00000002/output00000005.xml"))
-        )
-        shutil.rmtree("output/")
-
+        shutil.copy(src='user_projects/physigym_tumor_immune_base/run_physigym_tib_episodes.py', dst=s_path_physicell)
+        shutil.rmtree('output/', ignore_errors=True)
+        o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
+        o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tumor_immune_base'], check=False, capture_output=True)
+        o_result = subprocess.run(['make'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3','run_physigym_tib_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
+        #print('\n', o_result)
+        assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
+              (os.path.exists('output/episode00000001/output00000023.xml')) and \
+              (os.path.exists('output/episode00000002/output00000023.xml'))
+        shutil.rmtree('output/')

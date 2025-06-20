@@ -41,6 +41,7 @@ Then, for each physicell module function, getting on-the-fly reference informati
 + [help(physigym.envs.ModelPhysiCellEnv.get_observation)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.get_observation.md)
 + [help(physigym.envs.ModelPhysiCellEnv.get_info)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.get_info.md)
 + [help(physigym.envs.ModelPhysiCellEnv.get_terminated)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.get_terminated.md)
++ [help(physigym.envs.ModelPhysiCellEnv.get_reset_values)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.get_reset_values.md)
 + [help(physigym.envs.ModelPhysiCellEnv.get_reward)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.get_reward.md)
 + [help(physigym.envs.ModelPhysiCellEnv.get_img)](https://github.com/Dante-Berth/PhysiGym/blob/main/man/docstring/physigym.envs.ModelPhysiCellEnv.get_img.md)
 
