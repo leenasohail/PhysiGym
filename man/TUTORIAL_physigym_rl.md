@@ -120,17 +120,16 @@ Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
 The **state space** in this model can take three different forms:
-  - The **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
-  - The **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
+  - **image_gray**: This represents what a human might intuitively observe — for example, each cell type is initially represented using a distinct RGB color, which is then converted to grayscale. The resulting image is a single-channel grayscale representation of the tumor microenvironment. There is no spatial reduction applied, so the shape is: $(1,env_{x},env_{y})$ where $env_{x}$ (resp. $env_{y}$) represents the size of the environment according to X-axis (resp. Y-axis)
+  - **image_cell_types**: This is a multi-channel image where each channel corresponds to a specific cell type. The spatial dimensionality is reduced. The degree of reduction can be controlled by a value called grid factor. The resulting image has the shape: $(n,\text{grid factor},\text{grid factor})$
+
+
 
 In addition to the images, the function also computes the concentration of cells for each cell type noted **concentrations**.
 ---
 
 The **action space** consists of a single continuous variable:  
 - **drug_1** ∈ [0, 1], representing the intensity or dosage of a drug intervention applied at each step.
-
-
-
 
 
 Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
