@@ -207,6 +207,22 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return b_terminated
 
 
+    def get_reset_values(self):
+        """
+        input:
+
+        output:
+
+        run:
+            internal function, user defined.
+
+        description:
+            function to reset model specific self.variables. e.g.:
+            self.my_variable = None
+        """
+        pass
+
+
     def get_reward(self):
         """
         input:

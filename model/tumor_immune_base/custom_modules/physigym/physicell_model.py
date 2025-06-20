@@ -329,6 +329,22 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return True if self.nb_cancer_cells == 0 else False
         # return False
 
+    def get_reset_values(self):
+        """
+        input:
+
+        output:
+
+        run:
+            internal function, user defined.
+
+        description:
+            function to reset model specific self.variables. e.g.:
+            self.my_variable = None
+        """
+        self.np_ratio_old_nb_cancer_cells = None
+        self.np_ratio_nb_cancer_cells = None
+
     def get_reward(self):
         """
         input:
@@ -356,7 +372,3 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         else:
             raise f"The reward type is not implemented{self.reward_type}"
 
-    def get_reset_values(self):
-        self.np_ratio_old_nb_cancer_cells = None
-        self.np_ratio_nb_cancer_cells = None
-        return None

@@ -20,7 +20,6 @@
 
 # load library
 import os
-import platform
 import subprocess
 import shutil
 

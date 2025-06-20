@@ -100,11 +100,18 @@ class CorePhysiCellEnv(gymnasium.Env):
         )
 
     def get_info(self):
-        sys.exit("get_info function to be implemented in physigym.ModelPhysiCellEnv!")
+        sys.exit(
+            "get_info function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_terminated(self):
         sys.exit(
             "get_terminated function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
+
+    def get_reset_values(self):
+        sys.exit(
+            "get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!"
         )
 
     def get_reward(self):
@@ -113,10 +120,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         )
 
     def get_img(self):
-        sys.exit("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
-
-    def get_reset_values(self):
-        return None
+        sys.exit(
+            "get_img function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     ### end dummy functions ###
 
@@ -399,6 +405,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output folder
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
         physicell.start(self.settingxml, self.episode != 0)
+
+        # load reset values
         self.get_reset_values()
 
         # observe domain
