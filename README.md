@@ -35,7 +35,7 @@ The Python-based physigym module presented here was written on top of the python
 
 Both, physigym and extending, are PhysiCell custom\_modules.
 
-Walking through the [tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md), you will gain the understanding needed to tackle more complex PhysiCell-based reinforcement learning projects.
+Walking through the tutorial, you will gain the understanding needed to tackle more complex PhysiCell-based reinforcement learning projects.
 First, you will set up a very basic template model that can figure as a starting point for your own project.
 Then you will learn on a somewhat more complex tumor\_immune\_base model how to deep reinforcement learn a policy using the sac (soft actor critic) algorithm.
 

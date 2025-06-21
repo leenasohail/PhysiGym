@@ -191,3 +191,29 @@ class TestPhysigymTib(object):
               (os.path.exists('output/episode00000001/output00000023.xml')) and \
               (os.path.exists('output/episode00000002/output00000023.xml'))
         shutil.rmtree('output/')
+
+    """
+    def test_physigym_tib_rl(self):
+        ''' note: be hooked up to the internet to run this test successfully.'''
+        os.chdir(s_path_physigym)
+        o_result = subprocess.run(['python3', 'install_physigym.py', 'tumor_immune_base', '-f'], check=False, capture_output=True)
+        os.chdir(s_path_physicell)
+        shutil.copy(src='user_projects/physigym_tumor_immune_base/run_physigym_tib_episodes.py', dst=s_path_physicell)
+        shutil.rmtree('output/', ignore_errors=True)
+        o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
+        o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tumor_immune_base'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<omp_num_threads>[0-9]*<\/omp_num_threads>/<omp_num_threads>4<\/omp_num_threads>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/cuda:.*bool.*=.*True/cuda: bool = False/g', 'custom_modules/physigym/physigym/envs/sac_tib.py'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/wandb_track:.*bool.*=.*True/wandb_track: bool = False/g', 'custom_modules/physigym/physigym/envs/sac_tib.py'], check=False, capture_output=True)
+        o_result = subprocess.run(['sed', '-ie ', r's/total_timesteps:.*int.*=.*int(.+)/total_timesteps: int = int(4)/g', 'custom_modules/physigym/physigym/envs/sac_tib.py'], check=False, capture_output=True)
+
+        o_result = subprocess.run(['make'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/sac_tib.py'], check=False, capture_output=True)
+        #print('\n', o_result)
+        assert(os.path.exists('output/episode00000000/output00000023.xml')) and \
+              (os.path.exists('output/episode00000001/output00000023.xml')) and \
+              (os.path.exists('output/episode00000002/output00000023.xml'))
+        shutil.rmtree('output/')
+    """
