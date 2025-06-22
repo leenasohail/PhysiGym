@@ -34,7 +34,6 @@ physicell.flag_envphysigym = False
 def calculate_rgb(value):
     return int(round(value * 255))
 
-
 # List of base color values as floats (e.g., 0.5 for 50%)
 base_colors = [
     (0.5, 0.5, 0.5),  # Gray
@@ -60,6 +59,22 @@ base_colors = [
 
 # Applying the calculate_rgb function to each color in the list
 COLORS = [tuple(calculate_rgb(c) for c in color) for color in base_colors]
+
+# bue 20250620: colors alternative using standard libraries
+#
+# from matplotlib import cm, colors
+# import skimage as ski
+#
+# # number of colors
+# n = 19
+#
+# # rainbow
+# np.array(cm.turbo.colors)[0:256:int(np.floor(256/n))]  # float
+# ski.util.img_as_ubyte(np.array(cm.turbo.colors)[0:256:int(np.floor(256/n))])  # uint8
+# [colors.to_hex(color) for color in np.array(cm.turbo.colors)[0:256:int(np.floor(256/n))]]  # hex
+#
+# # gray
+# ski.color.rgb2gray(np.array(cm.turbo.colors)[0:256:int(np.floor(256/n))])
 
 
 class CorePhysiCellEnv(gymnasium.Env):
