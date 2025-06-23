@@ -35,11 +35,14 @@ class TestPhysigymEpisodeClassicRandom(object):
     ''' tests for the physigym episode model for reload drift. '''
 
     def test_physigym_episode_classic_nonrandom(self):
+        # install model
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'episode', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.copy(src=f'{s_path_physigym}/test/icebreaker.py', dst=s_path_physicell)
+        # rest output folder
         shutil.rmtree('output/', ignore_errors=True)
+        # load, compile, and run model
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
@@ -50,17 +53,21 @@ class TestPhysigymEpisodeClassicRandom(object):
         o_result = subprocess.run(['python3', 'icebreaker.py', 'false'], check=False, capture_output=True)
         ls_result = o_result.stdout.decode('UTF8').split('\n')
         print(ls_result)
+        # test for output
         assert(ls_result[-2] == 'False') and \
               (ls_result[-3] == '[False, False]') and \
               (ls_result[-4] == "['thread', 1]") and \
               (ls_result[-5] == "['seed', 1]")
 
     def test_physigym_episode_classic_threadrandom(self):
+        # install model
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'episode', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.copy(src=f'{s_path_physigym}/test/icebreaker.py', dst=s_path_physicell)
+        # rest output folder
         shutil.rmtree('output/', ignore_errors=True)
+        # load, compile, and run model
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
@@ -71,17 +78,21 @@ class TestPhysigymEpisodeClassicRandom(object):
         o_result = subprocess.run(['python3', 'icebreaker.py', 'false'], check=False, capture_output=True)
         ls_result = o_result.stdout.decode('UTF8').split('\n')
         print(ls_result)
+        # test for output
         assert(ls_result[-2] == 'True') and \
               (ls_result[-3] == '[True, True]') and \
               (ls_result[-4] == "['thread', 4]") and \
               (ls_result[-5] == "['seed', 0]")
 
     def test_physigym_episode_classic_seedrandom(self):
+        # install model
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'episode', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.copy(src=f'{s_path_physigym}/test/icebreaker.py', dst=s_path_physicell)
+        # rest output folder
         shutil.rmtree('output/', ignore_errors=True)
+        # load, compile, and run model
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['sed', '-ie ', r's/<max_time units="min">[0-9.]*<\/max_time>/<max_time units="min">1440.0<\/max_time>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
@@ -92,6 +103,7 @@ class TestPhysigymEpisodeClassicRandom(object):
         o_result = subprocess.run(['python3', 'icebreaker.py', 'false'], check=False, capture_output=True)
         ls_result = o_result.stdout.decode('UTF8').split('\n')
         print(ls_result)
+        # test for output
         assert(ls_result[-2] == 'True') and \
               (ls_result[-3] == '[True, True]') and \
               (ls_result[-4] == "['thread', 1]") and \
@@ -103,12 +115,15 @@ class TestPhysigymEpisodeEmbeddedRandom(object):
 
     def test_physigym_episode_embedded_nonrandom(self):
         ''' note: be hooked up to the internet to run this test successfully.'''
+        # install model
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'episode', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.copy(src=f'{s_path_physigym}/test/icebreaker.py', dst=s_path_physicell)
         shutil.copy(src='user_projects/physigym_episode/run_physigym_episode_episodes.py', dst=s_path_physicell)
+        # rest output folder
         shutil.rmtree('output/', ignore_errors=True)
+        # load, compile, and run model
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
@@ -123,12 +138,15 @@ class TestPhysigymEpisodeEmbeddedRandom(object):
 
     def test_physigym_episode_embedded_threadrandom(self):
         ''' note: be hooked up to the internet to run this test successfully.'''
+        # install model
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'episode', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.copy(src=f'{s_path_physigym}/test/icebreaker.py', dst=s_path_physicell)
         shutil.copy(src='user_projects/physigym_episode/run_physigym_episode_episodes.py', dst=s_path_physicell)
+        # rest output folder
         shutil.rmtree('output/', ignore_errors=True)
+        # load, compile, and run model
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
@@ -136,6 +154,7 @@ class TestPhysigymEpisodeEmbeddedRandom(object):
         o_result = subprocess.run(['python3', 'icebreaker.py', 'false'], check=False, capture_output=True)
         ls_result = o_result.stdout.decode('UTF8').split('\n')
         print(ls_result)
+        # test for output
         assert(ls_result[-2] == 'True') and \
               (ls_result[-3] == '[True, True]') and \
               (ls_result[-4] == "['thread', 4]") and \
@@ -143,12 +162,15 @@ class TestPhysigymEpisodeEmbeddedRandom(object):
 
     def test_physigym_episode_embedded_seedrandom(self):
         ''' note: be hooked up to the internet to run this test successfully.'''
+        # install model
         os.chdir(s_path_physigym)
         o_result = subprocess.run(['python3', 'install_physigym.py', 'episode', '-f'], check=False, capture_output=True)
         os.chdir(s_path_physicell)
         shutil.copy(src=f'{s_path_physigym}/test/icebreaker.py', dst=s_path_physicell)
         shutil.copy(src='user_projects/physigym_episode/run_physigym_episode_episodes.py', dst=s_path_physicell)
+        # rest output folder
         shutil.rmtree('output/', ignore_errors=True)
+        # load, compile, and run model
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
@@ -156,6 +178,7 @@ class TestPhysigymEpisodeEmbeddedRandom(object):
         o_result = subprocess.run(['python3', 'icebreaker.py', 'false'], check=False, capture_output=True)
         ls_result = o_result.stdout.decode('UTF8').split('\n')
         print(ls_result)
+        # test for output
         assert(ls_result[-2] == 'True') and \
               (ls_result[-3] == '[True, True]') and \
               (ls_result[-4] == "['thread', 1]") and \
