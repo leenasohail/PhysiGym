@@ -34,6 +34,7 @@ physicell.flag_envphysigym = False
 def calculate_rgb(value):
     return int(round(value * 255))
 
+
 # List of base color values as floats (e.g., 0.5 for 50%)
 base_colors = [
     (0.5, 0.5, 0.5),  # Gray
@@ -115,9 +116,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         )
 
     def get_info(self):
-        sys.exit(
-            "get_info function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_info function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_terminated(self):
         sys.exit(
@@ -135,9 +134,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         )
 
     def get_img(self):
-        sys.exit(
-            "get_img function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
 
     ### end dummy functions ###
 

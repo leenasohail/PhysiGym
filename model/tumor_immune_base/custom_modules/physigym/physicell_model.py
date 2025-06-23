@@ -168,10 +168,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 shape=(len(self.unique_cell_types),),
                 dtype=np.float32,
             )
-        elif self.observation_type == "image_gray":
+        elif self.observation_type == "image_cell_types":
             # Define the Box space for the image
+            # Step 2: Create empty image [64, 64, num_cell_types]
             o_observation_space = spaces.Box(
-                low=0, high=255, shape=(1, self.height, self.width), dtype=np.uint8
+                low=0,
+                high=255,
+                shape=(self.num_cell_types, self.grid_size, self.grid_size),
+                dtype=np.uint8,
             )
 
         else:
@@ -371,4 +375,3 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             return (C_prev - C_t) / np.log(self.init_cancer_cells)
         else:
             raise f"The reward type is not implemented{self.reward_type}"
-
