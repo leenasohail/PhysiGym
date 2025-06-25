@@ -40,9 +40,9 @@ from tensordict import TensorDict
 import wandb
 import tyro
 
-import numba
-from numba import njit, prange
+import pandas as pd
 
+import matplotlib.pyplot as plt
 
 #### Arguments ####
 #
@@ -352,6 +352,7 @@ class Actor(nn.Module):
 #
 ####
 
+
 class ReplayBuffer(object):
     """
     A replay buffer for storing and sampling experiences in reinforcement learning.
@@ -490,7 +491,8 @@ def main():
     else:
         run_dir = os.path.join("tensorboard", custom_run_name)
         print("Tensorboard selected")
-
+    data_folder = os.path.join(run_dir, "data")
+    os.makedirs(data_folder, exist_ok=True)
     # Organize output folders using run_dir
     # os.makedirs(os.path.join(run_dir, "image"), exist_ok=True)
     # os.makedirs(os.path.join(run_dir, "models"), exist_ok=True)
@@ -552,13 +554,13 @@ def main():
         state_type=env.observation_space.dtype,
     )
 
-
     # Start the env and init, tracking values
     obs, info = env.reset(seed=args.seed)
     cumulative_return = 0
     episode = 1
     step_episode = 0
     discounted_cumulative_return = 0
+    list_data = []
     for global_step in range(args.total_timesteps):
         # ALGO LOGIC: put action logic here
         if global_step <= args.learning_starts:
@@ -576,6 +578,19 @@ def main():
         discounted_cumulative_return += rewards * args.gamma ** (step_episode)
         rb.add(obs, actions, rewards, next_obs, done)
         obs = next_obs.copy()
+
+        step_data = {
+            "step": step_episode,
+            "rewards": rewards,
+            "cumulative_return": cumulative_return,
+            "discounted_cumulative_return": discounted_cumulative_return,
+            "drug_1": actions[0],
+            "number_cancer_cells": info["number_cancer_cells"],
+            "number_cell_1": info["number_cell_1"],
+            "number_cell_2": info["number_cell_2"],
+        }
+        list_data.append(step_data)
+
         if global_step == args.batch_size:
             data = rb.sample()
             data_next_state = data["next_state"]
@@ -689,6 +704,7 @@ def main():
             "env/reward_cancer_cells": info["reward_cancer_cells"],
             "env/reward_drugs": info["reward_drugs"],
         }
+
         for tag, value in scalars.items():
             writer.add_scalar(tag, value, episode)
         if done:
@@ -703,6 +719,27 @@ def main():
             }
             for tag, value in scalars.items():
                 writer.add_scalar(tag, value, episode)
+            df = pd.DataFrame(list_data)
+            df.to_csv(data_folder + f"/{episode}/data.csv", index=False)
+
+            # Plotting each feature vs step
+            features_to_plot = [
+                "discounted_cumulative_return",
+                "drug_1",
+                "number_cancer_cells",
+                "number_cell_1",
+            ]
+
+            plt.figure(figsize=(12, 8))
+            for i, feature in enumerate(features_to_plot):
+                plt.subplot(len(features_to_plot), 1, i + 1)
+                plt.plot(df["step"], df[feature])
+                plt.title(f"{feature} vs steps")
+                plt.xlabel("step")
+            plt.tight_layout()
+            plt.savefig(data_folder + f"/{episode}/plot.pdf")
+
+            list_data = []
             episode += 1
             step_episode = 0
             discounted_cumulative_return = 0
