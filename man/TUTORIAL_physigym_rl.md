@@ -265,7 +265,7 @@ The **y-axis** represents the expected return, while the **x-axis** represents t
 The figure shows three different learning curves corresponding to different state space representations. In our environment, the **concentrations** and **image_cell_types** state spaces achieve a higher discounted cumulative return compared to **image_gray**.
 A video of the dynamic treatment regime proposed: [800 episode with image](video/tumor_immune_base_ep_800.mp4).
 
-You may also see the difference between a ![random policy](img/plot_random.pdf) and the ![policy found](img/plot_policy.pdf) by the reinforcement learning algorithm .
+You may also see the difference between a [random policy](img/plot_random.pdf) and the [policy found](img/plot_policy.pdf) by the reinforcement learning algorithm .
 
 
 This difference in performance can be attributed to factors such as the choice of hyperparameters. To improve performance further, one could retain the more effective state representations and focus on optimizing neural network architectures and hyperparameters. This is where Deep Reinforcement Learning becomes more challenging — it may be due to suboptimal tuning or that certain state spaces (like **image_gray**) are inherently less informative for the environment in question.
