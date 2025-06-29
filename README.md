@@ -44,20 +44,20 @@ Then you will learn on a somewhat more complex tumor\_immune\_base model how to 
 May the force be with you!
 
 
-# HowTo Guide:
+# &#x1F525; HowTo Guide:
 
 + [install PhysiCell](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_physicell.md)
 + [install and troubleshoot the physigym user_project](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_physigym.md)
 + [uninstall the physigym user_project](https://github.com/Dante-Berth/PhysiGym/blob/main/man/HOWTO_purge.md)
 
 
-# Tutorial:
+# &#x1F525; Tutorial:
 
 + [physigym modelling tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym_model.md)
 + [physigym reinforcement learning tutorial](https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym_rl.md)
 
 
-# Reference Manual:
+# &#x1F525; Reference Manual:
 
 + [reference manual](https://github.com/Dante-Berth/PhysiGym/blob/main/man/REFERENCE.md)
 
