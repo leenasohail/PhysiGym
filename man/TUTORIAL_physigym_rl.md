@@ -69,7 +69,7 @@ The RL agent interacts with an environment — such as our **TIB model** — whi
 In our TIB case, the **action** corresponds to the administration of a drug, denoted by:
 
 $$
-d_t \in [0, 1]
+d_t \in [0, 1],
 $$
 
 at each time step.
@@ -84,7 +84,7 @@ Through trial and error, the agent learns a strategy (policy) that balances thes
 In Reinforcement Learning (RL), the objective is to maximize the **expected cumulative reward**:
 
 ```math
-\underset{\pi}{\arg\max} \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
+\underset{\pi}{\arg\max} \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right],
 ```
 
 where:
@@ -106,9 +106,9 @@ In the next section, we will use a deep reinforcement learning algorithm to solv
 The **reward function** in this model is defined as:
 
 ```math
-r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t
+r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t.
 ```
-
+Where:
 - $C_t$: Number of tumor cells at time step $t$.
 - $C_{init}$ : Number of tumor cells at initial time step.
 - $d_t$: Amount of drug added to the tumor microenvironment at time $t$.
@@ -123,11 +123,39 @@ By adjusting $\alpha$, you can simulate different treatment strategies:
   - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
-The **state space** in this model can take three different forms:
+The first **state space** in this model is **image_cell_types** a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality. For instance for a grid size of $64$ and for our three cell types we can represent the data by: [image cell types representation](img/image_cell_types.png). We reduce the shape of the original size given by the **PhysiCell_settings.xml** file by discretizing the continuous environment into a uniform grid. We also compute $r_{x}=\lfloor \frac{width}\rfloor{gridsize_{x}}$ and $r_{y}=\lfloor\frac{height}{gridsize_{y}}\rfloor$. In our environment, $r_{x}=r_{y}$ because $width = height$ and $gridsize_{x}=gridsize_{y}=gridsize=64$
 
-- **image_gray** corresponds to what a human might intuitively observe — for example, each cell type is represented using a distinct RGB color and then converted to gray.
-- **image_cell_types** is a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality.
-- **simple** is a mathematical function that computes the **cell count for each cell type**.
+The size of the bins is calculated by mapping the continuous coordinates into discrete indices. Specifically:
+
+```math
+x_{\text{bin}} = \left\lfloor 
+\frac{(x - x_{\min})}{(x_{\max} - x_{\min})}
+\times (gridsize_{x} - 1)
+\right\rfloor,
+\\
+y_{\text{bin}} = \left\lfloor 
+\frac{(y - y_{\min})}{(y_{\max} - y_{\min})}
+\times (gridsize_{y} - 1)
+\right\rfloor.
+```
+This ensures that the continuous spatial domain is discretized into a grid of size 
+\(gridsize \times gridsize\).
+If one or more cells are present in a bin, we increment the count in the channel associated with their cell type. 
+
+Formally, for each cell:
+
+- Determine its bin index $(x_{bin}, y_{bin})$.
+- Let $C\in[0:2]$ the index corresponding to its cell type channel.
+- Then increment:
+
+```math
+\text{image}[c, y_{{bin}}, x_{{bin}}] += \frac{1}{r_{x}r_{y}}.
+```
+By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$.
+This produces an image tensor of shape $(\text{num cell types}, gridsize, gridsize)$,
+where each channel counts the number of cells of a given type in each spatial bin![image cell types](img/image_cell_types.png).
+
+The second state space is **concentrations** a mathematical function that computes the **cell count for each cell type**.
 
 The **action space** consists of a single continuous variable:
 - **drug_1** ∈ [0, 1], representing the intensity or dosage of a drug intervention applied at each step.
@@ -257,7 +285,7 @@ The visualization will update automatically.
 You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tummor_immune_base_results_dcr.png)
  that the learning agent has maximized the expected discounted return: 
 ```math
-\mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right]
+\mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
 
 The **y-axis** represents the expected return, while the **x-axis** represents the training steps. Note that although it is labeled as *3 million steps*, it does **not** correspond to 3 million environment interaction steps — in reality, it represents **fewer** than 3 million actual interactions.
