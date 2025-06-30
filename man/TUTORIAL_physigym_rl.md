@@ -93,10 +93,10 @@ where:
 - $\pi$ represents the policy (strategy).
 - $s_0$ is the initial state derived from `cells.csv`.
 
-RL frameworks are characterized by four essential elements that define a \textbf{Markov Decision Process (MDP)} $MDP = \{S,A,T,R\}$.
+RL frameworks are characterized by four essential elements that define a **Markov Decision Process (MDP)** $MDP = \{S,A,T,R\}$.
 - $S$ the state space.
 - $A$ the action space.
-- p the transition $p(s_{t+1}|s_{t},a)$ is given by PhysiCell.
+- T the transition $T(s_{t},a)=s_{t+1}$ is given by PhysiCell.
 - $R: \mathbb{S}\times \mathbb{A}\times \mathbb{S} \to \mathbb{R}$ the reward is determined by the current action, the current state, and the subsequent state.
 This feedback is provided to the agent to assess whether the action contributes to achieving its objective.
 
@@ -123,7 +123,7 @@ By adjusting $\alpha$, you can simulate different treatment strategies:
   - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 
-The first **state space** in this model is **image_cell_types** a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality. For instance for a grid size of $64$ and for our three cell types we can represent the data by: [image cell types representation](img/image_cell_types.png). We reduce the shape of the original size given by the **PhysiCell_settings.xml** file by discretizing the continuous environment into a uniform grid. We also compute $r_{x}=\lfloor \frac{width}\rfloor{gridsize_{x}}$ and $r_{y}=\lfloor\frac{height}{gridsize_{y}}\rfloor$. In our environment, $r_{x}=r_{y}$ because $width = height$ and $gridsize_{x}=gridsize_{y}=gridsize=64$
+The first **state space** in this model is **multi_channels** a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality. For instance for a grid size of $64$ and for our three cell types we can represent the data by: [image cell types representation](img/multi_channels.png). We reduce the shape of the original size given by the **PhysiCell_settings.xml** file by discretizing the continuous environment into a uniform grid. We also compute $r_{x}=\lfloor \frac{width}\rfloor{gridsize_{x}}$ and $r_{y}=\lfloor\frac{height}{gridsize_{y}}\rfloor$. In our environment, $r_{x}=r_{y}$ because $width = height$ and $gridsize_{x}=gridsize_{y}=gridsize=64$
 
 The size of the bins is calculated by mapping the continuous coordinates into discrete indices. Specifically:
 
@@ -153,17 +153,14 @@ Formally, for each cell:
 ```
 By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$.
 This produces an image tensor of shape $(\text{num cell types}, gridsize, gridsize)$,
-where each channel counts the number of cells of a given type in each spatial bin![image cell types](img/image_cell_types.png).
+where each channel counts the number of cells of a given type in each spatial bin![image cell types](img/multi_channels.png).
 
-The second state space is **concentrations** a mathematical function that computes the **cell count for each cell type**.
+The second state space is **scalars** a mathematical function that computes the **cell count for each cell type**.
 
 The **action space** consists of a single continuous variable:
 - **drug_1** ∈ [0, 1], representing the intensity or dosage of a drug intervention applied at each step.
 
-Deep reinforcement learning is necessary because our policy is a neural network, although in reinforcement learning, policies can also be standard functions.
-
-Why use a neural network instead of polynomial functions?
-Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them.
+Deep reinforcement learning is used because our policy is a neural network. Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them. While for scalars, we only use multi layer perceptrons. 
 
 Therefore, we will use Deep Reinforcement Learning.
 For neural network implementation, we use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
@@ -290,7 +287,7 @@ You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGy
 
 The **y-axis** represents the expected return, while the **x-axis** represents the training steps. Note that although it is labeled as *3 million steps*, it does **not** correspond to 3 million environment interaction steps — in reality, it represents **fewer** than 3 million actual interactions.
 
-The figure shows three different learning curves corresponding to different state space representations. In our environment, the **concentrations** and **image_cell_types** state spaces achieve a higher discounted cumulative return compared to **image_gray**.
+The figure shows three different learning curves corresponding to different state space representations. In our environment, the **scalars** and **multi_channels** state spaces achieve a higher discounted cumulative return compared to **image_gray**.
 A video of the dynamic treatment regime proposed: [800 episode with image](video/tumor_immune_base_ep_800.mp4).
 
 You may also see the difference between a [random policy](img/plot_random.pdf) and the [policy found](img/plot_policy.pdf) by the reinforcement learning algorithm .

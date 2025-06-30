@@ -63,14 +63,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         render_mode=None,
         render_fps=10,
         verbose=False,
-        observation_type="concentrations",
+        observation_type="scalars",
         reward_type="dummy_linear",
         grid_size_x=64,
         grid_size_y=64,
     ):
-        self.observation_type = "concentrations" if None else observation_type
+        self.observation_type = "scalars" if None else observation_type
         if self.observation_type not in [
-            "concentrations",
+            "scalars",
             "image_cell_types",
         ]:
             raise ValueError(
@@ -160,10 +160,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # niche: spaces.Sequence(())  # set of spaces
 
         # model dependent observation_space processing logic goes here!
-        if self.observation_type == "concentrations":
+        if self.observation_type == "scalars":
             o_observation_space = spaces.Box(
-                low=0,
-                high=2**16,
+                low=-(2**8),
+                high=2**8,
                 shape=(len(self.unique_cell_types),),
                 dtype=np.float32,
             )
@@ -238,7 +238,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         )
         # model dependent observation processing logic goes here!
 
-        if self.observation_type == "concentrations":
+        if self.observation_type == "scalars":
             normalized_concentration_cells = np.zeros((self.nb_cell_types,))
             for i in range(self.nb_cell_types):
                 normalized_concentration_cells[i] = len(
