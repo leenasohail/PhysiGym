@@ -156,8 +156,8 @@ Formally, for each cell:
 $$
 \text{image}[c, y_{\text{bin}}, x_{\text{bin}}] += \frac{1}{r_{x}r_{y}}
 $$
-By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$. 
-This produces an image tensor of shape $(\text{num\_cell\_types}, gridsize, gridsize)$,
+By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$.
+This produces an image tensor of shape $(\text{num cell types}, gridsize, gridsize)$,
 where each channel counts the number of cells of a given type in each spatial bin.
 
 For instance, ![image cell types](img/image_cell_types.png)
