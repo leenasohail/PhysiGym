@@ -24,6 +24,7 @@ from lxml import etree
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import skimage as ski
 import sys
 
 # global variable
@@ -31,35 +32,36 @@ physicell.flag_envphysigym = False
 
 
 # Function to calculate RGB values from the original float-based colors
-def calculate_rgb(value):
-    return int(round(value * 255))
+#def calculate_rgb(value):
+#    return int(round(value * 255))
 
 
 # List of base color values as floats (e.g., 0.5 for 50%)
-base_colors = [
-    (0.5, 0.5, 0.5),  # Gray
-    (1.0, 0.0, 0.0),  # Red
-    (1.0, 0.5, 0.0),  # Orange
-    (1.0, 1.0, 0.0),  # Yellow
-    (0.0, 1.0, 0.0),  # Green
-    (0.0, 0.0, 1.0),  # Blue
-    (0.29, 0.0, 0.51),  # Indigo
-    (0.93, 0.51, 0.93),  # Violet
-    (0.54, 0.27, 0.07),  # Brown
-    (0.5, 0.0, 0.0),  # Dark Red
-    (0.8, 0.52, 0.25),  # Sienna
-    (0.9, 0.9, 0.9),  # Light Gray
-    (0.8, 0.2, 0.6),  # Pink
-    (0.2, 0.6, 0.8),  # Light Blue
-    (0.1, 0.3, 0.2),  # Dark Green
-    (1.0, 0.8, 0.6),  # Peach
-    (0.7, 0.3, 0.2),  # Copper
-    (0.2, 0.2, 0.5),  # Navy Blue
-    (0.1, 0.6, 0.1),  # Lime Green
-]
+#base_colors = [
+#    (0.5, 0.5, 0.5),  # Gray
+#    (1.0, 0.0, 0.0),  # Red
+#    (1.0, 0.5, 0.0),  # Orange
+#    (1.0, 1.0, 0.0),  # Yellow
+#    (0.0, 1.0, 0.0),  # Green
+#    (0.0, 0.0, 1.0),  # Blue
+#    (0.29, 0.0, 0.51),  # Indigo
+#    (0.93, 0.51, 0.93),  # Violet
+#    (0.54, 0.27, 0.07),  # Brown
+#    (0.5, 0.0, 0.0),  # Dark Red
+#    (0.8, 0.52, 0.25),  # Sienna
+#    (0.9, 0.9, 0.9),  # Light Gray
+#    (0.8, 0.2, 0.6),  # Pink
+#    (0.2, 0.6, 0.8),  # Light Blue
+#    (0.1, 0.3, 0.2),  # Dark Green
+#    (1.0, 0.8, 0.6),  # Peach
+#    (0.7, 0.3, 0.2),  # Copper
+#    (0.2, 0.2, 0.5),  # Navy Blue
+#    (0.1, 0.6, 0.1),  # Lime Green
+#]
 
 # Applying the calculate_rgb function to each color in the list
-COLORS = [tuple(calculate_rgb(c) for c in color) for color in base_colors]
+#COLORS = [tuple(calculate_rgb(c) for c in color) for color in base_colors]
+COLORS = plt.get_cmap("turbo").colors
 
 # bue 20250620: colors alternative using standard libraries
 #
@@ -258,25 +260,40 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.height = self.y_max + 2 * self.dy - self.y_min
         self.depth = self.z_max + 2 * self.dz - self.z_min
 
-        cell_definitions = self.x_root.xpath("//cell_definitions/cell_definition")
-        self.color_mapping = {}  # This will map type IDs to specific colors
+        #cell_definitions = self.x_root.xpath("//cell_definitions/cell_definition")
+        #self.color_mapping = {}  # This will map type IDs to specific colors
 
         # Get the list of unique cell types
-        self.unique_cell_types = sorted(
-            [cell_def.xpath("./@name")[0] for cell_def in cell_definitions]
-        )
-        self.num_cell_types = len(self.unique_cell_types)
-        self.type_to_idx = {
-            cell_type: idx for idx, cell_type in enumerate(self.unique_cell_types)
-        }
+        #self.unique_cell_types = sorted(
+        #    [cell_def.xpath("./@name")[0] for cell_def in cell_definitions]
+        #)
+        #self.num_cell_types = len(self.unique_cell_types)
+        #self.type_to_idx = {
+        #    cell_type: idx for idx, cell_type in enumerate(self.unique_cell_types)
+        #}
 
-        for i, cell_type in enumerate(self.unique_cell_types):
-            self.color_mapping[cell_type] = COLORS[i]
+        #for i, cell_type in enumerate(self.unique_cell_types):
+        #    self.color_mapping[cell_type] = COLORS[i]
 
-        self.color_mapping_255 = {
-            key: tuple(np.array(value) * 255)
-            for key, value in self.color_mapping.items()
-        }
+        #self.color_mapping_255 = {
+        #    key: tuple(np.array(value) * 255)
+        #    for key, value in self.color_mapping.items()
+        #}
+
+        # cell type id mapping
+        self.type_to_idx = dict(zip(
+            self.x_root.xpath("//cell_definitions/cell_definition/@name"),
+            self.x_root.xpath("//cell_definitions/cell_definition/@ID")
+        ))
+        self.num_cell_types = len(self.type_to_idx)
+        self.unique_cell_types = [s_key for s_key, s_value in sorted(self.type_to_idx.items())]
+
+        self.color_mapping = dict(zip(
+            self.x_root.xpath("//cell_definitions/cell_definition/@ID"),
+            ski.util.img_as_ubyte(plt.get_cmap("turbo", self.num_cell_types).colors)
+        ))
+
+        self.color_mapping_255 = self.color_mapping
 
         # max time
         # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
