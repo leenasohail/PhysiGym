@@ -1,5 +1,5 @@
 #####
-# title: run_physigym_tme_episodes.py
+# title: run_physigym_tib_episodes.py
 #
 # language: python3
 # library: gymnasium, numpy,
@@ -13,10 +13,10 @@
 #
 # run:
 #   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_tme_episodes.py
+#   2. python3 run_physigym_tib_episodes.py
 #
 # description:
-#   python script to run multiple episodes from the physigym tme model.
+#   python script to run multiple episodes from the physigym tib model.
 #####
 
 
