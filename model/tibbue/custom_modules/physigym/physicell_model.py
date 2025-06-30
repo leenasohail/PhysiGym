@@ -63,20 +63,19 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         render_mode=None,
         render_fps=10,
         verbose=False,
-        observation_type="simple",
+        observation_type="scalars",
         reward_type="dummy_linear",
-        grid_size=64,
+        grid_size_x=64,
+        grid_size_y=64,
     ):
-        self.observation_type = "simple" if None else observation_type
+        self.observation_type = "scalars" if None else observation_type
         if self.observation_type not in [
-            "simple",
+            "scalars",
             "image_cell_types",
         ]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
-        if self.observation_type == "image_cell_types":
-            self.grid_size = grid_size
 
         # Corrected usage of super()
         super().__init__(
@@ -95,11 +94,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.np_ratio_old_nb_cancer_cells = None
         self.reward_type = reward_type
         self.type_map = {t: i for i, t in enumerate(self.unique_cell_types)}
-        self.ratio_img_size = (
-            min(self.width, self.height) / grid_size
-            if self.observation_type == "image_cell_types"
-            else None
-        )
+        if self.observation_type == "image_cell_types":
+            self.grid_size_x = grid_size_x
+            self.grid_size_y = grid_size_y
+            self.ratio_img_size_x = self.width / self.grid_size_x
+            self.ratio_img_size_y = self.height / self.grid_size_y
 
     def get_action_space(self):
         """
@@ -161,10 +160,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # niche: spaces.Sequence(())  # set of spaces
 
         # model dependent observation_space processing logic goes here!
-        if self.observation_type == "simple":
+        if self.observation_type == "scalars":
             o_observation_space = spaces.Box(
-                low=0,
-                high=2**16,
+                low=-(2**8),
+                high=2**8,
                 shape=(len(self.unique_cell_types),),
                 dtype=np.float32,
             )
@@ -174,7 +173,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(self.num_cell_types, self.grid_size, self.grid_size),
+                shape=(self.num_cell_types, self.grid_size_x, self.grid_size_y),
                 dtype=np.uint8,
             )
 
@@ -239,7 +238,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         )
         # model dependent observation processing logic goes here!
 
-        if self.observation_type == "simple":
+        if self.observation_type == "scalars":
             normalized_concentration_cells = np.zeros((self.nb_cell_types,))
             for i in range(self.nb_cell_types):
                 normalized_concentration_cells[i] = len(
@@ -254,7 +253,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         elif self.observation_type == "image_cell_types":
             image = np.zeros(
-                (self.num_cell_types, self.grid_size, self.grid_size), dtype=np.float32
+                (self.num_cell_types, self.grid_size_x, self.grid_size_y),
+                dtype=np.float32,
             )
 
             # Only
@@ -266,19 +266,23 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             x_bin = (
                 (df_alive["x"] - self.x_min)
                 / (self.x_max - self.x_min)
-                * (self.grid_size - 1)
+                * (self.grid_size_x - 1)
             ).astype(int)
             y_bin = (
                 (df_alive["y"] - self.y_min)
                 / (self.y_max - self.y_min)
-                * (self.grid_size - 1)
+                * (self.grid_size_y - 1)
             ).astype(int)
 
             # Clip in case of rounding issues
-            x_bin = np.clip(x_bin, 0, self.grid_size - 1)
-            y_bin = np.clip(y_bin, 0, self.grid_size - 1)
+            x_bin = np.clip(x_bin, 0, self.grid_size_x - 1)
+            y_bin = np.clip(y_bin, 0, self.grid_size_y - 1)
 
-            np.add.at(image, (cell_type_indices, y_bin, x_bin), 1 / self.ratio_img_size)
+            np.add.at(
+                image,
+                (cell_type_indices, y_bin, x_bin),
+                1 / (self.grid_size_x * self.grid_size_y),
+            )
             o_observation = (image * 255).astype(np.uint8)
 
         else:

@@ -31,35 +31,35 @@ physicell.flag_envphysigym = False
 
 
 # Function to calculate RGB values from the original float-based colors
-def calculate_rgb(value):
-    return int(round(value * 255))
+#def calculate_rgb(value):
+#    return int(round(value * 255))
 
 
 # List of base color values as floats (e.g., 0.5 for 50%)
-base_colors = [
-    (0.5, 0.5, 0.5),  # Gray
-    (1.0, 0.0, 0.0),  # Red
-    (1.0, 0.5, 0.0),  # Orange
-    (1.0, 1.0, 0.0),  # Yellow
-    (0.0, 1.0, 0.0),  # Green
-    (0.0, 0.0, 1.0),  # Blue
-    (0.29, 0.0, 0.51),  # Indigo
-    (0.93, 0.51, 0.93),  # Violet
-    (0.54, 0.27, 0.07),  # Brown
-    (0.5, 0.0, 0.0),  # Dark Red
-    (0.8, 0.52, 0.25),  # Sienna
-    (0.9, 0.9, 0.9),  # Light Gray
-    (0.8, 0.2, 0.6),  # Pink
-    (0.2, 0.6, 0.8),  # Light Blue
-    (0.1, 0.3, 0.2),  # Dark Green
-    (1.0, 0.8, 0.6),  # Peach
-    (0.7, 0.3, 0.2),  # Copper
-    (0.2, 0.2, 0.5),  # Navy Blue
-    (0.1, 0.6, 0.1),  # Lime Green
-]
+#base_colors = [
+#    (0.5, 0.5, 0.5),  # Gray
+#    (1.0, 0.0, 0.0),  # Red
+#    (1.0, 0.5, 0.0),  # Orange
+#    (1.0, 1.0, 0.0),  # Yellow
+#    (0.0, 1.0, 0.0),  # Green
+#    (0.0, 0.0, 1.0),  # Blue
+#    (0.29, 0.0, 0.51),  # Indigo
+#    (0.93, 0.51, 0.93),  # Violet
+#    (0.54, 0.27, 0.07),  # Brown
+#    (0.5, 0.0, 0.0),  # Dark Red
+#    (0.8, 0.52, 0.25),  # Sienna
+#    (0.9, 0.9, 0.9),  # Light Gray
+#    (0.8, 0.2, 0.6),  # Pink
+#    (0.2, 0.6, 0.8),  # Light Blue
+#    (0.1, 0.3, 0.2),  # Dark Green
+#    (1.0, 0.8, 0.6),  # Peach
+#    (0.7, 0.3, 0.2),  # Copper
+#    (0.2, 0.2, 0.5),  # Navy Blue
+#    (0.1, 0.6, 0.1),  # Lime Green
+#]
 
 # Applying the calculate_rgb function to each color in the list
-COLORS = [tuple(calculate_rgb(c) for c in color) for color in base_colors]
+#COLORS = [tuple(calculate_rgb(c) for c in color) for color in base_colors]
 
 # bue 20250620: colors alternative using standard libraries
 #
@@ -103,37 +103,25 @@ class CorePhysiCellEnv(gymnasium.Env):
     ### begin dummy functions ###
 
     def get_action_space(self):
-        sys.exit(
-            "get_action_space function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_action_space function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_observation_space(self):
-        sys.exit(
-            "get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_observation(self):
-        sys.exit(
-            "get_observation function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_observation function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_info(self):
         sys.exit("get_info function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_terminated(self):
-        sys.exit(
-            "get_terminated function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_reset_values(self):
-        sys.exit(
-            "get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_reward(self):
-        sys.exit(
-            "get_terminated function to be implemented in physigym.ModelPhysiCellEnv!"
-        )
+        sys.exit("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
 
     def get_img(self):
         sys.exit("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
@@ -148,13 +136,13 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     # functions
     def __init__(
-        self,
-        settingxml="config/PhysiCell_settings.xml",
-        figsize=(8, 6),
-        render_mode=None,
-        render_fps=10,
-        verbose=True,
-    ):
+            self,
+            settingxml="config/PhysiCell_settings.xml",
+            figsize=(8, 6),
+            render_mode=None,
+            render_fps=10,
+            verbose=True,
+        ):
         """
         input:
             settingxml: string; default is 'config/PhysiCell_settings.xml'
@@ -538,10 +526,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: action.")
 
-        for (
-            s_action,
-            o_value,
-        ) in action.items():  # action is always a gymnasium composite space dict
+        for s_action, o_value in action.items():  # action is always a gymnasium composite space dict
             # gymnasium composite space tuple: nop.
             # gymnasium composite space sequences: nop.
             # gymnasium composite space graph: nop.
