@@ -144,12 +144,12 @@ If one or more cells are present in a bin, we increment the count in the channel
 
 Formally, for each cell:
 
-- Determine its bin index $(x_{\text{bin}}, y_{\text{bin}})$.
-- Let $C\in[0:\text{num\_cell\_types}-1]$, $\text{num\_cell\_types}=3$ be the index corresponding to its cell type channel.
+- Determine its bin index $(x_{bin}, y_{bin})$.
+- Let $C\in[0:2]$ the index corresponding to its cell type channel.
 - Then increment:
 
 ```math
-\text{image}[c, y_{\text{bin}}, x_{\text{bin}}] += \frac{1}{r_{x}r_{y}}
+\text{image}[c, y_{{bin}}, x_{{bin}}] += \frac{1}{r_{x}r_{y}}
 ```
 By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$.
 This produces an image tensor of shape $(\text{num cell types}, gridsize, gridsize)$,
