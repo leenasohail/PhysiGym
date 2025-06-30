@@ -69,7 +69,7 @@ The RL agent interacts with an environment — such as our **TIB model** — whi
 In our TIB case, the **action** corresponds to the administration of a drug, denoted by:
 
 $$
-d_t \in [0, 1]
+d_t \in [0, 1],
 $$
 
 at each time step.
@@ -84,7 +84,7 @@ Through trial and error, the agent learns a strategy (policy) that balances thes
 In Reinforcement Learning (RL), the objective is to maximize the **expected cumulative reward**:
 
 ```math
-\underset{\pi}{\arg\max} \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
+\underset{\pi}{\arg\max} \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right],
 ```
 
 where:
@@ -106,9 +106,9 @@ In the next section, we will use a deep reinforcement learning algorithm to solv
 The **reward function** in this model is defined as:
 
 ```math
-r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t
+r_t = \alpha \cdot \frac{C_{t-1} - C_t}{\log(C_{init})} - (1-\alpha) \cdot d_t.
 ```
-
+Where:
 - $C_t$: Number of tumor cells at time step $t$.
 - $C_{init}$ : Number of tumor cells at initial time step.
 - $d_t$: Amount of drug added to the tumor microenvironment at time $t$.
@@ -131,12 +131,12 @@ The size of the bins is calculated by mapping the continuous coordinates into di
 x_{\text{bin}} = \left\lfloor 
 \frac{(x - x_{\min})}{(x_{\max} - x_{\min})}
 \times (gridsize_{x} - 1)
-\right\rfloor
+\right\rfloor,
 \\
 y_{\text{bin}} = \left\lfloor 
 \frac{(y - y_{\min})}{(y_{\max} - y_{\min})}
 \times (gridsize_{y} - 1)
-\right\rfloor
+\right\rfloor.
 ```
 This ensures that the continuous spatial domain is discretized into a grid of size 
 \(gridsize \times gridsize\).
@@ -149,7 +149,7 @@ Formally, for each cell:
 - Then increment:
 
 ```math
-\text{image}[c, y_{{bin}}, x_{{bin}}] += \frac{1}{r_{x}r_{y}}
+\text{image}[c, y_{{bin}}, x_{{bin}}] += \frac{1}{r_{x}r_{y}}.
 ```
 By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$.
 This produces an image tensor of shape $(\text{num cell types}, gridsize, gridsize)$,
@@ -285,7 +285,7 @@ The visualization will update automatically.
 You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tummor_immune_base_results_dcr.png)
  that the learning agent has maximized the expected discounted return: 
 ```math
-\mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right]
+\mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
 
 The **y-axis** represents the expected return, while the **x-axis** represents the training steps. Note that although it is labeled as *3 million steps*, it does **not** correspond to 3 million environment interaction steps — in reality, it represents **fewer** than 3 million actual interactions.
