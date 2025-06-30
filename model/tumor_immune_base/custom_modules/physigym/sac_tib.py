@@ -432,19 +432,17 @@ class ReplayBuffer(object):
             "Buffer does not have enough samples"
         )
 
-        # Generate random indices for sampling
         sample_index = np.random.randint(
             0, self.buffer_size if self.full else self.buffer_index, batch_size
         )
 
-        # Convert indices to tensors and gather the sampled experiences
         state = torch.as_tensor(self.state[sample_index]).float()
         next_state = torch.as_tensor(self.next_state[sample_index]).float()
         action = torch.as_tensor(self.action[sample_index])
         reward = torch.as_tensor(self.reward[sample_index])
         done = torch.as_tensor(self.done[sample_index])
 
-        # Create a dictionary of the sampled experiences
+        # Tensordict sampled experiences
         sample = TensorDict(
             {
                 "state": state,
