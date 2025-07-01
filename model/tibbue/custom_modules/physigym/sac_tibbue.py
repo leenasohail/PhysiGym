@@ -25,8 +25,8 @@ from dataclasses import dataclass
 import physigym
 
 # Gymnasium
-import gymnasium as gym
-from gymnasium.spaces import Box
+import gymnasium
+from gymnasium import spaces  
 import numpy as np
 
 # Torch ecosystem
@@ -38,7 +38,7 @@ from torch.utils.tensorboard import SummaryWriter
 from tensordict import TensorDict
 
 import wandb
-import tyro
+#import tyro
 
 import numba
 from numba import njit, prange
@@ -53,57 +53,34 @@ from numba import njit, prange
 
 
 @dataclass
-class Args:
-    name: str = "sac"
-    """the name of this experiment"""
-    weight: float = 0.5
-    """weight for the reduction of tumor"""
-    reward_type: str = "dummy_linear"
-    """type of the reward"""
-    seed: int = 1
-    """seed of the experiment"""
-    torch_deterministic: bool = True
-    """if toggled, `torch.backends.cudnn.deterministic=False`"""
-    cuda: bool = True
-    """if toggled, cuda will be enabled by default"""
+class Args():
+    name: str = "sac"   # the name of this experiment
+    weight: float = 0.5   # weight for the reduction of tumor
+    reward_type: str = "dummy_linear"   # type of the reward
+    seed: int = 1   # seed of the experiment
+    torch_deterministic: bool = True   # if toggled, `torch.backends.cudnn.deterministic=False`
+    cuda: bool = True   # if toggled, cuda will be enabled by default
 
     # Weights and Biases specific arguments
-    wandb_track: bool = True
-    """track with wandb"""
-    wandb_entity: str = "corporate-manu-sureli"
-    """the wandb's entity name"""
-    wandb_project_name: str = "SAC_IMAGE_TIB"
-    """the wandb's project name"""
+    wandb_track: bool = True   # track with wandb
+    wandb_entity: str = "corporate-manu-sureli"   # the wandb's entity name
+    wandb_project_name: str = "SAC_IMAGE_TIB"   # the wandb's project name
 
     # Algorithm specific arguments
-    env_id: str = "physigym/ModelPhysiCellEnv-v0"
-    """the id of the environment"""
-    observation_type: str = "image_cell_types"
-    """the type of observation"""
-    total_timesteps: int = int(1e6)
-    """the learning rate of the optimizer"""
-    buffer_size: int = int(1e6)
-    """the replay memory buffer size"""
-    gamma: float = 0.99
-    """the discount factor gamma"""
-    tau: float = 0.005
-    """target smoothing coefficient (default: 0.005)"""
-    batch_size: int = 256
-    """the batch size of sample from the reply memory"""
-    learning_starts: float = 10e3
-    """timestep to start learning"""
-    policy_lr: float = 3e-4
-    """the learning rate of the policy network optimizer"""
-    q_lr: float = 3e-4
-    """the learning rate of the Q network network optimizer"""
-    policy_frequency: int = 2
-    """the frequency of training policy (delayed)"""
-    target_network_frequency: int = 1  # Denis Yarats' implementation delays this by 2.
-    """the frequency of updates for the target nerworks"""
-    alpha: float = 0.2
-    """Entropy regularization coefficient."""
-    autotune: bool = True
-    """automatic tuning of the entropy coefficient"""
+    env_id: str = "physigym/ModelPhysiCellEnv-v0"   # the id of the environment
+    observation_type: str = "image_cell_types"   # the type of observation
+    total_timesteps: int = int(1e6)    # the learning rate of the optimizer
+    buffer_size: int = int(1e6)    # the replay memory buffer size
+    gamma: float = 0.99    # the discount factor gamma
+    tau: float = 0.005    # target smoothing coefficient (default: 0.005)
+    batch_size: int = 256   # the batch size of sample from the reply memory
+    learning_starts: float = 10e3   # timestep to start learning
+    policy_lr: float = 3e-4    # the learning rate of the policy network optimizer
+    q_lr: float = 3e-4    # the learning rate of the Q network network optimizer
+    policy_frequency: int = 2    # the frequency of training policy (delayed)
+    target_network_frequency: int = 1   # the frequency of updates for the target nerworks (Denis Yarats' implementation delays this by 2.)
+    alpha: float = 0.2   # Entropy regularization coefficient.
+    autotune: bool = True   # automatic tuning of the entropy coefficient
 
 
 #### Wrapper ####
@@ -113,45 +90,35 @@ class Args:
 #####
 
 
-class PhysiCellModelWrapper(gym.Wrapper):
+class PhysiCellModelWrapper(gymnasium.Wrapper):
     def __init__(
-        self,
-        env: gym.Env,
-        list_variable_name: list[str] = [
-            "drug_1",
-        ],
-        weight: float = 0.8,
-    ):
+            self,
+            env: gymnasium.Env,
+            ls_var: list[str] = ["drug_1"],
+            weight: float = 0.8,
+        ):
         """
-        Args:
+        input:
             env (gym.Env): The environment to wrap.
             list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
             weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
+
+        output:
+
+        description:
         """
         super().__init__(env)
 
         # Check that all variable names are strings
-        for variable_name in list_variable_name:
-            if not isinstance(variable_name, str):
-                raise ValueError(
-                    f"Expected variable_name to be of type str, but got {type(variable_name).__name__}"
-                )
+        if any([not isinstance(s_var, str) for s_var in ls_var]):
+            raise ValueError(f"Expected variable_name to be of type str, but got {type(variable_name).__name__}")
 
-        self.list_variable_name = list_variable_name
+        self.ls_var = ls_var
 
-        low = np.array(
-            [
-                env.action_space[variable_name].low[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        high = np.array(
-            [
-                env.action_space[variable_name].high[0]
-                for variable_name in list_variable_name
-            ]
-        )
-        self._action_space = Box(low=low, high=high, dtype=np.float64)
+        # bue 20250601: why do whe have to transfrom this? 
+        a_low = np.array([env.action_space[s_var].low[0] for s_var in ls_var])
+        a_high = np.array([env.action_space[s_var].high[0] for s_var in ls_var])
+        self._action_space = spaces.Box(low=a_low, high=a_high, dtype=np.float64)
 
         self.weight = weight
         self.reward_type = env.unwrapped.reward_type
@@ -161,7 +128,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         """Returns the flattened action space for the wrapper."""
         return self._action_space
 
-    def step(self, action: np.ndarray):
+    def step(self, ar_action: np.ndarray):
         """
         Steps through the environment using the flattened action.
 
@@ -171,25 +138,26 @@ class PhysiCellModelWrapper(gym.Wrapper):
         Returns:
             Tuple: Observation, reward, terminated, truncated, info.
         """
-        d_action = {
-            variable_name: np.array([value])
-            for variable_name, value in zip(self.list_variable_name, action)
-        }
-        # Take a step in the environment
-        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(
-            d_action
-        )
+        # bue 20250701: this is action, not action space 
+        d_action = {}
+        for s_var, r_value in zip(self.ls_var, ar_action):
+            d_action.update({s_var: np.array([r_value])})
 
-        r_drugs = np.mean(action)
+        # Take a step in the environment
+        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(d_action)
+
+        # bue 20250701: what would this mean if we have more than one action space?
+        r_drugs = np.mean(ar_action)  
 
         info["action"] = d_action
         info["reward_drugs"] = r_drugs
         info["reward_cancer_cells"] = r_cancer_cells
+
         # If you reward function is different from a sum you can add a new condition
         if self.reward_type == "log_exp":
-            r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
+            r_reward = - r_cancer_cells * np.exp(r_drugs - 1)
         else:
-            r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+            r_reward = - (1 - self.weight) * r_drugs + self.weight * r_cancer_cells
 
         return o_observation, r_reward, b_terminated, b_truncated, info
 
@@ -359,14 +327,14 @@ class ReplayBuffer(object):
     """
 
     def __init__(
-        self,
-        state_dim,
-        action_dim,
-        device,
-        buffer_size,
-        batch_size,
-        state_type=np.float32,
-    ):
+            self,
+            state_dim,
+            action_dim,
+            device,
+            buffer_size,
+            batch_size,
+            state_type=np.float32,
+        ):
         """
         Initializes the replay buffer.
 
@@ -467,57 +435,53 @@ class ReplayBuffer(object):
 
 
 def main():
-    args = tyro.cli(Args)
+    d_arg = vars(Args())
+
     # INITIALISATION/ CREATE FOLDERS
-    config = vars(args)
-    custom_run_name = f"{args.name}: seed_{args.seed}_observationtype_{args.observation_type}_weight_{args.weight}_rewardtype_{args.reward_type}_time_{int(time.time())}"
-    if args.wandb_track:
+    custom_run_name = f"{d_arg['name']}: seed_{d_arg['seed']}_observationtype_{d_arg['observation_type']}_weight_{d_arg['weight']}_rewardtype_{d_arg['reward_type']}_time_{int(time.time())}"
+    if d_arg['wandb_track']:
+        print("Wandb selected")
         run = wandb.init(
-            project=args.wandb_project_name,
-            entity=args.wandb_entity,
+            project = d_arg['wandb_project_name'],
+            entity = d_arg['wandb_entity'],
             name=custom_run_name,
             sync_tensorboard=True,
-            config=config,
+            config=d_arg,
             monitor_gym=True,
             save_code=True,
         )
-        wandb_base_dir = run.dir  # e.g. wandb/run-20250612_123456-abcdef
-
-        # Create a subfolder using your meaningful name
-        run_dir = os.path.join(wandb_base_dir, custom_run_name)
-        os.makedirs(run_dir, exist_ok=True)
-        print("Wandb selected")
+        s_dir = os.path.join(run.dir, custom_run_name)  # run.dir wandb/run-20250612_123456-abcdef
     else:
-        run_dir = os.path.join("tensorboard", custom_run_name)
         print("Tensorboard selected")
+        s_dir = os.path.join("tensorboard", custom_run_name)
+    os.makedirs(s_dir, exist_ok=True)
 
-    # Organize output folders using run_dir
-    # os.makedirs(os.path.join(run_dir, "image"), exist_ok=True)
-    # os.makedirs(os.path.join(run_dir, "models"), exist_ok=True)
-    writer = SummaryWriter(run_dir)
+    # organize output folders using run_dir
+    writer = SummaryWriter(s_dir)
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s"
-        % ("\n".join([f"|{key}|{value}|" for key, value in config.items()])),
+        % ("\n".join([f"|{s_key}|{s_value}|" for s_key, s_value in sorted(d_arg.items())])),
     )
 
     # SEEDING
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    torch.backends.cudnn.deterministic = args.torch_deterministic
+    random.seed(d_arg['seed'])
+    np.random.seed(d_arg['seed'])
+    torch.manual_seed(d_arg['seed'])
+    torch.backends.cudnn.deterministic = d_arg['torch_deterministic']
+    device = torch.device("cuda" if torch.cuda.is_available() and d_arg['cuda'] else "cpu") # cpu or cuda
 
-    device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
     # initialisation of the environment
-    env = gym.make(
-        args.env_id,
-        observation_type=args.observation_type,
-        reward_type=args.reward_type,
+    env = gymnasium.make(
+        d_arg['env_id'],
+        observation_type=d_arg['observation_type'],
+        reward_type=d_arg['reward_type'],
     )
 
     # Wrapper
     env = PhysiCellModelWrapper(env=env)
     cfg = {"cfg_FeatureExtractor": {}}
+
     # Neural Networks/ Optimisers init.
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
@@ -529,39 +493,40 @@ def main():
     qf1_target.load_state_dict(qf1.state_dict())
     qf2_target.load_state_dict(qf2.state_dict())
     q_optimizer = optim.Adam(
-        list(qf1.parameters()) + list(qf2.parameters()), lr=args.q_lr
+        list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg['q_lr']
     )
-    actor_optimizer = optim.Adam(list(actor.parameters()), lr=args.policy_lr)
+    actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg['policy_lr'])
+
     # Automatic entropy tuning
-    if args.autotune:
-        target_entropy = -torch.prod(
+    if d_arg['autotune']:
+        target_entropy = - torch.prod(
             torch.Tensor(env.action_space.shape).to(device)
         ).item()
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
         alpha = log_alpha.exp().item()
-        a_optimizer = optim.Adam([log_alpha], lr=args.q_lr)
+        a_optimizer = optim.Adam([log_alpha], lr=d_arg['q_lr'])
     else:
-        alpha = args.alpha
+        alpha = d_arg['alpha']
 
     rb = ReplayBuffer(
         state_dim=env.observation_space.shape,
         action_dim=env.action_space.shape,
         device=device,
-        buffer_size=args.buffer_size,
-        batch_size=args.batch_size,
+        buffer_size=d_arg['buffer_size'],
+        batch_size=d_arg['batch_size'],
         state_type=env.observation_space.dtype,
     )
 
 
     # Start the env and init, tracking values
-    obs, info = env.reset(seed=args.seed)
+    obs, info = env.reset(seed=d_arg['seed'])
     cumulative_return = 0
     episode = 1
     step_episode = 0
     discounted_cumulative_return = 0
-    for global_step in range(args.total_timesteps):
+    for global_step in range(d_arg['total_timesteps']):
         # ALGO LOGIC: put action logic here
-        if global_step <= args.learning_starts:
+        if global_step <= d_arg['learning_starts']:
             actions = np.array(env.action_space.sample(), dtype=np.float16)
         else:
             x = obs
@@ -573,10 +538,10 @@ def main():
         step_episode += 1
         done = terminations or truncations
         cumulative_return += rewards
-        discounted_cumulative_return += rewards * args.gamma ** (step_episode)
+        discounted_cumulative_return += rewards * d_arg['gamma'] ** (step_episode)
         rb.add(obs, actions, rewards, next_obs, done)
         obs = next_obs.copy()
-        if global_step == args.batch_size:
+        if global_step == d_arg['batch_size']:
             data = rb.sample()
             data_next_state = data["next_state"]
             data_state = data["state"]
@@ -593,7 +558,7 @@ def main():
             del next_state_actions, data_next_state, data_state, data
 
         # ALGO LOGIC: training.
-        if global_step > args.learning_starts:
+        if global_step > d_arg['learning_starts']:
             data = rb.sample()
             data_next_state = data["next_state"]
             data_state = data["state"]
@@ -610,7 +575,7 @@ def main():
                 )
                 next_q_value = data["reward"].flatten() + (
                     1 - data["done"].flatten()
-                ) * args.gamma * (min_qf_next_target).view(-1)
+                ) * d_arg['gamma'] * (min_qf_next_target).view(-1)
 
             qf1_a_values = qf1(data_state, data["action"]).view(-1)
             qf2_a_values = qf2(data_state, data["action"]).view(-1)
@@ -623,9 +588,9 @@ def main():
             qf_loss.backward()
             q_optimizer.step()
 
-            if global_step % args.policy_frequency == 0:  # TD 3 Delayed update support
+            if global_step % d_arg['policy_frequency'] == 0:  # TD 3 Delayed update support
                 for _ in range(
-                    args.policy_frequency
+                    d_arg['policy_frequency']
                 ):  # compensate for the delay by doing 'actor_update_interval' instead of 1
                     pi, log_pi, _ = actor.get_action(data_state)
 
@@ -637,7 +602,7 @@ def main():
                     actor_optimizer.zero_grad()
                     actor_loss.backward()
                     actor_optimizer.step()
-                    if args.autotune:
+                    if d_arg['autotune']:
                         with torch.no_grad():
                             _, log_pi, _ = actor.get_action(data_state)
 
@@ -667,18 +632,18 @@ def main():
                     writer.add_scalar(tag, value, global_step)
 
             # Update the target networks
-            if global_step % args.target_network_frequency == 0:
+            if global_step % d_arg['target_network_frequency'] == 0:
                 for param, target_param in zip(
                     qf1.parameters(), qf1_target.parameters()
                 ):
                     target_param.data.copy_(
-                        args.tau * param.data + (1 - args.tau) * target_param.data
+                        d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data
                     )
                 for param, target_param in zip(
                     qf2.parameters(), qf2_target.parameters()
                 ):
                     target_param.data.copy_(
-                        args.tau * param.data + (1 - args.tau) * target_param.data
+                        d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data
                     )
         scalars = {
             "env/drug_1": actions[0],
@@ -692,7 +657,7 @@ def main():
         for tag, value in scalars.items():
             writer.add_scalar(tag, value, episode)
         if done:
-            norm_coeff = (1 - args.gamma ** (step_episode + 1)) / (1 - args.gamma)
+            norm_coeff = (1 - d_arg['gamma'] ** (step_episode + 1)) / (1 - d_arg['gamma'])
             scalars = {
                 "charts/episodic_return": cumulative_return / step_episode,
                 "charts/cumulative_return": cumulative_return,
