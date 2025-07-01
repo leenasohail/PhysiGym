@@ -71,12 +71,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.observation_type = "scalars" if None else observation_type
         if self.observation_type not in [
             "scalars",
-            "image_cell_types",
+            "multi_channels",
         ]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
-        if self.observation_type == "image_cell_types":
+        if self.observation_type == "multi_channels":
             self.grid_size_x = grid_size_x
             self.grid_size_y = grid_size_y
 
@@ -98,7 +98,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.reward_type = reward_type
         self.type_map = {t: i for i, t in enumerate(self.unique_cell_types)}
 
-        if self.observation_type == "image_cell_types":
+        if self.observation_type == "multi_channels":
             self.ratio_img_size_x = self.width / self.grid_size_x
             self.ratio_img_size_y = self.height / self.grid_size_y
 
@@ -169,7 +169,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 shape=(len(self.unique_cell_types),),
                 dtype=np.float32,
             )
-        elif self.observation_type == "image_cell_types":
+        elif self.observation_type == "multi_channels":
             # Define the Box space for the image
             # Step 2: Create empty image [64, 64, num_cell_types]
             o_observation_space = spaces.Box(
@@ -253,7 +253,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation = normalized_concentration_cells / self.init_cancer_cells - 1
             o_observation = np.array(o_observation, dtype=float)
 
-        elif self.observation_type == "image_cell_types":
+        elif self.observation_type == "multi_channels":
             image = np.zeros(
                 (self.num_cell_types, self.grid_size_x, self.grid_size_y),
                 dtype=np.float32,

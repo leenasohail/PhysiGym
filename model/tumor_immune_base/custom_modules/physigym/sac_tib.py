@@ -78,7 +78,7 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "image_cell_types"
+    observation_type: str = "multi_channels"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""

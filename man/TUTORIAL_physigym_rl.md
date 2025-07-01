@@ -333,10 +333,6 @@ $$
 ---
 The SAC-learned policy is significantly more effective at controlling tumor growth while balancing drug use, achieving higher discounted returns compared to random or no treatment.
 
-A video of the dynamic treatment regime proposed by the learning agent using **multi_channels** as the state space: [800 episode with image](video/tumor_immune_base_ep_800.mp4).
-
-In this video, you can observe three different dynamic treatment regimes:
-
 A video of the dynamic treatment regime proposed by the learning agent using **multi_channels** as the state space: [800 episode with image](video/tumor_immune_base_ep_800.mp4), you can observe phases of the dynamic treatment regime:
 
 1. **Initial phase:**  
