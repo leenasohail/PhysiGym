@@ -1,12 +1,12 @@
 #####
-# title: model/tibbue/custom_modules/physigym/alexlines1.py
+# title: model/tumor_immune_base/custom_modules/physigym/sac_tib.py
 #
 # language: python3
-# main libraries: numpy, torch, TensorDict
+# main libraries: gymnasium, physigym, torch
 #
 # date: 2024-spring
 # license: BSD-3-Clause
-# author: Alexandre Bertin
+# author: Alexandre Bertin, Elmar Bucher
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:

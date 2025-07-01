@@ -11,14 +11,12 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     sac implementation for tumor immune base model
+#     sac implementation for tumor immune base model 
+# + https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
 #####
 
-
-#### IMPORT LIBRARIES ####
-
-# Standard Python Libraries
-from dataclasses import dataclass
+# core python
+from dataclasses import dataclass, field
 import numpy as np
 import os
 import random
@@ -34,7 +32,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils import tensorboard
 
 # wandb
 import wandb
@@ -44,57 +42,16 @@ from alexlines1 import ReplayBuffer
 #from stable_baselines3.common.buffers import ReplayBuffer
 
 
-#### Arguments ####
-#
-# description:
-#   The class's arguments you may change such as:
-#   cuda, wandb_track, wandb_entity.
-####
-
-
-@dataclass
-class Args():
-    name: str = "sac"   # the name of this experiment
-    weight: float = 0.5   # weight for the reduction of tumor
-    reward_type: str = "dummy_linear"   # type of the reward
-    seed: int = 1   # seed of the experiment
-    torch_deterministic: bool = True   # if toggled, `torch.backends.cudnn.deterministic=False`
-    cuda: bool = True   # if toggled, cuda will be enabled by default
-
-    # Weights and Biases specific arguments
-    wandb_track: bool = True   # track with wandb
-    wandb_entity: str = "corporate-manu-sureli"   # the wandb's entity name
-    wandb_project_name: str = "SAC_IMAGE_TIB"   # the wandb's project name
-
-    # Algorithm specific arguments
-    env_id: str = "physigym/ModelPhysiCellEnv-v0"   # the id of the environment
-    observation_type: str = "image_cell_types"   # the type of observation
-    total_timesteps: int = int(1e6)    # the learning rate of the optimizer
-    buffer_size: int = int(1e6)    # the replay memory buffer size
-    gamma: float = 0.99    # the discount factor gamma
-    tau: float = 0.005    # target smoothing coefficient (default: 0.005)
-    batch_size: int = 256   # the batch size of sample from the reply memory
-    learning_starts: float = 10e3   # timestep to start learning
-    policy_lr: float = 3e-4    # the learning rate of the policy network optimizer
-    q_lr: float = 3e-4    # the learning rate of the Q network network optimizer
-    policy_frequency: int = 2    # the frequency of training policy (delayed)
-    target_network_frequency: int = 1   # the frequency of updates for the target nerworks (Denis Yarats' implementation delays this by 2.)
-    alpha: float = 0.2   # Entropy regularization coefficient.
-    autotune: bool = True   # automatic tuning of the entropy coefficient
-
-
-#### Wrapper ####
-#
-# description:
-#   PhysiCell Gymnasium environment wrapper.
-####
+###########
+# Wrapper #
+###########
 
 class PhysiCellModelWrapper(gymnasium.Wrapper):
     def __init__(
             self,
             env: gymnasium.Env,
-            ls_var: list[str] = ['drug_1'],
-            r_weight: float = 0.8,
+            r_weight: float,
+            ls_var: list[str],
         ):
         """
         input:
@@ -161,12 +118,9 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         return o_observation, r_reward, b_terminated, b_truncated, info
 
 
-#### Neural Networks ####
-#
-# description:
-#   A list of torch objects mainly Neural Networks (Actor/Critic).
-####
-
+###################
+# Neural Networks #
+###################
 
 class PixelPreprocess(nn.Module):
     """
@@ -315,63 +269,112 @@ class Actor(nn.Module):
         return action, log_prob, mean
 
 
-#### Algorithm Logic ####
-#
-# description:
-#   The code is mainly inspired from:
-#   https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
+#############
+# Arguments #
+#############
+
+@dataclass
+class Args():
+    # basics
+    name: str = "sac"   # the name of this experiment
+
+    # tracking
+    wandb_track: bool = False   # track with wandb
+    wandb_entity: str = "corporate-manu-sureli"   # the wandb's entity name
+    wandb_project_name: str = "SAC_IMAGE_TIB"   # the wandb's project name
+
+    # hardware 
+    cuda: bool = True   # should torch check for gpu (nvidia, amd mroc) accelerator?
+
+    # random seed
+    seed: int = 1   # seed of the experiment
+    torch_deterministic: bool = True   # torch.backends.cudnn.deterministic
+
+    # physigym
+    env_id: str = "physigym/ModelPhysiCellEnv-v0"   # the id of the gymnasium environment
+    weight: float = 0.5   # weight for the reduction of tumor
+    ls_var: list = field(default_factory=lambda: ["drug_1"])  # list of action varaible names
+    observation_type: str = "image_cell_types"   # the type of observation
+    reward_type: str = "dummy_linear"   # type of the reward
+    total_timesteps: int = int(1e6)    # the learning rate of the optimizer
+ 
+    # neural network 
+    alpha: float = 0.2   # set manuall entropy regularization coefficient.
+    autotune: bool = True   # automatic tuning the the entropy coefficient.
+
+    # algorithm I
+    buffer_size: int = int(1e6)    # the replay memory buffer size
+    batch_size: int = 256   # the batch size of sample from the reply memory
+    learning_starts: float = 10e3   # timestep to start learning
+    policy_frequency: int = 2    # the frequency of training policy (delayed)
+    target_network_frequency: int = 1   # the frequency of updates for the target nerworks (Denis Yarats' implementation delays this by 2.)
+
+    # algorithm II
+    gamma: float = 0.99    # the discount factor gamma
+    tau: float = 0.005    # target smoothing coefficient (default: 0.005)
+    q_lr: float = 3e-4    # the learning rate of the Q network network optimizer
+    policy_lr: float = 3e-4    # the learning rate of the policy network optimizer
+
+
+#############
+# main loop #
+##############
 ####
 
 
 def main():
     d_arg = vars(Args())
 
-    # INITIALISATION/ CREATE FOLDERS
-    custom_run_name = f"{d_arg['name']}: seed_{d_arg['seed']}_observationtype_{d_arg['observation_type']}_weight_{d_arg['weight']}_rewardtype_{d_arg['reward_type']}_time_{int(time.time())}"
+    # tracking
+    s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_type']}_weight_{d_arg['weight']}_rewardtype_{d_arg['reward_type']}_time_{int(time.time())}"
     if d_arg['wandb_track']:
-        print("Wandb selected")
+        print("tracking: wandb ...")
         run = wandb.init(
             project = d_arg['wandb_project_name'],
             entity = d_arg['wandb_entity'],
-            name=custom_run_name,
+            name=s_run,
             sync_tensorboard=True,
             config=d_arg,
             monitor_gym=True,
             save_code=True,
         )
-        s_dir = os.path.join(run.dir, custom_run_name)  # run.dir wandb/run-20250612_123456-abcdef
+        s_dir = os.path.join(run.dir, s_run)  # run.dir wandb/run-20250612_123456-abcdef
     else:
-        print("Tensorboard selected")
-        s_dir = os.path.join("tensorboard", custom_run_name)
+        print("tracking tensorboard ...")
+        s_dir = os.path.join("tensorboard", s_run)
     os.makedirs(s_dir, exist_ok=True)
 
-    # organize output folders using run_dir
-    writer = SummaryWriter(s_dir)
+    # initialize tensorbord writer 
+    writer = tensorboard.SummaryWriter(s_dir)
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s"
         % ("\n".join([f"|{s_key}|{s_value}|" for s_key, s_value in sorted(d_arg.items())])),
     )
 
-    # SEEDING
+    # set random seed
     random.seed(d_arg['seed'])
     np.random.seed(d_arg['seed'])
     torch.manual_seed(d_arg['seed'])
     torch.backends.cudnn.deterministic = d_arg['torch_deterministic']
-    device = torch.device("cuda" if torch.cuda.is_available() and d_arg['cuda'] else "cpu") # cpu or cuda
 
-    # initialisation of the environment
+
+    # initialize physigym environment
     env = gymnasium.make(
         d_arg['env_id'],
         observation_type=d_arg['observation_type'],
         reward_type=d_arg['reward_type'],
     )
+    env = PhysiCellModelWrapper(
+        env=env,
+        ls_var=d_arg['ls_var'],
+        r_weight=d_arg['weight'],
+        
+    )
 
-    # Wrapper
-    env = PhysiCellModelWrapper(env=env)
+    # initialize neural networks and optimiser.
+    device = torch.device("cuda" if torch.cuda.is_available() and d_arg['cuda'] else "cpu") # cpu or gpu
     cfg = {"cfg_FeatureExtractor": {}}
-
-    # Neural Networks/ Optimisers init.
     actor = Actor(env, cfg).to(device)
     qf1 = QNetwork(env, cfg).to(device)
     qf2 = QNetwork(env, cfg).to(device)
@@ -386,17 +389,16 @@ def main():
     )
     actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg['policy_lr'])
 
-    # Automatic entropy tuning
+    # automatic entropy tuning
     if d_arg['autotune']:
-        target_entropy = - torch.prod(
-            torch.Tensor(env.action_space.shape).to(device)
-        ).item()
+        target_entropy = - torch.prod(torch.Tensor(env.action_space.shape).to(device)).item()
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
         alpha = log_alpha.exp().item()
         a_optimizer = optim.Adam([log_alpha], lr=d_arg['q_lr'])
     else:
         alpha = d_arg['alpha']
 
+    # initilize the reply buffer
     rb = ReplayBuffer(
         state_dim=env.observation_space.shape,
         action_dim=env.action_space.shape,
@@ -407,11 +409,14 @@ def main():
     )
 
 
-    # Start the env and init, tracking values
+    # reset gymnasium env 
+    # initialize  tracking values
     obs, info = env.reset(seed=d_arg['seed'])
+
     cumulative_return = 0
     episode = 1
     step_episode = 0
+
     discounted_cumulative_return = 0
     for global_step in range(d_arg['total_timesteps']):
         # ALGO LOGIC: put action logic here
@@ -520,7 +525,7 @@ def main():
                 for tag, value in losses.items():
                     writer.add_scalar(tag, value, global_step)
 
-            # Update the target networks
+            # update the target networks
             if global_step % d_arg['target_network_frequency'] == 0:
                 for param, target_param in zip(
                     qf1.parameters(), qf1_target.parameters()
@@ -563,6 +568,7 @@ def main():
             cumulative_return = 0
             obs, info = env.reset()
             done = False
+
     env.close()
     writer.close()
 
