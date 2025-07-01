@@ -11,7 +11,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     sac implementation for tumor immune base model 
+#     sac implementation for tumor immune base model
 # + https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
 #####
 
@@ -100,14 +100,14 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
             d_action.update({s_var: np.array([r_value])})
 
         # Take a step in the environment
-        o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(d_action)
+        o_observation, r_cancer_cells, b_terminated, b_truncated, d_info = self.env.step(d_action)
 
         # bue 20250701: what would this mean if we have more than one action space?
         r_drugs = np.mean(ar_action)
 
-        info["action"] = d_action
-        info["reward_drugs"] = r_drugs
-        info["reward_cancer_cells"] = r_cancer_cells
+        d_info["action"] = d_action
+        d_info["reward_drugs"] = r_drugs
+        d_info["reward_cancer_cells"] = r_cancer_cells
 
         # If you reward function is different from a sum you can add a new condition
         if self.reward_type == "log_exp":
@@ -115,7 +115,7 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         else:
             r_reward = - (1 - self.r_weight) * r_drugs + self.r_weight * r_cancer_cells
 
-        return o_observation, r_reward, b_terminated, b_truncated, info
+        return o_observation, r_reward, b_terminated, b_truncated, d_info
 
 
 ###################
@@ -283,7 +283,7 @@ class Args():
     wandb_entity: str = "corporate-manu-sureli"   # the wandb's entity name
     wandb_project_name: str = "SAC_IMAGE_TIB"   # the wandb's project name
 
-    # hardware 
+    # hardware
     cuda: bool = True   # should torch check for gpu (nvidia, amd mroc) accelerator?
 
     # random seed
@@ -297,8 +297,8 @@ class Args():
     observation_type: str = "image_cell_types"   # the type of observation
     reward_type: str = "dummy_linear"   # type of the reward
     total_timesteps: int = int(1e6)    # the learning rate of the optimizer
- 
-    # neural network 
+
+    # neural network
     alpha: float = 0.2   # set manuall entropy regularization coefficient.
     autotune: bool = True   # automatic tuning the the entropy coefficient.
 
@@ -344,7 +344,7 @@ def main():
         s_dir = os.path.join("tensorboard", s_run)
     os.makedirs(s_dir, exist_ok=True)
 
-    # initialize tensorbord writer 
+    # initialize tensorbord writer
     writer = tensorboard.SummaryWriter(s_dir)
     writer.add_text(
         "hyperparameters",
@@ -369,7 +369,7 @@ def main():
         env=env,
         ls_var=d_arg['ls_var'],
         r_weight=d_arg['weight'],
-        
+
     )
 
     # initialize neural networks and optimiser.
@@ -380,16 +380,14 @@ def main():
     qf2 = QNetwork(env, cfg).to(device)
     qf1_target = QNetwork(env, cfg).to(device)
     qf2_target = QNetwork(env, cfg).to(device)
-    target_actor = Actor(env, cfg).to(device)
+    target_actor = Actor(env, cfg).to(device)  # bue: where is target_actor used?
     target_actor.load_state_dict(actor.state_dict())
     qf1_target.load_state_dict(qf1.state_dict())
     qf2_target.load_state_dict(qf2.state_dict())
-    q_optimizer = optim.Adam(
-        list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg['q_lr']
-    )
+    q_optimizer = optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg['q_lr'])
     actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg['policy_lr'])
 
-    # automatic entropy tuning
+    # automatic entropy tuning or manual alpha
     if d_arg['autotune']:
         target_entropy = - torch.prod(torch.Tensor(env.action_space.shape).to(device)).item()
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
@@ -409,70 +407,56 @@ def main():
     )
 
 
-    # reset gymnasium env 
-    # initialize  tracking values
-    obs, info = env.reset(seed=d_arg['seed'])
+    # reset gymnasium env
+    o_observation, d_info = env.reset(seed=d_arg['seed'])
+    r_cumulative_return = 0
+    r_discounted_cumulative_return = 0
 
-    cumulative_return = 0
-    episode = 1
-    step_episode = 0
-
-    discounted_cumulative_return = 0
     for global_step in range(d_arg['total_timesteps']):
-        # ALGO LOGIC: put action logic here
+
+        # sample the action space or learn
         if global_step <= d_arg['learning_starts']:
             actions = np.array(env.action_space.sample(), dtype=np.float16)
         else:
-            x = obs
-            x = torch.Tensor(x).to(device).unsqueeze(0)
+            x = torch.Tensor(o_observation).to(device).unsqueeze(0)
             actions, _, _ = actor.get_action(x)
             actions = actions.detach().squeeze(0).cpu().numpy()
-        # execute a step forward and log data.
-        next_obs, rewards, terminations, truncations, info = env.step(actions)
-        step_episode += 1
-        done = terminations or truncations
-        cumulative_return += rewards
-        discounted_cumulative_return += rewards * d_arg['gamma'] ** (step_episode)
-        rb.add(obs, actions, rewards, next_obs, done)
-        obs = next_obs.copy()
-        if global_step == d_arg['batch_size']:
+
+        # physigym step
+        o_observation_next, r_reward, b_terminated, b_truncated, d_info = env.step(actions)
+        b_episode_over = b_terminated or b_truncated
+        r_cumulative_return += r_reward
+        r_discounted_cumulative_return += r_reward * d_arg['gamma'] ** (env.unwrapped.step_episode)
+
+        # record to reply buffer
+        rb.add(o_observation, actions, r_reward, o_observation, b_episode_over)
+
+        # process observation
+        o_observation = o_observation_next.copy()
+
+        # at the end of the first batch
+        if env.unwrapped.step_env == d_arg['batch_size']:
             data = rb.sample()
-            data_next_state = data["next_state"]
-            data_state = data["state"]
             with torch.no_grad():
-                next_state_actions, _, _ = actor.get_action(data_next_state)
-                _, _ = (
-                    qf1(data_next_state, next_state_actions),
-                    qf2(data_next_state, next_state_actions),
-                )
-                _, _ = (
-                    qf1_target(data_next_state, next_state_actions),
-                    qf2_target(data_next_state, next_state_actions),
-                )
-            del next_state_actions, data_next_state, data_state, data
+                next_state_actions, _, _ = actor.get_action(data["next_state"])
+                qf1(data["next_state"], next_state_actions)
+                qf2(data["next_state"], next_state_actions)
+                qf1_target(data["next_state"], next_state_actions)
+                qf2_target(data["next_state"], next_state_actions)
+            del data, next_state_actions
 
-        # ALGO LOGIC: training.
-        if global_step > d_arg['learning_starts']:
+        # learning
+        if env.unwrapped.step_env > d_arg['learning_starts']:
             data = rb.sample()
-            data_next_state = data["next_state"]
-            data_state = data["state"]
-
             with torch.no_grad():
-                next_state_actions, next_state_log_pi, _ = actor.get_action(
-                    data_next_state
-                )
-                qf1_next_target = qf1_target(data_next_state, next_state_actions)
-                qf2_next_target = qf2_target(data_next_state, next_state_actions)
-                min_qf_next_target = (
-                    torch.min(qf1_next_target, qf2_next_target)
-                    - alpha * next_state_log_pi
-                )
-                next_q_value = data["reward"].flatten() + (
-                    1 - data["done"].flatten()
-                ) * d_arg['gamma'] * (min_qf_next_target).view(-1)
+                next_state_actions, next_state_log_pi, _ = actor.get_action(data["next_state"])
+                qf1_next_target = qf1_target(data["next_state"], next_state_actions)
+                qf2_next_target = qf2_target(data["next_state"], next_state_actions)
+                min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - alpha * next_state_log_pi
+                next_q_value = data["reward"].flatten() + (1 - data["done"].flatten()) * d_arg['gamma'] * (min_qf_next_target).view(-1)
 
-            qf1_a_values = qf1(data_state, data["action"]).view(-1)
-            qf2_a_values = qf2(data_state, data["action"]).view(-1)
+            qf1_a_values = qf1(data["state"], data["action"]).view(-1)
+            qf2_a_values = qf2(data["state"], data["action"]).view(-1)
             qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
             qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
             qf_loss = qf1_loss + qf2_loss
@@ -482,92 +466,75 @@ def main():
             qf_loss.backward()
             q_optimizer.step()
 
-            if global_step % d_arg['policy_frequency'] == 0:  # TD 3 Delayed update support
-                for _ in range(
-                    d_arg['policy_frequency']
-                ):  # compensate for the delay by doing 'actor_update_interval' instead of 1
-                    pi, log_pi, _ = actor.get_action(data_state)
+            # every policy frequency
+            if env.unwrapped.step_env % d_arg['policy_frequency'] == 0:  # TD 3 Delayed update support
 
-                    qf1_pi = qf1(data_state, pi)
-                    qf2_pi = qf2(data_state, pi)
+                # compensate for the delay by doing 'actor_update_interval' instead of 1
+                for _ in range(d_arg['policy_frequency']):  
+                    pi, log_pi, _ = actor.get_action(data["state"])
+
+                    qf1_pi = qf1(data["state"], pi)
+                    qf2_pi = qf2(data["state"], pi)
                     min_qf_pi = torch.min(qf1_pi, qf2_pi)
                     actor_loss = ((alpha * log_pi) - min_qf_pi).mean()
 
                     actor_optimizer.zero_grad()
                     actor_loss.backward()
                     actor_optimizer.step()
+
+                    # entropy autotune
                     if d_arg['autotune']:
                         with torch.no_grad():
-                            _, log_pi, _ = actor.get_action(data_state)
+                            _, log_pi, _ = actor.get_action(data["state"])
 
-                        alpha_loss = (
-                            -log_alpha.exp() * (log_pi + target_entropy)
-                        ).mean()
+                        alpha_loss = (-log_alpha.exp() * (log_pi + target_entropy)).mean()
 
                         a_optimizer.zero_grad()
                         alpha_loss.backward()
                         a_optimizer.step()
 
                         alpha = log_alpha.exp().item()
-                    entropy = -log_pi.mean().item()
 
-                losses = {
-                    "losses/min_qf_next_target": min_qf_next_target.mean().item(),
-                    "losses/qf1_values": qf1_a_values.mean().item(),
-                    "losses/qf2_values": qf2_a_values.mean().item(),
-                    "losses/qf1_loss": qf1_loss.item(),
-                    "losses/qf2_loss": qf2_loss.item(),
-                    "losses/qf_loss": qf_loss.item() / 2.0,
-                    "losses/actor_loss": actor_loss.item(),
-                    "losses/entropy": entropy,
-                }
-
-                for tag, value in losses.items():
-                    writer.add_scalar(tag, value, global_step)
+                # write to tensoboard
+                writer.add_scalar("losses/min_qf_next_target", min_qf_next_target.mean().item(), env.unwrapped.step_env)
+                writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), env.unwrapped.step_env)
+                writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), env.unwrapped.step_env)
+                writer.add_scalar("losses/qf1_loss", qf1_loss.item(), env.unwrapped.step_env)
+                writer.add_scalar("losses/qf2_loss", qf2_loss.item(), env.unwrapped.step_env)
+                writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, env.unwrapped.step_env)
+                writer.add_scalar("losses/actor_loss", actor_loss.item(), env.unwrapped.step_env)
+                writer.add_scalar("losses/entropy", - log_pi.mean().item(), env.unwrapped.step_env)  # entropy
 
             # update the target networks
             if global_step % d_arg['target_network_frequency'] == 0:
-                for param, target_param in zip(
-                    qf1.parameters(), qf1_target.parameters()
-                ):
-                    target_param.data.copy_(
-                        d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data
-                    )
-                for param, target_param in zip(
-                    qf2.parameters(), qf2_target.parameters()
-                ):
-                    target_param.data.copy_(
-                        d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data
-                    )
-        scalars = {
-            "env/drug_1": actions[0],
-            "env/reward_value": rewards,
-            "env/number_cancer_cells": info["number_cancer_cells"],
-            "env/number_cell_1": info["number_cell_1"],
-            "env/number_cell_2": info["number_cell_2"],
-            "env/reward_cancer_cells": info["reward_cancer_cells"],
-            "env/reward_drugs": info["reward_drugs"],
-        }
-        for tag, value in scalars.items():
-            writer.add_scalar(tag, value, episode)
-        if done:
-            norm_coeff = (1 - d_arg['gamma'] ** (step_episode + 1)) / (1 - d_arg['gamma'])
-            scalars = {
-                "charts/episodic_return": cumulative_return / step_episode,
-                "charts/cumulative_return": cumulative_return,
-                "charts/episodic_length": step_episode,
-                "charts/discounted_cumulative_return": discounted_cumulative_return,
-                "charts/normalized_discounted_episodic_return": discounted_cumulative_return
-                / norm_coeff,
-            }
-            for tag, value in scalars.items():
-                writer.add_scalar(tag, value, episode)
-            episode += 1
-            step_episode = 0
-            discounted_cumulative_return = 0
-            cumulative_return = 0
-            obs, info = env.reset()
-            done = False
+                for param, target_param in zip(qf1.parameters(), qf1_target.parameters()):
+                    target_param.data.copy_(d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data)
+                for param, target_param in zip(qf2.parameters(), qf2_target.parameters()):
+                    target_param.data.copy_(d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data)
+
+           
+        # write to tensoboard
+        writer.add_scalar("env/drug_1", actions[0], env.unwrapped.episode)
+        writer.add_scalar("env/reward_value", r_reward, env.unwrapped.episode)
+        writer.add_scalar("env/number_cancer_cells", d_info["number_cancer_cells"], env.unwrapped.episode)
+        writer.add_scalar("env/number_cell_1", d_info["number_cell_1"], env.unwrapped.episode)
+        writer.add_scalar("env/number_cell_2", d_info["number_cell_2"], env.unwrapped.episode)
+        writer.add_scalar("env/reward_cancer_cells", d_info["reward_cancer_cells"], env.unwrapped.episode)
+        writer.add_scalar("env/reward_drugs", d_info["reward_drugs"], env.unwrapped.episode)
+
+        # 
+        if b_episode_over:
+            norm_coeff = (1 - d_arg['gamma'] ** (env.unwrapped.step_episode + 1)) / (1 - d_arg['gamma'])
+            writer.add_scalar("charts/episodic_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
+            writer.add_scalar("charts/cumulative_return", r_cumulative_return, env.unwrapped.episode)
+            writer.add_scalar("charts/episodic_length", env.unwrapped.step_episode, env.unwrapped.episode)
+            writer.add_scalar("charts/discounted_cumulative_return", r_discounted_cumulative_return, env.unwrapped.episode)
+            writer.add_scalar("charts/normalized_discounted_episodic_return", r_discounted_cumulative_return / norm_coeff, env.unwrapped.episode)
+
+            o_observation, d_info = env.reset()
+            r_cumulative_return = 0
+            r_discounted_cumulative_return = 0
+            b_episode_over = False
 
     env.close()
     writer.close()
