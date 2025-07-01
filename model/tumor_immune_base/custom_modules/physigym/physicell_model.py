@@ -76,6 +76,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
+        if self.observation_type == "image_cell_types":
+            self.grid_size_x = grid_size_x
+            self.grid_size_y = grid_size_y
 
         # Corrected usage of super()
         super().__init__(
@@ -94,9 +97,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.np_ratio_old_nb_cancer_cells = None
         self.reward_type = reward_type
         self.type_map = {t: i for i, t in enumerate(self.unique_cell_types)}
+
         if self.observation_type == "image_cell_types":
-            self.grid_size_x = grid_size_x
-            self.grid_size_y = grid_size_y
             self.ratio_img_size_x = self.width / self.grid_size_x
             self.ratio_img_size_y = self.height / self.grid_size_y
 
