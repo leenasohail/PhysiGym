@@ -1,3 +1,4 @@
+
 #####
 # title: model/tumor_immune_base/custom_modules/physigym/sac_tib.py
 #
@@ -15,33 +16,32 @@
 
 
 #### IMPORT LIBRARIES ####
+
 # Standard Python Libraries
+from dataclasses import dataclass
+import numpy as np
 import os
 import random
 import time
-from dataclasses import dataclass
 
-# Gymnasium PhysiCell bridge module
+# gymnasium and physigym
+import gymnasium
+from gymnasium import spaces
 import physigym
 
-# Gymnasium
-import gymnasium
-from gymnasium import spaces  
-import numpy as np
-
-# Torch ecosystem
+# torch
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
-from tensordict import TensorDict
 
+# wandb
 import wandb
-#import tyro
 
-import numba
-from numba import njit, prange
+# replybuffer
+from alexlines1 import ReplayBuffer
+#from stable_baselines3.common.buffers import ReplayBuffer
 
 
 #### Arguments ####
@@ -83,25 +83,24 @@ class Args():
     autotune: bool = True   # automatic tuning of the entropy coefficient
 
 
-#### Wrapper ####
+#### Wrapper ####
 #
 # description:
 #   PhysiCell Gymnasium environment wrapper.
-#####
-
+####
 
 class PhysiCellModelWrapper(gymnasium.Wrapper):
     def __init__(
             self,
             env: gymnasium.Env,
-            ls_var: list[str] = ["drug_1"],
-            weight: float = 0.8,
+            ls_var: list[str] = ['drug_1'],
+            r_weight: float = 0.8,
         ):
         """
         input:
             env (gym.Env): The environment to wrap.
             list_variable_name (list[str]): List of variable names corresponding to actions in the original env.
-            weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
+            r_weight (float): Weight corresponding how much weight is added to the reward term related to cancer cells.
 
         output:
 
@@ -111,16 +110,16 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
 
         # Check that all variable names are strings
         if any([not isinstance(s_var, str) for s_var in ls_var]):
-            raise ValueError(f"Expected variable_name to be of type str, but got {type(variable_name).__name__}")
+            raise ValueError(f"Expected variable names in ls_var to be of type str. {ls_var}")
 
         self.ls_var = ls_var
 
-        # bue 20250601: why do whe have to transfrom this? 
+        # bue 20250601: why do whe have to transfrom this?
         a_low = np.array([env.action_space[s_var].low[0] for s_var in ls_var])
         a_high = np.array([env.action_space[s_var].high[0] for s_var in ls_var])
         self._action_space = spaces.Box(low=a_low, high=a_high, dtype=np.float64)
 
-        self.weight = weight
+        self.r_weight = r_weight
         self.reward_type = env.unwrapped.reward_type
 
     @property
@@ -138,7 +137,7 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         Returns:
             Tuple: Observation, reward, terminated, truncated, info.
         """
-        # bue 20250701: this is action, not action space 
+        # bue 20250701: this is action, not action space
         d_action = {}
         for s_var, r_value in zip(self.ls_var, ar_action):
             d_action.update({s_var: np.array([r_value])})
@@ -147,7 +146,7 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         o_observation, r_cancer_cells, b_terminated, b_truncated, info = self.env.step(d_action)
 
         # bue 20250701: what would this mean if we have more than one action space?
-        r_drugs = np.mean(ar_action)  
+        r_drugs = np.mean(ar_action)
 
         info["action"] = d_action
         info["reward_drugs"] = r_drugs
@@ -157,7 +156,7 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         if self.reward_type == "log_exp":
             r_reward = - r_cancer_cells * np.exp(r_drugs - 1)
         else:
-            r_reward = - (1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+            r_reward = - (1 - self.r_weight) * r_drugs + self.r_weight * r_cancer_cells
 
         return o_observation, r_reward, b_terminated, b_truncated, info
 
@@ -314,116 +313,6 @@ class Actor(nn.Module):
 
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
         return action, log_prob, mean
-
-
-#### Replay Buffers ####
-#
-####
-
-class ReplayBuffer(object):
-    """
-    A replay buffer for storing and sampling experiences in reinforcement learning.
-    Stores states, actions, rewards, next states, and done flags.
-    """
-
-    def __init__(
-            self,
-            state_dim,
-            action_dim,
-            device,
-            buffer_size,
-            batch_size,
-            state_type=np.float32,
-        ):
-        """
-        Initializes the replay buffer.
-
-        Parameters:
-        - state_dim tuple(int): Dimensionality of the state space.
-        - action_dim tuple(int): Dimensionality of the action space.
-        - device (torch.device): Device where tensors should be stored.
-        - buffer_size (int): Maximum size of the replay buffer.
-        - batch_size (int): Number of samples per batch.
-        - state_type (numpy dtype, optional): Data type of the state representation (default: np.float32).
-        """
-        self.device = device
-        self.buffer_size = int(buffer_size)
-
-        self.state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
-        self.next_state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
-        self.action = np.empty((self.buffer_size, *action_dim), dtype=np.float32)
-        self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
-        self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
-
-        self.buffer_index = 0
-        self.full = False
-        self.batch_size = batch_size
-
-    def __len__(self):
-        """
-        Returns the current number of stored experiences in the buffer.
-        """
-        return self.buffer_size if self.full else self.buffer_index
-
-    def add(self, state, action, reward, next_state, done):
-        """
-        Adds a new experience to the replay buffer.
-
-        Parameters:
-        - state (np.ndarray): Current state.
-        - action (np.ndarray): Action taken.
-        - reward (float): Reward received.
-        - next_state (np.ndarray): Next state after taking the action.
-        - done (bool): Whether the episode has ended.
-        """
-        self.state[self.buffer_index] = state
-        self.action[self.buffer_index] = action
-        self.reward[self.buffer_index] = reward
-        self.next_state[self.buffer_index] = next_state
-        self.done[self.buffer_index] = done
-
-        self.buffer_index = (self.buffer_index + 1) % self.buffer_size
-        self.full = self.full or self.buffer_index == 0
-
-    def sample(self):
-        """
-        Samples a batch of experiences from the replay buffer.
-
-        Returns:
-        - TensorDict containing sampled states, actions, rewards, next states, and done flags.
-        """
-        batch_size = self.batch_size
-
-        # Ensure there are enough samples in the buffer
-        assert self.full or (self.buffer_index > batch_size), (
-            "Buffer does not have enough samples"
-        )
-
-        # Generate random indices for sampling
-        sample_index = np.random.randint(
-            0, self.buffer_size if self.full else self.buffer_index, batch_size
-        )
-
-        # Convert indices to tensors and gather the sampled experiences
-        state = torch.as_tensor(self.state[sample_index]).float()
-        next_state = torch.as_tensor(self.next_state[sample_index]).float()
-        action = torch.as_tensor(self.action[sample_index])
-        reward = torch.as_tensor(self.reward[sample_index])
-        done = torch.as_tensor(self.done[sample_index])
-
-        # Create a dictionary of the sampled experiences
-        sample = TensorDict(
-            {
-                "state": state,
-                "action": action,
-                "reward": reward,
-                "next_state": next_state,
-                "done": done,
-            },
-            batch_size=batch_size,
-            device=self.device,
-        )
-        return sample
 
 
 #### Algorithm Logic ####
