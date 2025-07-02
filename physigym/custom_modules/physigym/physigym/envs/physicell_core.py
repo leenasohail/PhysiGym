@@ -258,25 +258,20 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.height = self.y_max + 2 * self.dy - self.y_min
         self.depth = self.z_max + 2 * self.dz - self.z_min
 
-        cell_definitions = self.x_root.xpath("//cell_definitions/cell_definition")
-        self.color_mapping = {}  # This will map type IDs to specific colors
-
-        # Get the list of unique cell types
-        self.unique_cell_types = sorted(
-            [cell_def.xpath("./@name")[0] for cell_def in cell_definitions]
+        self.type_to_idx = dict(
+            zip(
+                self.x_root.xpath("//cell_definitions/cell_definition/@name"),
+                self.x_root.xpath("//cell_definitions/cell_definition/@ID"),
+            )
         )
-        self.num_cell_types = len(self.unique_cell_types)
-        self.type_to_idx = {
-            cell_type: idx for idx, cell_type in enumerate(self.unique_cell_types)
-        }
+        self.num_cell_types = len(self.type_to_idx)
+        self.unique_cell_types = [
+            s_value for s_value, _ in sorted(self.type_to_idx.items())
+        ]
 
+        self.color_mapping = {}  # This will map type IDs to specific colors
         for i, cell_type in enumerate(self.unique_cell_types):
             self.color_mapping[cell_type] = COLORS[i]
-
-        self.color_mapping_255 = {
-            key: tuple(np.array(value) * 255)
-            for key, value in self.color_mapping.items()
-        }
 
         # max time
         # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
@@ -468,7 +463,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         b_truncated = False
         # achtung: time has to be declared as parameter of type float in the settings.xml file!
         r_time_current = physicell.get_parameter("time")
-        print(f"current python3 time: {round(r_time_current, 3)}")
+        if self.verbose:
+            print(f"current python3 time: {round(r_time_current, 3)}")
         b_truncated = self.i_time_current == int(r_time_current)
         self.i_time_current = int(r_time_current)
 
@@ -623,13 +619,12 @@ class CorePhysiCellEnv(gymnasium.Env):
         # get observation
         if self.verbose:
             print(f"physigym: domain observation.")
+
         o_observation = self.get_observation()
         b_terminated = self.get_terminated()
         b_truncated = self.get_truncated()
-        d_info = self.get_info()
-
-        # get revard
         r_reward = self.get_reward()
+        d_info = self.get_info()
 
         # do rendering
         if self.verbose:
