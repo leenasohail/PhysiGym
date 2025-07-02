@@ -318,9 +318,7 @@ class Args():
 
 #############
 # main loop #
-##############
-####
-
+#############
 
 def main():
     d_arg = vars(Args())
@@ -412,10 +410,10 @@ def main():
     r_cumulative_return = 0
     r_discounted_cumulative_return = 0
 
-    for global_step in range(d_arg['total_timesteps']):
+    while env.unwrapped.step_env < d_arg['total_timesteps']:
 
         # sample the action space or learn
-        if global_step <= d_arg['learning_starts']:
+        if env.unwrapped.step_env <= d_arg['learning_starts']:
             a_action = np.array(env.action_space.sample(), dtype=np.float16)
         else:
             x = torch.Tensor(o_observation).to(device).unsqueeze(0)
@@ -512,7 +510,7 @@ def main():
                 writer.add_scalar("losses/entropy", - log_pi.mean().item(), env.unwrapped.step_env)  # entropy
 
             # update the target networks
-            if global_step % d_arg['target_network_frequency'] == 0:
+            if env.unwrapped.step_env % d_arg['target_network_frequency'] == 0:
                 for param, target_param in zip(qf1.parameters(), qf1_target.parameters()):
                     target_param.data.copy_(d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data)
                 for param, target_param in zip(qf2.parameters(), qf2_target.parameters()):
