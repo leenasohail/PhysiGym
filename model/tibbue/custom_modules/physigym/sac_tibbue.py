@@ -398,12 +398,12 @@ def main():
 
     # initilize the reply buffer
     rb = ReplayBuffer(
-        state_dim=env.observation_space.shape,
-        action_dim=env.action_space.shape,
+        o_observation_dim=env.observation_space.shape,
+        a_action_dim=env.action_space.shape,
         device=device,
         buffer_size=d_arg['buffer_size'],
         batch_size=d_arg['batch_size'],
-        state_type=env.observation_space.dtype,
+        o_observation_type=env.observation_space.dtype,
     )
 
 
@@ -416,20 +416,26 @@ def main():
 
         # sample the action space or learn
         if global_step <= d_arg['learning_starts']:
-            actions = np.array(env.action_space.sample(), dtype=np.float16)
+            a_action = np.array(env.action_space.sample(), dtype=np.float16)
         else:
             x = torch.Tensor(o_observation).to(device).unsqueeze(0)
             actions, _, _ = actor.get_action(x)
-            actions = actions.detach().squeeze(0).cpu().numpy()
+            a_action = actions.detach().squeeze(0).cpu().numpy()
 
         # physigym step
-        o_observation_next, r_reward, b_terminated, b_truncated, d_info = env.step(actions)
+        o_observation_next, r_reward, b_terminated, b_truncated, d_info = env.step(a_action)
         b_episode_over = b_terminated or b_truncated
         r_cumulative_return += r_reward
         r_discounted_cumulative_return += r_reward * d_arg['gamma'] ** (env.unwrapped.step_episode)
 
         # record to reply buffer
-        rb.add(o_observation, actions, r_reward, o_observation, b_episode_over)
+        rb.add(
+            o_observation=o_observation,
+            a_action=a_action,
+            o_observation_next=o_observation_next,
+            r_reward=r_reward,
+            b_episode_over=b_episode_over,
+        )
 
         # process observation
         o_observation = o_observation_next.copy()
@@ -453,7 +459,7 @@ def main():
                 qf1_next_target = qf1_target(data["next_state"], next_state_actions)
                 qf2_next_target = qf2_target(data["next_state"], next_state_actions)
                 min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - alpha * next_state_log_pi
-                next_q_value = data["reward"].flatten() + (1 - data["done"].flatten()) * d_arg['gamma'] * (min_qf_next_target).view(-1)
+                next_q_value = data["r_reward"].flatten() + (1 - data["b_episode_over"].flatten()) * d_arg['gamma'] * (min_qf_next_target).view(-1)
 
             qf1_a_values = qf1(data["state"], data["action"]).view(-1)
             qf2_a_values = qf2(data["state"], data["action"]).view(-1)
@@ -470,7 +476,7 @@ def main():
             if env.unwrapped.step_env % d_arg['policy_frequency'] == 0:  # TD 3 Delayed update support
 
                 # compensate for the delay by doing 'actor_update_interval' instead of 1
-                for _ in range(d_arg['policy_frequency']):  
+                for _ in range(d_arg['policy_frequency']):
                     pi, log_pi, _ = actor.get_action(data["state"])
 
                     qf1_pi = qf1(data["state"], pi)
@@ -512,9 +518,9 @@ def main():
                 for param, target_param in zip(qf2.parameters(), qf2_target.parameters()):
                     target_param.data.copy_(d_arg['tau'] * param.data + (1 - d_arg['tau']) * target_param.data)
 
-           
+
         # write to tensoboard
-        writer.add_scalar("env/drug_1", actions[0], env.unwrapped.episode)
+        writer.add_scalar("env/drug_1", a_action[0], env.unwrapped.episode)
         writer.add_scalar("env/reward_value", r_reward, env.unwrapped.episode)
         writer.add_scalar("env/number_cancer_cells", d_info["number_cancer_cells"], env.unwrapped.episode)
         writer.add_scalar("env/number_cell_1", d_info["number_cell_1"], env.unwrapped.episode)
@@ -522,7 +528,7 @@ def main():
         writer.add_scalar("env/reward_cancer_cells", d_info["reward_cancer_cells"], env.unwrapped.episode)
         writer.add_scalar("env/reward_drugs", d_info["reward_drugs"], env.unwrapped.episode)
 
-        # 
+        #
         if b_episode_over:
             norm_coeff = (1 - d_arg['gamma'] ** (env.unwrapped.step_episode + 1)) / (1 - d_arg['gamma'])
             writer.add_scalar("charts/episodic_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)

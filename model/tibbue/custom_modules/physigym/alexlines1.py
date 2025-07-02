@@ -20,37 +20,37 @@ from tensordict import TensorDict
 class ReplayBuffer(object):
     """
     A replay buffer for storing and sampling experiences in reinforcement learning.
-    Stores states, actions, rewards, next states, and done flags.
+    Stores o_observations, a_actions, r_rewards, next o_observations, and b_episode_over flags.
     """
 
     def __init__(
             self,
-            state_dim,
-            action_dim,
+            o_observation_dim,
+            a_action_dim,
             device,
             buffer_size,
             batch_size,
-            state_type=np.float32,
+            o_observation_type=np.float32,
         ):
         """
         Initializes the replay buffer.
 
         Parameters:
-        - state_dim tuple(int): Dimensionality of the state space.
-        - action_dim tuple(int): Dimensionality of the action space.
+        - o_observation_dim tuple(int): Dimensionality of the o_observation space.
+        - a_action_dim tuple(int): Dimensionality of the a_action space.
         - device (torch.device): Device where tensors should be stored.
         - buffer_size (int): Maximum size of the replay buffer.
         - batch_size (int): Number of samples per batch.
-        - state_type (numpy dtype, optional): Data type of the state representation (default: np.float32).
+        - o_observation_type (numpy dtype, optional): Data type of the o_observation representation (default: np.float32).
         """
         self.device = device
         self.buffer_size = int(buffer_size)
 
-        self.state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
-        self.next_state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
-        self.action = np.empty((self.buffer_size, *action_dim), dtype=np.float32)
-        self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
-        self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
+        self.o_observation = np.empty((self.buffer_size, *o_observation_dim), dtype=o_observation_type)
+        self.o_observation_next = np.empty((self.buffer_size, *o_observation_dim), dtype=o_observation_type)
+        self.a_action = np.empty((self.buffer_size, *a_action_dim), dtype=np.float32)
+        self.r_reward = np.empty((self.buffer_size, 1), dtype=np.float32)
+        self.b_episode_over = np.empty((self.buffer_size, 1), dtype=np.uint8)
 
         self.buffer_index = 0
         self.full = False
@@ -62,22 +62,22 @@ class ReplayBuffer(object):
         """
         return self.buffer_size if self.full else self.buffer_index
 
-    def add(self, state, action, reward, next_state, done):
+    def add(self, o_observation, a_action, o_observation_next, r_reward, b_episode_over):
         """
         Adds a new experience to the replay buffer.
 
         Parameters:
-        - state (np.ndarray): Current state.
-        - action (np.ndarray): Action taken.
-        - reward (float): Reward received.
-        - next_state (np.ndarray): Next state after taking the action.
-        - done (bool): Whether the episode has ended.
+        - o_observation (np.ndarray): Current o_observation.
+        - a_action (np.ndarray): Action taken.
+        - o_observation_next (np.ndarray): Next o_observation after taking the a_action.
+        - r_reward (float): Reward received.
+        - b_episode_over (bool): Whether the episode has ended.
         """
-        self.state[self.buffer_index] = state
-        self.action[self.buffer_index] = action
-        self.reward[self.buffer_index] = reward
-        self.next_state[self.buffer_index] = next_state
-        self.done[self.buffer_index] = done
+        self.o_observation[self.buffer_index] = o_observation
+        self.a_action[self.buffer_index] = a_action
+        self.r_reward[self.buffer_index] = r_reward
+        self.o_observation_next[self.buffer_index] = o_observation_next
+        self.b_episode_over[self.buffer_index] = b_episode_over
 
         self.buffer_index = (self.buffer_index + 1) % self.buffer_size
         self.full = self.full or self.buffer_index == 0
@@ -87,35 +87,31 @@ class ReplayBuffer(object):
         Samples a batch of experiences from the replay buffer.
 
         Returns:
-        - TensorDict containing sampled states, actions, rewards, next states, and done flags.
+        - TensorDict containing sampled o_observations, a_actions, r_rewards, next o_observations, and b_episode_over flags.
         """
         batch_size = self.batch_size
 
         # Ensure there are enough samples in the buffer
-        assert self.full or (self.buffer_index > batch_size), (
-            "Buffer does not have enough samples"
-        )
+        assert self.full or (self.buffer_index > batch_size), "Buffer does not have enough samples"
 
         # Generate random indices for sampling
-        sample_index = np.random.randint(
-            0, self.buffer_size if self.full else self.buffer_index, batch_size
-        )
+        sample_index = np.random.randint(0, self.buffer_size if self.full else self.buffer_index, batch_size)
 
         # Convert indices to tensors and gather the sampled experiences
-        state = torch.as_tensor(self.state[sample_index]).float()
-        next_state = torch.as_tensor(self.next_state[sample_index]).float()
-        action = torch.as_tensor(self.action[sample_index])
-        reward = torch.as_tensor(self.reward[sample_index])
-        done = torch.as_tensor(self.done[sample_index])
+        o_observation = torch.as_tensor(self.o_observation[sample_index]).float()
+        a_action = torch.as_tensor(self.a_action[sample_index])
+        o_observation_next = torch.as_tensor(self.o_observation_next[sample_index]).float()
+        r_reward = torch.as_tensor(self.r_reward[sample_index])
+        b_episode_over = torch.as_tensor(self.b_episode_over[sample_index])
 
         # Create a dictionary of the sampled experiences
         sample = TensorDict(
             {
-                "state": state,
-                "action": action,
-                "reward": reward,
-                "next_state": next_state,
-                "done": done,
+                "o_observation": o_observation,
+                "a_action": a_action,
+                "o_observation_next": o_observation_next,
+                "r_reward": r_reward,
+                "b_episode_over": b_episode_over,
             },
             batch_size=batch_size,
             device=self.device,
