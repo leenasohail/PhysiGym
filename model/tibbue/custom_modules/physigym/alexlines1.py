@@ -25,42 +25,42 @@ class ReplayBuffer(object):
 
     def __init__(
             self,
-            o_observation_dim,
-            a_action_dim,
-            device,
-            buffer_size,
-            batch_size,
+            li_observation_dim,
+            li_action_dim,
+            o_device,
+            i_buffer_size,
+            i_batch_size,
             o_observation_type=np.float32,
         ):
         """
         Initializes the replay buffer.
 
         Parameters:
-        - o_observation_dim tuple(int): Dimensionality of the o_observation space.
-        - a_action_dim tuple(int): Dimensionality of the a_action space.
-        - device (torch.device): Device where tensors should be stored.
-        - buffer_size (int): Maximum size of the replay buffer.
-        - batch_size (int): Number of samples per batch.
+        - li_observation_dim tuple(int): Dimensionality of the o_observation space.
         - o_observation_type (numpy dtype, optional): Data type of the o_observation representation (default: np.float32).
+        - li_action_dim tuple(int): Dimensionality of the a_action space.
+        - o_device (torch.o_device): Device where tensors should be stored.
+        - i_buffer_size (int): Maximum size of the replay buffer.
+        - i_batch_size (int): Number of samples per batch.
         """
-        self.device = device
-        self.buffer_size = int(buffer_size)
+        self.o_device = o_device
+        self.i_buffer_size = int(i_buffer_size)
+        self.i_batch_size = int(i_batch_size)
 
-        self.o_observation = np.empty((self.buffer_size, *o_observation_dim), dtype=o_observation_type)
-        self.o_observation_next = np.empty((self.buffer_size, *o_observation_dim), dtype=o_observation_type)
-        self.a_action = np.empty((self.buffer_size, *a_action_dim), dtype=np.float32)
-        self.r_reward = np.empty((self.buffer_size, 1), dtype=np.float32)
-        self.b_episode_over = np.empty((self.buffer_size, 1), dtype=np.uint8)
+        self.ao_observation = np.empty((self.i_buffer_size, *li_observation_dim), dtype=o_observation_type)
+        self.ao_observation_next = np.empty((self.i_buffer_size, *li_observation_dim), dtype=o_observation_type)
+        self.aa_action = np.empty((self.i_buffer_size, *li_action_dim), dtype=np.float32)
+        self.ar_reward = np.empty((self.i_buffer_size, 1), dtype=np.float32)
+        self.ab_episode_over = np.empty((self.i_buffer_size, 1), dtype=np.uint8)
 
         self.buffer_index = 0
         self.full = False
-        self.batch_size = batch_size
 
     def __len__(self):
         """
         Returns the current number of stored experiences in the buffer.
         """
-        return self.buffer_size if self.full else self.buffer_index
+        return self.i_buffer_size if self.full else self.buffer_index
 
     def add(self, o_observation, a_action, o_observation_next, r_reward, b_episode_over):
         """
@@ -73,13 +73,13 @@ class ReplayBuffer(object):
         - r_reward (float): Reward received.
         - b_episode_over (bool): Whether the episode has ended.
         """
-        self.o_observation[self.buffer_index] = o_observation
-        self.a_action[self.buffer_index] = a_action
-        self.r_reward[self.buffer_index] = r_reward
-        self.o_observation_next[self.buffer_index] = o_observation_next
-        self.b_episode_over[self.buffer_index] = b_episode_over
+        self.ao_observation[self.buffer_index] = o_observation
+        self.aa_action[self.buffer_index] = a_action
+        self.ao_observation_next[self.buffer_index] = o_observation_next
+        self.ar_reward[self.buffer_index] = r_reward
+        self.ab_episode_over[self.buffer_index] = b_episode_over
 
-        self.buffer_index = (self.buffer_index + 1) % self.buffer_size
+        self.buffer_index = (self.buffer_index + 1) % self.i_buffer_size
         self.full = self.full or self.buffer_index == 0
 
     def sample(self):
@@ -89,31 +89,29 @@ class ReplayBuffer(object):
         Returns:
         - TensorDict containing sampled o_observations, a_actions, r_rewards, next o_observations, and b_episode_over flags.
         """
-        batch_size = self.batch_size
-
         # Ensure there are enough samples in the buffer
-        assert self.full or (self.buffer_index > batch_size), "Buffer does not have enough samples"
+        assert not (self.full or (self.buffer_index < self.i_batch_size)), "Buffer does not have enough samples"
 
         # Generate random indices for sampling
-        sample_index = np.random.randint(0, self.buffer_size if self.full else self.buffer_index, batch_size)
+        sample_index = np.random.randint(0, self.i_buffer_size if self.full else self.buffer_index, self.i_batch_size)
 
         # Convert indices to tensors and gather the sampled experiences
-        o_observation = torch.as_tensor(self.o_observation[sample_index]).float()
-        a_action = torch.as_tensor(self.a_action[sample_index])
-        o_observation_next = torch.as_tensor(self.o_observation_next[sample_index]).float()
-        r_reward = torch.as_tensor(self.r_reward[sample_index])
-        b_episode_over = torch.as_tensor(self.b_episode_over[sample_index])
+        oo_observation = torch.as_tensor(self.ao_observation[sample_index]).float()
+        oa_action = torch.as_tensor(self.aa_action[sample_index])
+        oo_observation_next = torch.as_tensor(self.ao_observation_next[sample_index]).float()
+        or_reward = torch.as_tensor(self.ar_reward[sample_index])
+        ob_episode_over = torch.as_tensor(self.ab_episode_over[sample_index])
 
         # Create a dictionary of the sampled experiences
         sample = TensorDict(
             {
-                "o_observation": o_observation,
-                "a_action": a_action,
-                "o_observation_next": o_observation_next,
-                "r_reward": r_reward,
-                "b_episode_over": b_episode_over,
+                "observation": oo_observation,
+                "action": oa_action,
+                "observation_next": oo_observation_next,
+                "reward": or_reward,
+                "episode_over": ob_episode_over,
             },
-            batch_size=batch_size,
-            device=self.device,
+            batch_size=self.i_batch_size,
+            device=self.o_device,
         )
         return sample
