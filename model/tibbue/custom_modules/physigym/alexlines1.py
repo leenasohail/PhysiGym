@@ -1,8 +1,8 @@
 #####
-# title: model/tumor_immune_base/custom_modules/physigym/sac_tib.py
+# title: custom_modules/physigym/physigym/envs/alexlines1.py
 #
 # language: python3
-# main libraries: gymnasium, physigym, torch
+# main libraries: numpy, torch, tensordict
 #
 # date: 2024-spring
 # license: BSD-3-Clause
@@ -10,7 +10,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     sac implementation for tumor immune base model
+#   library generic functions usedfull for rl with physigym.
 #####
 
 import numpy as np
@@ -20,7 +20,7 @@ from tensordict import TensorDict
 class ReplayBuffer(object):
     """
     A replay buffer for storing and sampling experiences in reinforcement learning.
-    Stores o_observations, a_actions, r_rewards, next o_observations, and b_episode_over flags.
+    Stores o_observations, a_actions, next o_observations, r_rewards, and b_episode_over flags.
     """
 
     def __init__(
@@ -87,7 +87,7 @@ class ReplayBuffer(object):
         Samples a batch of experiences from the replay buffer.
 
         Returns:
-        - TensorDict containing sampled o_observations, a_actions, r_rewards, next o_observations, and b_episode_over flags.
+        - TensorDict containing sampled observations, actions, rewards, next observations, rewards, and episode_over flags.
         """
         # Ensure there are enough samples in the buffer
         assert not (self.full or (self.buffer_index < self.i_batch_size)), "Buffer does not have enough samples"
@@ -102,7 +102,7 @@ class ReplayBuffer(object):
         or_reward = torch.as_tensor(self.ar_reward[sample_index])
         ob_episode_over = torch.as_tensor(self.ab_episode_over[sample_index])
 
-        # Create a dictionary of the sampled experiences
+        # Create a dictionary of the sampled jimi hendrix experiences
         sample = TensorDict(
             {
                 "observation": oo_observation,

@@ -2,7 +2,7 @@
 # title: model/tumor_immune_base/custom_modules/physigym/sac_tib.py
 #
 # language: python3
-# main libraries: gymnasium, physigym, torch
+# main libraries: gymnasium, physigym, numpy, torch, wandb
 #
 # date: 2024-spring
 # license: BSD-3-Clause
@@ -10,12 +10,12 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     sac implementation for tumor immune base model
+#   sac implementation for tumor immune base model.
+#   implementation is based on the following source code:
 # + https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
 #####
 
 # core python
-from dataclasses import dataclass, field
 import numpy as np
 import os
 import random
