@@ -53,7 +53,7 @@ make
 ### 1. Problem Statement
 
 How can we find a treatment regime that reduces tumor size while minimizing drug usage?
-In other words, we aim to learn a <span style="color: blue;">Policy</span>  a mapping from states to actions that defines the optimal amount of drug to apply over time.
+In other words, we aim to learn a **Policy**  a mapping from states to actions that defines the optimal amount of drug to apply over time.
 
 A suitable framework to solve this control problem is **Reinforcement Learning (RL)**, which we will use in this tutorial.
 
@@ -292,11 +292,11 @@ The **y-axis** represents the expected return, while the **x-axis** represents t
 The figure shows three different learning curves corresponding to different state space representations. In our environment, the **scalars** and **multi_channels** state spaces achieve a higher discounted cumulative return compared to **image_gray**.
 
 You may also see the ![different dynamic treatment regimes](img/final_plot.jpg).
-- <span style="color: green;">Default</span>
+- 🟢 **Default**
   - No treatment: $d_t = 0$ for all $t$.
-- <span style="color: orange;">Random</span>
+- 🟠 **Random**
   - Random drug doses sampled uniformly from $[0,1]$ each step.
-- <span style="color: blue;">Policy</span>
+- 🔵 **Policy**
   - Drug doses selected by the learned SAC reinforcement learning policy.
 
 ### First plot: Discounted cumulative return
@@ -308,27 +308,27 @@ $$
 $$
 
 - Observations:
-  - <span style="color: blue;">Policy</span> achieves the highest return, rising quickly and plateauing caused by the termination.
-  - <span style="color: orange;">Random</span> performs moderately well but less efficiently.
-  - <span style="color: green;">Default</span> declines over time due to unchecked tumor growth.
+  - 🔵 **Policy** achieves the highest return, rising quickly and plateauing caused by the termination.
+  - 🟠 **Random** performs moderately well but less efficiently.
+  - 🟢 **Default** declines over time due to unchecked tumor growth.
 
 ### Second plot: Drug administration (drug_1)
 
-- <span style="color: blue;">Policy</span> applies drug in a more controlled, adaptive manner.
-- <span style="color: orange;">Random</span> shows wide fluctuations.
-- <span style="color: green;">Default</span> remains at zero.
+- 🔵 **Policy** applies drug in a more controlled, adaptive manner.
+- 🟠 **Random** shows wide fluctuations.
+- 🟢 **Default** remains at zero.
 
 ### Third plot: Number of tumor cells (center cells)
 
-- <span style="color: blue;">Policy</span> rapidly reduces tumor cells to near zero.
-- <span style="color: orange;">Random</span> reduces them more slowly.
-- <span style="color: green;">Default</span> shows tumor cells growing over time.
+- 🔵 **Policy** rapidly reduces tumor cells to near zero.
+- 🟠 **Random** reduces them more slowly.
+- 🟢 **Default** shows tumor cells growing over time.
 
 ### Fourth plot: Cell counts (cell_1 and cell_2)
 
-- <span style="color: blue;">Policy</span>, the environment terminates early due to successful tumor elimination, hence sudden drop.
-- <span style="color: orange;">Random</span> keeps cell counts fluctuating, reducing over time.
-- <span style="color: green;">Default</span> sees cell_1 growing due to no intervention.
+- 🔵 **Policy**, the environment terminates early due to successful tumor elimination, hence sudden drop.
+- 🟠 **Random** keeps cell counts fluctuating, reducing over time.
+- 🟢 **Default** sees cell_1 growing due to no intervention.
 
 ---
 The SAC-learned policy is significantly more effective at controlling tumor growth while balancing drug use, achieving higher discounted returns compared to random or no treatment.
