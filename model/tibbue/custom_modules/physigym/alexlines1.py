@@ -6,7 +6,7 @@
 #
 # date: 2024-spring
 # license: BSD-3-Clause
-# author: Alexandre Bertin, Elmar Bucher
+# author: Alexandre Bertin
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
@@ -114,4 +114,6 @@ class ReplayBuffer(object):
             batch_size=self.i_batch_size,
             device=self.o_device,
         )
+
+        # Going home
         return sample

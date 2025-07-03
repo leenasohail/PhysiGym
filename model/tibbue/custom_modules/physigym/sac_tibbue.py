@@ -6,7 +6,7 @@
 #
 # date: 2024-spring
 # license: BSD-3-Clause
-# author: Alexandre Bertin, Elmar Bucher
+# author: Alexandre Bertin
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
@@ -49,8 +49,8 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
     def __init__(
             self,
             env: gymnasium.Env,
+            ls_action: list[str],
             r_weight: float,
-            ls_var: list[str],
         ):
         """
         input:
@@ -65,23 +65,24 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         super().__init__(env)
 
         # Check that all variable names are strings
-        if any([not isinstance(s_var, str) for s_var in ls_var]):
-            raise ValueError(f'Expected variable names in ls_var to be of type str. {ls_var}')
+        if any([not isinstance(s_action, str) for s_action in ls_action]):
+            raise ValueError(f'Expected variable names in ls_action to be of type str. {ls_action}')
 
-        self.ls_var = ls_var
+        # set instance local variable
+        self.ls_action = ls_action
+        self.r_weight = r_weight
 
-        # bue 20250601: why do whe have to transfrom this?
-        a_low = np.array([env.action_space[s_var].low[0] for s_var in ls_var])
-        a_high = np.array([env.action_space[s_var].high[0] for s_var in ls_var])
+        # numpy flattend action space
+        a_low = np.array([env.action_space[s_action].low[0] for s_action in ls_action])
+        a_high = np.array([env.action_space[s_action].high[0] for s_action in ls_action])
         self._action_space = spaces.Box(low=a_low, high=a_high, dtype=np.float64)
 
-        self.r_weight = r_weight
-        self.reward_type = env.unwrapped.reward_type
 
     @property
     def action_space(self):
         """Returns the flattened action space for the wrapper."""
         return self._action_space
+
 
     def step(self, ar_action: np.ndarray):
         """
@@ -93,27 +94,29 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         Returns:
             Tuple: Observation, reward, terminated, truncated, info.
         """
-        # bue 20250701: this is action, not action space
+        # action, not action space
         d_action = {}
-        for s_var, r_value in zip(self.ls_var, ar_action):
-            d_action.update({s_var: np.array([r_value])})
+        for s_action, r_value in zip(self.ls_action, ar_action):
+            d_action.update({s_action: np.array([r_value])})
 
-        # Take a step in the environment
+        # take a step in the environment
         o_observation, r_cancer_cells, b_terminated, b_truncated, d_info = self.env.step(d_action)
 
-        # bue 20250701: what would this mean if we have more than one action space?
+        # the mean of all the actions (e.g. one or multiple drugs).
         r_drugs = np.mean(ar_action)
 
+        # update the info dictionary
         d_info['action'] = d_action
         d_info['reward_drugs'] = r_drugs
         d_info['reward_cancer_cells'] = r_cancer_cells
 
-        # If you reward function is different from a sum you can add a new condition
-        if self.reward_type == 'log_exp':
-            r_reward = - r_cancer_cells * np.exp(r_drugs - 1)
-        else:
-            r_reward = - (1 - self.r_weight) * r_drugs + self.r_weight * r_cancer_cells
+        # if you reward function is different from a sum you can add a new condition
+        #if env.unwrapped.reward_type == 'log_exp':
+        #    r_reward = - r_cancer_cells * np.exp(r_drugs - 1)
+        #else:
+        r_reward = - (1 - self.r_weight) * r_drugs + self.r_weight * r_cancer_cells
 
+        # going home
         return o_observation, r_reward, b_terminated, b_truncated, d_info
 
 
@@ -245,9 +248,7 @@ class Actor(nn.Module):
         mean = self.fc_mean(x)
         log_std = self.fc_logstd(x)
         log_std = torch.tanh(log_std)
-        log_std = self.LOG_STD_MIN + 0.5 * (self.LOG_STD_MAX - self.LOG_STD_MIN) * (
-            log_std + 1
-        )  # Stable variance scaling
+        log_std = self.LOG_STD_MIN + 0.5 * (self.LOG_STD_MAX - self.LOG_STD_MIN) * (log_std + 1)  # Stable variance scaling
 
         return mean, log_std
 
@@ -276,13 +277,13 @@ d_arg = {
     # basics
     'name' : 'sac',   # str: the name of this experiment
 
+    # hardware
+    'cuda' : True,   # bool: should torch check for gpu (nvidia, amd mroc) accelerator?
+
     # tracking
     'wandb_track' : False,   # bool: track with wandb
     'wandb_entity' : 'corporate-manu-sureli',   # str: the wandb s entity name
     'wandb_project_name' : 'SAC_IMAGE_TIB',   # str: the wandb s project name
-
-    # hardware
-    'cuda' : True,   # bool: should torch check for gpu (nvidia, amd mroc) accelerator?
 
     # random seed
     'seed' : 1,   # int: seed of the experiment
@@ -290,10 +291,10 @@ d_arg = {
 
     # physigym
     'env_id' : 'physigym/ModelPhysiCellEnv-v0',   # str: the id of the gymnasium environment
-    'weight' : 0.5,   # float: weight for the reduction of tumor
-    'ls_var' : ['drug_1'],  # list of str: of action varaible names
     'observation_type' : 'image_cell_types',   # str: the type of observation
-    'reward_type' : 'dummy_linear',   # str: type of the reward
+    'ls_action' : ['drug_1'],  # list of str: of action varaible names
+    #'reward_type' : 'dummy_linear',   # str: type of the reward
+    'weight' : 0.5,   # float: weight for the reduction of tumor
     'total_timesteps' : int(1e6),    # int: the learning rate of the optimizer
 
     # neural network
@@ -320,7 +321,7 @@ d_arg = {
 #############
 
 # initialize tracking
-s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_type']}_weight_{d_arg['weight']}_rewardtype_{d_arg['reward_type']}_time_{int(time.time())}"
+s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_type']}_weight_{d_arg['weight']}_time_{int(time.time())}"
 if d_arg['wandb_track']:
     print('tracking: wandb ...')
     run = wandb.init(
@@ -332,18 +333,19 @@ if d_arg['wandb_track']:
         monitor_gym=True,
         save_code=True,
     )
-    s_dir = os.path.join(run.dir, s_run)  # run.dir wandb/run-20250612_123456-abcdef
+    s_dir_run = os.path.join(run.dir, s_run)  # run.dir wandb/run-20250612_123456-abcdef
 else:
     print('tracking tensorboard ...')
-    s_dir = os.path.join('tensorboard', s_run)
-os.makedirs(s_dir, exist_ok=True)
+    s_dir_run = os.path.join('tensorboard', s_run)
+s_dir_data = os.path.join(s_dir_run, 'data')
+os.makedirs(s_dir_data, exist_ok=True)
 
 # initialize tensorbord writer
-writer = tensorboard.SummaryWriter(s_dir)
+writer = tensorboard.SummaryWriter(s_dir_run)
 writer.add_text(
     'hyperparameters',
     '|param|value|\n|-|-|\n%s'
-    % ("\n".join([f'|{s_key}|{s_value}|' for s_key, s_value in sorted(d_arg.items())])),
+    % ('\n'.join([f'|{s_key}|{s_value}|' for s_key, s_value in sorted(d_arg.items())])),
 )
 
 # set random seed
@@ -357,11 +359,11 @@ torch.backends.cudnn.deterministic = d_arg['torch_deterministic']
 env = gymnasium.make(
     d_arg['env_id'],
     observation_type=d_arg['observation_type'],
-    reward_type=d_arg['reward_type'],
+    #reward_type=d_arg['reward_type'],
 )
 env = PhysiCellModelWrapper(
     env=env,
-    ls_var=d_arg['ls_var'],
+    ls_action=d_arg['ls_action'],
     r_weight=d_arg['weight'],
 
 )
@@ -405,6 +407,7 @@ r_cumulative_return = 0
 r_discounted_cumulative_return = 0
 
 # do reinforcement
+ld_data = []
 while env.unwrapped.step_env < d_arg['total_timesteps']:
 
     # sample the action space or learn
@@ -432,6 +435,21 @@ while env.unwrapped.step_env < d_arg['total_timesteps']:
 
     # handle observation
     o_observation = o_observation_next
+
+
+    # upadte data output
+    d_data = {
+        "step": env.unwrapped.step_episode,
+        "rewards": r_reward,
+        "cumulative_return": r_cumulative_return,
+        "discounted_cumulative_return": r_discounted_cumulative_return,
+        "drug_1": a_action[0],
+        "number_cancer_cells": d_info["number_cancer_cells"],
+        "number_cell_1": d_info["number_cell_1"],
+        "number_cell_2": d_info["number_cell_2"],
+    }
+    ld_data.append(d_data)
+
 
     # for debugung the reply buffer
     #if env.unwrapped.step_env == d_arg['batch_size']:
@@ -502,7 +520,8 @@ while env.unwrapped.step_env < d_arg['total_timesteps']:
             writer.add_scalar('losses/qf2_loss', qf2_loss.item(), env.unwrapped.step_env)
             writer.add_scalar('losses/qf_loss', qf_loss.item() / 2.0, env.unwrapped.step_env)
             writer.add_scalar('losses/actor_loss', actor_loss.item(), env.unwrapped.step_env)
-            writer.add_scalar('losses/entropy', - log_pi.mean().item(), env.unwrapped.step_env)  # entropy
+            entropy = - log_pi.mean().item()
+            writer.add_scalar('losses/entropy', entropy, env.unwrapped.step_env)
 
         # update the target networks
         if env.unwrapped.step_env % d_arg['target_network_frequency'] == 0:
@@ -524,18 +543,23 @@ while env.unwrapped.step_env < d_arg['total_timesteps']:
     # if episode is over
     if b_episode_over:
         # write to tensorbord
-        norm_coeff = (1 - d_arg['gamma'] ** (env.unwrapped.step_episode + 1)) / (1 - d_arg['gamma'])
-        writer.add_scalar('charts/episodic_return', r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
+        #norm_coeff = (1 - d_arg['gamma'] ** (env.unwrapped.step_episode + 1)) / (1 - d_arg['gamma'])
+        #writer.add_scalar('charts/episodic_return', r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
         writer.add_scalar('charts/cumulative_return', r_cumulative_return, env.unwrapped.episode)
         writer.add_scalar('charts/episodic_length', env.unwrapped.step_episode, env.unwrapped.episode)
         writer.add_scalar('charts/discounted_cumulative_return', r_discounted_cumulative_return, env.unwrapped.episode)
-        writer.add_scalar('charts/normalized_discounted_episodic_return', r_discounted_cumulative_return / norm_coeff, env.unwrapped.episode)
+        #writer.add_scalar('charts/normalized_discounted_episodic_return', r_discounted_cumulative_return / norm_coeff, env.unwrapped.episode)
+
+        # write data
+        df = pd.DataFrame(ld_data)
+        df.to_csv(os.path.join(s_dir_data, env.unwrapped.episode, 'data.csv'), index=False)
 
         # reset gymnasium environment and global variables
         o_observation, d_info = env.reset()
         r_cumulative_return = 0
         r_discounted_cumulative_return = 0
         b_episode_over = False
+        ld_data = []
 
 # finish
 env.close()
