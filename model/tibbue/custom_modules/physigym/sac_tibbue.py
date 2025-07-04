@@ -64,10 +64,6 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         """
         super().__init__(env)
 
-        # Check that all variable names are strings
-        if any([not isinstance(s_action, str) for s_action in ls_action]):
-            raise ValueError(f'Expected variable names in ls_action to be of type str. {ls_action}')
-
         # set instance local variable
         self.ls_action = ls_action
         self.r_weight = r_weight
@@ -96,25 +92,23 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         """
         # action, not action space
         d_action = {}
+        #for s_action, r_value in zip(self.ls_action, ar_action):
         for s_action, r_value in zip(self.ls_action, ar_action):
             d_action.update({s_action: np.array([r_value])})
 
         # take a step in the environment
-        o_observation, r_cancer_cells, b_terminated, b_truncated, d_info = self.env.step(d_action)
+        o_observation, r_tumor, b_terminated, b_truncated, d_info = self.env.step(d_action)
 
         # the mean of all the actions (e.g. one or multiple drugs).
         r_drugs = np.mean(ar_action)
+        r_reward = - (1 - self.weight) * r_drugs + self.weight * r_tumor
 
         # update the info dictionary
         d_info['action'] = d_action
+        d_info['reward'] = r_reward
         d_info['reward_drugs'] = r_drugs
-        d_info['reward_cancer_cells'] = r_cancer_cells
+        d_info['reward_tumor'] = r_tumor
 
-        # if you reward function is different from a sum you can add a new condition
-        #if env.unwrapped.reward_type == 'log_exp':
-        #    r_reward = - r_cancer_cells * np.exp(r_drugs - 1)
-        #else:
-        r_reward = - (1 - self.r_weight) * r_drugs + self.r_weight * r_cancer_cells
 
         # going home
         return o_observation, r_reward, b_terminated, b_truncated, d_info
@@ -291,9 +285,11 @@ d_arg = {
 
     # physigym
     'env_id' : 'physigym/ModelPhysiCellEnv-v0',   # str: the id of the gymnasium environment
-    'observation_type' : 'image_cell_types',   # str: the type of observation
+    'observation_type' : 'scalars',   # str: the type of observation
+    'grid_size_x': 64,
+    'grid_size_y': 64,
+    'normalization_factor': 512,
     'ls_action' : ['drug_1'],  # list of str: of action varaible names
-    #'reward_type' : 'dummy_linear',   # str: type of the reward
     'weight' : 0.5,   # float: weight for the reduction of tumor
     'total_timesteps' : int(1e6),    # int: the learning rate of the optimizer
 
@@ -359,7 +355,9 @@ torch.backends.cudnn.deterministic = d_arg['torch_deterministic']
 env = gymnasium.make(
     d_arg['env_id'],
     observation_type=d_arg['observation_type'],
-    #reward_type=d_arg['reward_type'],
+    grid_size_x=d_arg['grid_size_x'],
+    grid_size_y=d_arg['grid_size_y'],
+    normalization_factor=d_arg['normalization_factor'],
 )
 env = PhysiCellModelWrapper(
     env=env,
@@ -440,11 +438,11 @@ while env.unwrapped.step_env < d_arg['total_timesteps']:
     # upadte data output
     d_data = {
         "step": env.unwrapped.step_episode,
-        "rewards": r_reward,
+        "reward": r_reward,
         "cumulative_return": r_cumulative_return,
         "discounted_cumulative_return": r_discounted_cumulative_return,
         "drug_1": a_action[0],
-        "number_cancer_cells": d_info["number_cancer_cells"],
+        "number_tumor": d_info["number_tumor"],
         "number_cell_1": d_info["number_cell_1"],
         "number_cell_2": d_info["number_cell_2"],
     }
@@ -533,11 +531,11 @@ while env.unwrapped.step_env < d_arg['total_timesteps']:
 
     # write to tensorboard
     writer.add_scalar('env/drug_1', a_action[0], env.unwrapped.episode)
-    writer.add_scalar('env/reward_value', r_reward, env.unwrapped.episode)
-    writer.add_scalar('env/number_cancer_cells', d_info['number_cancer_cells'], env.unwrapped.episode)
+    writer.add_scalar('env/number_tumor', d_info['number_tumor'], env.unwrapped.episode)
     writer.add_scalar('env/number_cell_1', d_info['number_cell_1'], env.unwrapped.episode)
     writer.add_scalar('env/number_cell_2', d_info['number_cell_2'], env.unwrapped.episode)
-    writer.add_scalar('env/reward_cancer_cells', d_info['reward_cancer_cells'], env.unwrapped.episode)
+    writer.add_scalar('env/reward', r_reward, env.unwrapped.episode)
+    writer.add_scalar('env/reward_tumor', d_info['reward_tumor'], env.unwrapped.episode)
     writer.add_scalar('env/reward_drugs', d_info['reward_drugs'], env.unwrapped.episode)
 
     # if episode is over

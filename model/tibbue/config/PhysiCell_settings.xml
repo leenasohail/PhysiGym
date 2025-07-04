@@ -71,12 +71,12 @@
             <initial_condition units="dimensionless">0.0</initial_condition>
             <Dirichlet_boundary_condition units="dimensionless" enabled="False">0.0</Dirichlet_boundary_condition>
             <Dirichlet_options>
-                <boundary_value ID="xmin" enabled="False" />
-                <boundary_value ID="xmax" enabled="False" />
-                <boundary_value ID="ymin" enabled="False" />
-                <boundary_value ID="ymax" enabled="False" />
-                <boundary_value ID="zmin" enabled="False" />
-                <boundary_value ID="zmax" enabled="False" />
+                <boundary_value ID="xmin" enabled="False"/>
+                <boundary_value ID="xmax" enabled="False"/>
+                <boundary_value ID="ymin" enabled="False"/>
+                <boundary_value ID="ymax" enabled="False"/>
+                <boundary_value ID="zmin" enabled="False"/>
+                <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
         <variable name="anti-tumoral factor" units="dimensionless" ID="1">
@@ -87,12 +87,12 @@
             <initial_condition units="dimensionless">0.0</initial_condition>
             <Dirichlet_boundary_condition units="dimensionless" enabled="False">0.0</Dirichlet_boundary_condition>
             <Dirichlet_options>
-                <boundary_value ID="xmin" enabled="False" />
-                <boundary_value ID="xmax" enabled="False" />
-                <boundary_value ID="ymin" enabled="False" />
-                <boundary_value ID="ymax" enabled="False" />
-                <boundary_value ID="zmin" enabled="False" />
-                <boundary_value ID="zmax" enabled="False" />
+                <boundary_value ID="xmin" enabled="False"/>
+                <boundary_value ID="xmax" enabled="False"/>
+                <boundary_value ID="ymin" enabled="False"/>
+                <boundary_value ID="ymax" enabled="False"/>
+                <boundary_value ID="zmin" enabled="False"/>
+                <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
         <variable name="pro-tumoral factor" units="dimensionless" ID="2">
@@ -103,12 +103,12 @@
             <initial_condition units="dimensionless">0.0</initial_condition>
             <Dirichlet_boundary_condition units="dimensionless" enabled="False">0.0</Dirichlet_boundary_condition>
             <Dirichlet_options>
-                <boundary_value ID="xmin" enabled="False" />
-                <boundary_value ID="xmax" enabled="False" />
-                <boundary_value ID="ymin" enabled="False" />
-                <boundary_value ID="ymax" enabled="False" />
-                <boundary_value ID="zmin" enabled="False" />
-                <boundary_value ID="zmax" enabled="False" />
+                <boundary_value ID="xmin" enabled="False"/>
+                <boundary_value ID="xmax" enabled="False"/>
+                <boundary_value ID="ymin" enabled="False"/>
+                <boundary_value ID="ymax" enabled="False"/>
+                <boundary_value ID="zmin" enabled="False"/>
+                <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
         <variable name="drug_1" units="dimensionless" ID="3">
@@ -123,8 +123,8 @@
                 <boundary_value ID="xmax" enabled="True">0</boundary_value>
                 <boundary_value ID="ymin" enabled="True">0</boundary_value>
                 <boundary_value ID="ymax" enabled="True">0</boundary_value>
-                <boundary_value ID="zmin" enabled="False" />
-                <boundary_value ID="zmax" enabled="False" />
+                <boundary_value ID="zmin" enabled="False"/>
+                <boundary_value ID="zmax" enabled="False"/>
             </Dirichlet_options>
         </variable>
         <options>
