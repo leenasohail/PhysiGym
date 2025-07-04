@@ -130,11 +130,15 @@ class CorePhysiCellEnv(gymnasium.Env):
                 displayed.
                 for example 10[fps] = 1/10[spf] = 0.1 [spf].
 
-            verbose:
+            verbose: boolean
                 to set standard output verbosity true or false.
                 please note, only little from the standard output is coming
                 actually from physigym. most of the output comes straight
                 from PhysiCell and this setting has no influence over that output.
+
+            **kwargs:
+                possible additional keyword arguments input.
+                will be available in the instance through self.kwargs["key"].
 
         output:
             initialized PhysiCell Gymnasium environment.
@@ -172,6 +176,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.episode = -1
         self.step_episode = None
         self.step_env = 0
+
+        # handle keyword arguments input
         self.kwargs = kwargs
 
         # load PhysiCell settings.xml file
@@ -256,10 +262,14 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: ok!")
 
 
-    def render(self):
+    def render(self, **kwargs):
         """
         input:
             self.get_img()
+
+            **kwargs:
+                possible additional keyword arguments input.
+                will be available in the instance through self.kwargs["key"].
 
         output:
             a_img: numpy array or None
@@ -284,6 +294,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         if self.verbose:
             print(f"physigym: render {self.render_mode} frame ...")
+
+        # handle keyword arguments input
+        self.kwargs.updare(kwargs)
 
         # processing
         a_img = None
@@ -374,10 +387,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.step_episode = 0
         # self.step_env NOP
 
+        # handle possible keyword arguments input
+        self.kwargs.updare(kwargs)
+
         # load reset values
         self.get_reset_values()
 
-        # output folder
+        # generate output folder
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
 
         # initialize physcell model
@@ -438,7 +454,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return b_truncated
 
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         """
         input:
             self.get_observation()
@@ -454,6 +470,10 @@ class CorePhysiCellEnv(gymnasium.Env):
                 custom variable, or custom vector label. the values are
                 either single or numpy arrays of bool, integer, float,
                 or string values.
+
+            **kwargs:
+                possible additional keyword arguments input.
+                will be available in the instance through self.kwargs["key"].
 
         output:
             o_observation: structure
@@ -496,6 +516,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         if self.verbose:
             print(f"physigym: taking a dt_gym time step ...")
+
+        # handle keyword arguments input
+        self.kwargs.updare(kwargs)
 
         # do action
         if self.verbose:
@@ -604,9 +627,12 @@ class CorePhysiCellEnv(gymnasium.Env):
         return o_observation, r_reward, b_terminated, b_truncated, d_info
 
 
-    def close(self):
+    def close(self, **kwargs):
         """
         input:
+            **kwargs:
+                possible additional keyword arguments input.
+                will be available in the instance through self.kwargs["key"].
 
         output:
 
@@ -623,6 +649,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         if self.verbose:
             print(f"physigym: environment closure ...")
+
+        # handle keyword arguments input
+        self.kwargs.updare(kwargs)
 
         # processing
         if self.verbose:

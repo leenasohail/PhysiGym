@@ -43,7 +43,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         import gymnasium
         import physigym
 
-        env = gymnasium.make('physigym/ModelPhysiCellEnv')
+        env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
         o_observation, info = env.reset()
         o_observation, r_reward, b_terminated, b_truncated, info = env.step(action={})
@@ -186,9 +186,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         description:
             data for the observation object for example be retrieved by:
-            + physicell.get_parameter('my_parameter')
-            + physicell.get_variable('my_variable')
-            + physicell.get_vector('my_vector')
+            + physicell.get_parameter("my_parameter")
+            + physicell.get_variable("my_variable")
+            + physicell.get_vector("my_vector")
             however, there are no limits.
         """
         # model dependent observation processing logic goes here!
@@ -198,25 +198,30 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             columns=["ID", "x", "y", "z", "dead", "type"]
         )
 
+        # update tumor cell count
+        self.c_prev = self.c_t
         self.c_t = self.df_cell.loc[
             (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"),
             :
         ].shape[0]
-
-        self.c_prev = self.c_t
+        if self.c_prev is None:
+            self.c_prev = self.c_t
 
         self.nb_tumor = self.c_t
 
+        # update cell_1 cell count
         self.nb_cell_1 = self.df_cell.loc[
             (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_1"),
             :
         ].shape[0]
 
+        # update cell_2 cell count
         self.nb_cell_2 = self.df_cell.loc[
             (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_2"),
             :
         ].shape[0]
 
+        # observe the environemnt
         if self.kwargs["observation_type"] == "scalars":
             a_norm_cell_count = np.zeros((len(self.cell_type_unique),), dtype=float)
             for i in range(self.cell_type_unique):
