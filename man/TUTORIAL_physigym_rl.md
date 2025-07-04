@@ -289,7 +289,7 @@ You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGy
 
 The **y-axis** represents the expected return, while the **x-axis** represents the training steps. Note that although it is labeled as *3 million steps*, it does **not** correspond to 3 million environment interaction steps — in reality, it represents **fewer** than 3 million actual interactions.
 
-The figure shows three different learning curves corresponding to different state space representations. In our environment, the **scalars** and **multi_channels** state spaces achieve a higher discounted cumulative return compared to **image_gray**.
+The figure shows two different learning curves corresponding to different state space representations. In our environment, the **scalars** and **multi_channels** state spaces achieve the same discounted cumulative return.
 
 You may also see the ![different dynamic treatment regimes](img/final_plot.jpg).
 - 🟢 **Default**
