@@ -28,6 +28,7 @@ import numpy as np
 import os
 import pandas as pd
 from physigym.envs.physicell_core import CorePhysiCellEnv
+import skimage as ski
 
 
 # function
@@ -66,7 +67,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             figsize=(8, 6),
             render_mode=None,
             render_fps=10,
-            verbose=False,
+            verbose=True,
             #observation_type="scalars",
             #grid_size_x=64,
             #grid_size_y=64,
@@ -74,9 +75,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             **kwargs
         ):
 
+        # check redner mode
+        if kwargs["observation_type"] == "img_rgba" and render_mode == None :
+           raise ValueError(f'if observation_type is img_rgba the render_mode can not be None. try: {self.metadata["render_modes"]}.')
+
         # Corrected usage of super()
         super().__init__(
             settingxml=settingxml,
+            cell_type_cmap=cell_type_cmap,
             figsize=figsize,
             render_mode=render_mode,
             render_fps=render_fps,
@@ -87,10 +93,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             #normalization_factor=normalization_factor,
             **kwargs
         )
-
-        self.nb_cell_types = len(self.cell_type_unique)
-        #self.c_t = None
-        #self.c_prev = None
 
     def get_action_space(self):
         """
@@ -143,26 +145,30 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
-                shape=(len(self.cell_type_unique),),
+                shape=(self.cell_type_count,),
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_type"] == "img_rbga":
+        elif self.kwargs["observation_type"] == "img_rgba":
             # Define the Box space for the rgb alpha image
-            a_img = np.array(self.fig.canvas.buffer_rgba(), dtype=np.uint8)
+            a_img = self.render()
+            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
+            a_img = ski.transform.rescale(a_img, 1/8, anti_aliasing=False)
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(a_img.shape[2], a_img.shape[1], a_img.shape[0]),
+                shape=(a_img.shape[0], a_img.shape[1]),
                 dtype=np.uint8,
             )
 
         elif self.kwargs["observation_type"] == "img_multichannel":
             # Define the Box space for the multichannel image
+            self.ratio_img_size_y = self.height / self.kwargs["grid_size_y"]
+            self.ratio_img_size_x = self.width / self.kwargs["grid_size_x"]
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(len(self.cell_type_unique), self.kwargs["grid_size_x"], self.kwargs["grid_size_y"]),
+                shape=(self.cell_type_count, self.kwargs["grid_size_x"], self.kwargs["grid_size_y"]),
                 dtype=np.uint8,
             )
 
@@ -223,21 +229,24 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         # observe the environemnt
         if self.kwargs["observation_type"] == "scalars":
-            a_norm_cell_count = np.zeros((len(self.cell_type_unique),), dtype=float)
-            for i in range(self.cell_type_unique):
+            a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=float)
+            for i in range(self.cell_type_count):
                 a_norm_cell_count[i] = self.df_cell.loc[
-                    (self.df_cell.dead == 0.0) & (self.df_cell.type == self.unique_cell_types[i]),
+                    (self.df_cell.dead == 0.0) & (self.df_cell.type == self.cell_type_unique[i]),
                     :,
                 ].shape[0] / self.kwargs["normalization_factor"] - 1
             o_observation = a_norm_cell_count
 
         elif self.kwargs["observation_type"] == "img_rgba":
-            o_observation = self.render()
+            a_img = self.render()
+            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
+            a_img = ski.transform.rescale(a_img, 1/8, anti_aliasing=True)
+            o_observation = a_img
 
         elif self.kwargs["observation_type"] == "img_multichannel":
             image = np.zeros(
-                (self.num_cell_types, self.grid_size, self.grid_size),
-                dtype=np.float32
+                (self.cell_type_count, self.kwargs["grid_size_x"], self.kwargs["grid_size_y"]),
+                dtype=np.float32,
             )
 
             # Only
@@ -260,7 +269,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             x_bin = np.clip(x_bin, 0, self.kwargs["grid_size_x"] - 1)
             y_bin = np.clip(y_bin, 0, self.kwargs["grid_size_y"] - 1)
 
-            np.add.at(image, (cell_type_indices, x_bin, y_bin), 1 / self.ratio_img_size)
+            np.add.at(
+                image,
+                (cell_type_indices, x_bin, y_bin),
+                1 / (self.ratio_img_size_x * self.ratio_img_size_y),
+            )
             o_observation = (image * 255).astype(np.uint8)
 
         else:
@@ -288,7 +301,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent info processing logic goes here!
         info = {
-            "number_cancer_cells": self.nb_cancer_cells,
             "df_cell": self.df_cell,
             "number_tumor": self.nb_tumor,
             "number_cell_1": self.nb_cell_1,

@@ -176,11 +176,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.episode = -1
         self.step_episode = None
         self.step_env = 0
+        self.i_time_current = -1
 
         # handle keyword arguments input
         self.kwargs = kwargs
 
         # load PhysiCell settings.xml file
+        # bue 20241130: to gather full-time observation, increase the setting.xml max_time by dt_gym for one more action!
         self.settingxml = settingxml
         self.x_tree = etree.parse(self.settingxml)
         if self.verbose:
@@ -218,24 +220,23 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle substrate mapping
         self.substrate_to_id = dict(zip(
             self.x_root.xpath("//microenvironment_setup/variable/@name"),
-            self.x_root.xpath("//microenvironment_setup/variable/@ID")
+            [int(s_id) for s_id in self.x_root.xpath("//microenvironment_setup/variable/@ID")]
         ))
+        self.substrate_unique = sorted(self.substrate_to_id.keys(), key=self.substrate_to_id.get)
+        self.substrate_count = len(self.substrate_unique)
 
-        self.substrate_unique = [s_key for s_key, s_value in sorted(self.substrate_to_id.items())]
-
-        # handle cell type mapping
+        # handle cell_type mapping
         self.cell_type_to_id = dict(zip(
             self.x_root.xpath("//cell_definitions/cell_definition/@name"),
-            self.x_root.xpath("//cell_definitions/cell_definition/@ID")
+            [int(s_id) for s_id in self.x_root.xpath("//cell_definitions/cell_definition/@ID")]
         ))
-
-        self.cell_type_unique = [s_key for s_key, s_value in sorted(self.cell_type_to_id.items())]
-
+        self.cell_type_unique = sorted(self.cell_type_to_id.keys(), key=self.cell_type_to_id.get)
+        self.cell_type_count = len(self.cell_type_unique)
         self.cell_type_to_color = {}
         if type(cell_type_cmap) is dict:
             for s_cell_type in self.cell_type_unique:
                 try:
-                    self.cell_type_to_color.update({s_cell_type : cmap[s_cell_type]})
+                    self.cell_type_to_color.update({s_cell_type : cell_type_cmap[s_cell_type]})
                 except KeyError:
                     self.cell_type_to_color.update({s_cell_type : "gray"})
         elif type(cell_type_cmap) is str:
@@ -243,10 +244,6 @@ class CorePhysiCellEnv(gymnasium.Env):
                 self.cell_type_to_color.update({self.cell_type_unique[i] : colors.to_hex(ar_color)})
         else:
             raise ValueError(f"cell_type_cmap {cell_type_cmap} have to be a dictionary of string or a string.")
-
-        # max time
-        # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
-        self.i_time_current = -1
 
         # handle spaces
         if self.verbose:
@@ -296,7 +293,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: render {self.render_mode} frame ...")
 
         # handle keyword arguments input
-        self.kwargs.updare(kwargs)
+        self.kwargs.update(kwargs)
 
         # processing
         a_img = None
@@ -311,7 +308,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return a_img
 
 
-    def reset(self, seed=None, options={}, **kwarks):
+    def reset(self, seed=None, options={}, **kwargs):
         """
         input:
             self.get_observation()
@@ -388,7 +385,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # self.step_env NOP
 
         # handle possible keyword arguments input
-        self.kwargs.updare(kwargs)
+        self.kwargs.update(kwargs)
 
         # load reset values
         self.get_reset_values()
@@ -518,7 +515,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: taking a dt_gym time step ...")
 
         # handle keyword arguments input
-        self.kwargs.updare(kwargs)
+        self.kwargs.update(kwargs)
 
         # do action
         if self.verbose:
@@ -651,7 +648,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: environment closure ...")
 
         # handle keyword arguments input
-        self.kwargs.updare(kwargs)
+        self.kwargs.update(kwargs)
 
         # processing
         if self.verbose:

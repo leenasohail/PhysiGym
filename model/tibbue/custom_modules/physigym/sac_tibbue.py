@@ -15,9 +15,10 @@
 # + https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
 #####
 
-# core python
+# basic python
 import numpy as np
 import os
+import pandas as pd
 import random
 import time
 
@@ -48,15 +49,12 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
     def __init__(
             self,
             env: gymnasium.Env,
-            #ls_action: list[str],
-            #r_weight: float,
-            **kwargs
+            ls_action: list[str],
+            r_weight: float,
         ):
         """
         input:
             env (gym.Env): the environment to be wrapped.
-
-            kwargs:
             ls_action (list[str]): list of variable names corresponding to actions in the original env.
             r_weight (float): weight corresponding how much weight is added to the reward term related to cancer cells.
 
@@ -68,13 +66,12 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         super().__init__(env)
 
         # handle possible keyword arguments input
-        #self.ls_action = ls_action
-        #self.r_weight = r_weight
-        self.kwargs.update(kwargs)
+        self.ls_action = ls_action
+        self.r_weight = r_weight
 
         # numpy flattend action space
-        a_low = np.array([env.action_space[s_action].low[0] for s_action in self.kwargs["ls_action"]])
-        a_high = np.array([env.action_space[s_action].high[0] for s_action in self.kwargs["ls_action"]])
+        a_low = np.array([env.action_space[s_action].low[0] for s_action in self.ls_action])
+        a_high = np.array([env.action_space[s_action].high[0] for s_action in self.ls_action])
         self._action_space = spaces.Box(low=a_low, high=a_high, dtype=np.float64)
 
 
@@ -92,7 +89,7 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         return self._action_space
 
 
-    def step(self, ar_action: np.ndarray, **kwargs):
+    def step(self, ar_action: np.ndarray):
         """
         input:
             ar_action (np.ndarray): The flattened action array.
@@ -105,7 +102,7 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
         """
         # action, not action space
         d_action = {}
-        for s_action, r_value in zip(self.kwargs["ls_action"], ar_action):
+        for s_action, r_value in zip(self.ls_action, ar_action):
             d_action.update({s_action: np.array([r_value])})
 
         # take a step in the environment
@@ -113,7 +110,7 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
 
         # the mean of all the actions (e.g. one or multiple drugs).
         r_drugs = np.mean(ar_action)
-        r_reward = - (1 - self.kwargs["r_weight"]) * r_drugs + self.kwargs["r_weight"] * r_tumor
+        r_reward = - (1 - self.r_weight) * r_drugs + self.r_weight * r_tumor
 
         # update the info dictionary
         d_info["action"] = d_action
@@ -294,8 +291,12 @@ d_arg = {
 
     # physigym
     "env_id" : "physigym/ModelPhysiCellEnv-v0",   # str: the id of the gymnasium environment
-    "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "blue", "cell_2" : "green"}
-    "observation_type" : "scalars",   # str: the type of observation
+    "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "blue", "cell_2" : "green"},
+    #"cell_type_cmap" : "viridis",
+    "render_mode" : "rgb_array",
+    #"observation_type" : "scalars",   # str: the type of observation scalars, img_rgba, img_multichannel
+    #"observation_type" : "img_multichannel",   # str: the type of observation scalars, img_rgba, img_multichannel
+    "observation_type" : "img_rgba",   # str: the type of observation scalars, img_rgba, img_multichannel
     "grid_size_x" : 64,
     "grid_size_y" : 64,
     "normalization_factor" : 512,
@@ -327,7 +328,7 @@ d_arg = {
 #############
 
 # initialize tracking
-s_run = f"{d_arg["name"]}_seed_{d_arg["seed"]}_observationtype_{d_arg["observation_type"]}_weight_{d_arg["weight"]}_time_{int(time.time())}"
+s_run = f'{d_arg["name"]}_seed_{d_arg["seed"]}_observationtype_{d_arg["observation_type"]}_weight_{d_arg["r_weight"]}_time_{int(time.time())}'
 if d_arg["wandb_track"]:
     print("tracking: wandb ...")
     run = wandb.init(
@@ -344,7 +345,6 @@ else:
     print("tracking tensorboard ...")
     s_dir_run = os.path.join("tensorboard", s_run)
 s_dir_data = os.path.join(s_dir_run, "data")
-os.makedirs(s_dir_data, exist_ok=True)
 
 # initialize tensorbord writer
 writer = tensorboard.SummaryWriter(s_dir_run)
@@ -363,7 +363,8 @@ torch.backends.cudnn.deterministic = d_arg["torch_deterministic"]
 # initialize physigym environment
 env = gymnasium.make(
     d_arg["env_id"],
-    cell_type_cmap=d_arg["cell_type_cmap"]
+    cell_type_cmap=d_arg["cell_type_cmap"],
+    render_mode=d_arg["render_mode"],
     observation_type=d_arg["observation_type"],
     grid_size_x=d_arg["grid_size_x"],
     grid_size_y=d_arg["grid_size_y"],
@@ -560,7 +561,9 @@ while env.unwrapped.step_env < d_arg["total_timesteps"]:
 
         # write data
         df = pd.DataFrame(ld_data)
-        df.to_csv(os.path.join(s_dir_data, env.unwrapped.episode, "data.csv"), index=False)
+        s_dir_data_episode = os.path.join(s_dir_data, str(env.unwrapped.episode))
+        os.makedirs(s_dir_data_episode, exist_ok=True)
+        df.to_csv(os.path.join(s_dir_data_episode, "data.csv"), index=False)
 
         # reset gymnasium environment and global variables
         o_observation, d_info = env.reset()
