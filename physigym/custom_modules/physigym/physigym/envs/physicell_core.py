@@ -56,28 +56,28 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     ### begin dummy functions ###
 
-    def get_action_space(self, **kwargs):
+    def get_action_space(self):
         raise NotImplementedError("get_action_space function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_observation_space(self, **kwargs):
+    def get_observation_space(self):
         raise NotImplementedError("get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_observation(self, **kwargs):
+    def get_observation(self):
         raise NotImplementedError("get_observation function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_info(self, **kwargs):
+    def get_info(self):
         raise NotImplementedError("get_info function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_terminated(self, **kwargs):
+    def get_terminated(self):
         raise NotImplementedError("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_reset_values(self, **kwargs):
+    def get_reset_values(self):
         raise NotImplementedError("get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_reward(self, **kwargs):
+    def get_reward(self):
         raise NotImplementedError("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_img(self, **kwargs):
+    def get_img(self):
         raise NotImplementedError("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
 
     ### end dummy functions ###
@@ -172,6 +172,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.episode = -1
         self.step_episode = None
         self.step_env = 0
+        self.kwargs = kwargs
 
         # load PhysiCell settings.xml file
         self.settingxml = settingxml
@@ -244,8 +245,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle spaces
         if self.verbose:
             print(f"physigym: declare action and observer space.")
-        self.action_space = self.get_action_space(kwargs)
-        self.observation_space = self.get_observation_space(kwargs)
+        self.action_space = self.get_action_space()
+        self.observation_space = self.get_observation_space()
 
         # set global physigym enviroment flag
         physicell.flag_envphysigym = True
@@ -255,10 +256,10 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: ok!")
 
 
-    def render(self, **kwargs):
+    def render(self):
         """
         input:
-            self.get_img(kwargs)
+            self.get_img()
 
         output:
             a_img: numpy array or None
@@ -300,9 +301,9 @@ class CorePhysiCellEnv(gymnasium.Env):
     def reset(self, seed=None, options={}, **kwarks):
         """
         input:
-            self.get_observation(kwargs)
-            self.get_info(kwargs)
-            self.get_img(kwargs)
+            self.get_observation()
+            self.get_info()
+            self.get_img()
 
             seed: integer or None; default is None
                 seed = None: generate random seeds for python and PhyiCell (via the setting.xml file).
@@ -374,7 +375,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # self.step_env NOP
 
         # load reset values
-        self.get_reset_values(kwargs)
+        self.get_reset_values()
 
         # output folder
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
@@ -387,15 +388,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         # observe domain
         if self.verbose:
             print(f"physigym: domain observation.")
-        o_observation = self.get_observation(kwargs)
-        d_info = self.get_info(kwargs)
+        o_observation = self.get_observation()
+        d_info = self.get_info()
 
         # render domain
         if self.verbose:
             print(f"physigym: render {self.render_mode} frame.")
         if not (self.render_mode is None):
             plt.ion()
-            self.get_img(kwargs)
+            self.get_img()
             if self.render_mode == "human":  # human
                 if not (self.metadata["render_fps"] is None):
                     plt.pause(1 / self.metadata["render_fps"])
@@ -409,7 +410,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return o_observation, d_info
 
 
-    def get_truncated(self, **kwargs):
+    def get_truncated(self):
         """
         input:
             settingxml max_time
@@ -437,15 +438,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         return b_truncated
 
 
-    def step(self, action, **kwargs):
+    def step(self, action):
         """
         input:
-            self.get_observation(kwargs)
-            self.get_terminated(kwargs)
-            self.get_truncated(kwargs)
+            self.get_observation()
+            self.get_terminated()
+            self.get_truncated()
             self.get_info(kwrags)
-            self.get_reward(kwargs)
-            self.get_img(kwargs)
+            self.get_reward()
+            self.get_img()
 
             action: dict
                 object compatible with the defined action space struct.
@@ -456,19 +457,19 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         output:
             o_observation: structure
-                structure defined by the user in self.get_observation_space(kwargs).
+                structure defined by the user in self.get_observation_space().
 
             r_reward: float or int or bool
-                algorithm defined by the user in self.get_reward(kwargs).
+                algorithm defined by the user in self.get_reward().
 
             b_terminated: bool
-                algorithm defined by the user in self.get_terminated(kwargs).
+                algorithm defined by the user in self.get_terminated().
 
             b_truncated: bool
-                algorithm defined in self.get_truncated(kwargs).
+                algorithm defined in self.get_truncated().
 
             info: dict
-                algorithm defined by the user in self.get_info(kwargs).
+                algorithm defined by the user in self.get_info().
 
             self.episode: integer
                 episode counter.
@@ -575,19 +576,19 @@ class CorePhysiCellEnv(gymnasium.Env):
         # get observation
         if self.verbose:
             print(f"physigym: domain observation.")
-        o_observation = self.get_observation(kwargs)
-        b_terminated = self.get_terminated(kwargs)
-        b_truncated = self.get_truncated(kwargs)
-        d_info = self.get_info(kwargs)
+        o_observation = self.get_observation()
+        b_terminated = self.get_terminated()
+        b_truncated = self.get_truncated()
+        d_info = self.get_info()
 
         # get revard
-        r_reward = self.get_reward(kwargs)
+        r_reward = self.get_reward()
 
         # do rendering
         if self.verbose:
             print(f"physigym: render {self.render_mode} frame.")
         if not (self.render_mode is None):  # human or rgb_array
-            self.get_img(kwargs)
+            self.get_img()
             if (self.render_mode == "human") and not (self.metadata["render_fps"] is None):
                 plt.pause(1 / self.metadata["render_fps"])
 
@@ -603,7 +604,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return o_observation, r_reward, b_terminated, b_truncated, d_info
 
 
-    def close(self, **kwargs):
+    def close(self):
         """
         input:
 

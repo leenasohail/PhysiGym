@@ -38,7 +38,6 @@ import wandb
 
 # replybuffer
 from alexlines1 import ReplayBuffer
-#from stable_baselines3.common.buffers import ReplayBuffer
 
 
 ################################
@@ -285,10 +284,11 @@ d_arg = {
 
     # physigym
     'env_id' : 'physigym/ModelPhysiCellEnv-v0',   # str: the id of the gymnasium environment
+    'cell_type_cmap' : {'tumor' : 'yellow', 'cell_1' : 'blue', 'cell_2' : 'green'}
     'observation_type' : 'scalars',   # str: the type of observation
-    'grid_size_x': 64,
-    'grid_size_y': 64,
-    'normalization_factor': 512,
+    'grid_size_x' : 64,
+    'grid_size_y' : 64,
+    'normalization_factor' : 512,
     'ls_action' : ['drug_1'],  # list of str: of action varaible names
     'weight' : 0.5,   # float: weight for the reduction of tumor
     'total_timesteps' : int(1e6),    # int: the learning rate of the optimizer
@@ -350,10 +350,10 @@ np.random.seed(d_arg['seed'])
 torch.manual_seed(d_arg['seed'])
 torch.backends.cudnn.deterministic = d_arg['torch_deterministic']
 
-
 # initialize physigym environment
 env = gymnasium.make(
     d_arg['env_id'],
+    cell_type_cmap=d_arg['cell_type_cmap']
     observation_type=d_arg['observation_type'],
     grid_size_x=d_arg['grid_size_x'],
     grid_size_y=d_arg['grid_size_y'],

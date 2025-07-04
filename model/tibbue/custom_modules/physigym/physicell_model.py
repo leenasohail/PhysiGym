@@ -73,8 +73,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             #normalization_factor=512,
             **kwargs
         ):
-        if kwargs["observation_type"] not in {"scalars", "img_rgba", "img_multichannel"}:
-            raise ValueError(f'Error: unknown observation type: {kwargs["observation_type"]}')
 
         # Corrected usage of super()
         super().__init__(
@@ -94,7 +92,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #self.c_t = None
         #self.c_prev = None
 
-    def get_action_space(self, **kwargs):
+    def get_action_space(self):
         """
         input:
 
@@ -122,7 +120,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return d_action_space
 
 
-    def get_observation_space(self, **kwargs):
+    def get_observation_space(self):
         """
         input:
 
@@ -141,7 +139,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             for each observed variable.
         """
         # model dependent observation_space processing logic goes here!
-        if kwargs["observation_type"] == "scalars":
+        if self.kwargs["observation_type"] == "scalars":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
@@ -149,7 +147,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.float32,
             )
 
-        elif kwargs["observation_type"] == "img_rbga":
+        elif self.kwargs["observation_type"] == "img_rbga":
             # Define the Box space for the rgb alpha image
             a_img = np.array(self.fig.canvas.buffer_rgba(), dtype=np.uint8)
             o_observation_space = spaces.Box(
@@ -159,23 +157,23 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.uint8,
             )
 
-        elif kwargs["observation_type"] == "img_multichannel":
+        elif self.kwargs["observation_type"] == "img_multichannel":
             # Define the Box space for the multichannel image
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(len(self.cell_type_unique), kwargs["grid_size_x"], kwargs["grid_size_y"]),
+                shape=(len(self.cell_type_unique), self.kwargs["grid_size_x"], self.kwargs["grid_size_y"]),
                 dtype=np.uint8,
             )
 
         else:
-            raise f'Error unknown observation type: {kwargs["observation_type"]}'
+            raise ValueError(f'unknown observation type: {self.kwargs["observation_type"]}')
 
         # output
         return o_observation_space
 
 
-    def get_observation(self, **kwargs):
+    def get_observation(self):
         """
         input:
 
@@ -207,10 +205,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         self.c_prev = self.c_t
 
-        self.nb_tumor = self.df_cell.loc[
-            (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"),
-            :
-        ].shape[0]
+        self.nb_tumor = self.c_t
 
         self.nb_cell_1 = self.df_cell.loc[
             (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_1"),
@@ -222,19 +217,19 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             :
         ].shape[0]
 
-        if kwargs["observation_type"] == "scalars":
+        if self.kwargs["observation_type"] == "scalars":
             a_norm_cell_count = np.zeros((len(self.cell_type_unique),), dtype=float)
             for i in range(self.cell_type_unique):
                 a_norm_cell_count[i] = self.df_cell.loc[
                     (self.df_cell.dead == 0.0) & (self.df_cell.type == self.unique_cell_types[i]),
                     :,
-                ].shape[0] / kwargs["normalization_factor"] - 1
+                ].shape[0] / self.kwargs["normalization_factor"] - 1
             o_observation = a_norm_cell_count
 
-        elif kwargs["observation_type"] == "img_rgba":
+        elif self.kwargs["observation_type"] == "img_rgba":
             o_observation = self.render()
 
-        elif kwargs["observation_type"] == "img_multichannel":
+        elif self.kwargs["observation_type"] == "img_multichannel":
             image = np.zeros(
                 (self.num_cell_types, self.grid_size, self.grid_size),
                 dtype=np.float32
@@ -248,28 +243,29 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             x_bin = (
                 (df_alive["x"] - self.x_min)
                 / (self.x_max - self.x_min)
-                * (kwargs["grid_size_x"] - 1)
+                * (self.kwargs["grid_size_x"] - 1)
             ).astype(int)
             y_bin = (
                 (df_alive["y"] - self.y_min)
                 / (self.y_max - self.y_min)
-                * (kwargs["grid_size_y"] - 1)
+                * (self.kwargs["grid_size_y"] - 1)
             ).astype(int)
 
             # Clip in case of rounding issues
-            x_bin = np.clip(x_bin, 0, kwargs["grid_size_x"] - 1)
-            y_bin = np.clip(y_bin, 0, kwargs["grid_size_y"] - 1)
+            x_bin = np.clip(x_bin, 0, self.kwargs["grid_size_x"] - 1)
+            y_bin = np.clip(y_bin, 0, self.kwargs["grid_size_y"] - 1)
 
             np.add.at(image, (cell_type_indices, x_bin, y_bin), 1 / self.ratio_img_size)
             o_observation = (image * 255).astype(np.uint8)
 
         else:
-            raise f'Observation type: {kwargs["observation_type"]} does not exist'
+            raise ValueError(f'unknown observation type: {self.kwargs["observation_type"]}')
 
+        # output
         return o_observation
 
 
-    def get_info(self, **kwargs):
+    def get_info(self):
         """
         input:
 
@@ -298,7 +294,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return info
 
 
-    def get_terminated(self, **kwargs):
+    def get_terminated(self):
         """
         input:
 
@@ -319,7 +315,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         return True if self.c_t == 0 else False
 
 
-    def get_reset_values(self, **kwargs):
+    def get_reset_values(self):
         """
         input:
 
@@ -336,7 +332,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.c_prev = None
 
 
-    def get_reward(self, **kwargs):
+    def get_reward(self):
         """
         input:
 
@@ -353,10 +349,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        return (self.c_prev - self.c_t) / np.log(kwargs["normalization_factor"])
+        return (self.c_prev - self.c_t) / np.log(self.kwargs["normalization_factor"])
 
 
-    def get_img(self, **kwargs):
+    def get_img(self):
         """
         input:
 
