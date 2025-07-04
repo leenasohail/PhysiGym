@@ -22,66 +22,18 @@ from extending import physicell
 import gymnasium
 from lxml import etree
 import matplotlib.pyplot as plt
+from matplotlib import colors
 import numpy as np
 import os
 import skimage as ski
 import sys
 
+
 # global variable
 physicell.flag_envphysigym = False
 
 
-# Function to calculate RGB values from the original float-based colors
-#def calculate_rgb(value):
-#    return int(round(value * 255))
-
-
-# List of base color values as floats (e.g., 0.5 for 50%)
-#base_colors = [
-#    (0.5, 0.5, 0.5),  # Gray
-#    (1.0, 0.0, 0.0),  # Red
-#    (1.0, 0.5, 0.0),  # Orange
-#    (1.0, 1.0, 0.0),  # Yellow
-#    (0.0, 1.0, 0.0),  # Green
-#    (0.0, 0.0, 1.0),  # Blue
-#    (0.29, 0.0, 0.51),  # Indigo
-#    (0.93, 0.51, 0.93),  # Violet
-#    (0.54, 0.27, 0.07),  # Brown
-#    (0.5, 0.0, 0.0),  # Dark Red
-#    (0.8, 0.52, 0.25),  # Sienna
-#    (0.9, 0.9, 0.9),  # Light Gray
-#    (0.8, 0.2, 0.6),  # Pink
-#    (0.2, 0.6, 0.8),  # Light Blue
-#    (0.1, 0.3, 0.2),  # Dark Green
-#    (1.0, 0.8, 0.6),  # Peach
-#    (0.7, 0.3, 0.2),  # Copper
-#    (0.2, 0.2, 0.5),  # Navy Blue
-#    (0.1, 0.6, 0.1),  # Lime Green
-#]
-
-# Applying the calculate_rgb function to each color in the list
-#COLORS = [tuple(calculate_rgb(c) for c in color) for color in base_colors]
-COLORS = plt.get_cmap("turbo").colors
-
-# bue 20250620: colors alternative using standard libraries
-#
-# from matplotlib import cm, colors
-# import matplotlib.pyplot as plt
-# import skimage as ski
-#
-# # number of colors
-# n = 19
-#
-# # rainbow
-# np.array(cm.turbo.colors)[0:256:int(np.floor(256/n))]   # float numpy
-# plt.get_cmap("turbo", n).colors   # float matplotlib
-# ski.util.img_as_ubyte(plt.get_cmap("turbo", n).colors)   # uint8
-# [colors.to_hex(color) for color in plt.get_cmap("turbo", n).colors]   # hex
-#
-# # gray
-# ski.color.rgb2gray(plt.get_cmap("turbo", n).colors)])
-
-
+# classes
 class CorePhysiCellEnv(gymnasium.Env):
     """
     input:
@@ -104,32 +56,31 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     ### begin dummy functions ###
 
-    def get_action_space(self):
-        sys.exit("get_action_space function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_action_space(self, **kwargs):
+        raise NotImplementedError("get_action_space function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_observation_space(self):
-        sys.exit("get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_observation_space(self, **kwargs):
+        raise NotImplementedError("get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_observation(self):
-        sys.exit("get_observation function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_observation(self, **kwargs):
+        raise NotImplementedError("get_observation function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_info(self):
-        sys.exit("get_info function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_info(self, **kwargs):
+        raise NotImplementedError("get_info function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_terminated(self):
-        sys.exit("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_terminated(self, **kwargs):
+        raise NotImplementedError("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_reset_values(self):
-        sys.exit("get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_reset_values(self, **kwargs):
+        raise NotImplementedError("get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_reward(self):
-        sys.exit("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_reward(self, **kwargs):
+        raise NotImplementedError("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
 
-    def get_img(self):
-        sys.exit("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
+    def get_img(self, **kwargs):
+        raise NotImplementedError("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
 
     ### end dummy functions ###
-
 
     # metadata
     metadata = {
@@ -137,28 +88,34 @@ class CorePhysiCellEnv(gymnasium.Env):
         "render_fps": None,
     }
 
-
     # functions
     def __init__(
             self,
             settingxml="config/PhysiCell_settings.xml",
+            cell_type_cmap="turbo",
             figsize=(8, 6),
             render_mode=None,
             render_fps=10,
             verbose=True,
+            **kwargs,
         ):
         """
         input:
-            settingxml: string; default is 'config/PhysiCell_settings.xml'
+            settingxml: string; default is "config/PhysiCell_settings.xml"
                 path and filename to the settings.xml file.
                 the file will be loaded with lxml and stored at self.x_root.
                 therefor all data from the setting.xml file is later on accessible
-                via the self.x_root.xpath('//xpath/string/') xpath construct.
+                via the self.x_root.xpath("//xpath/string/") xpath construct.
                 study this source code class for explicit examples.
                 for more information about xpath study the following links:
                 + https://en.wikipedia.org/wiki/XPath
                 + https://www.w3schools.com/xml/xpath_intro.asp
                 + https://lxml.de/xpathxslt.html#xpat
+
+            cell_type_cmap: dictionary of strings or string; default viridis.
+                dictionary that maps labels to colors strings.
+                matplotlib colormap string.
+                https://matplotlib.org/stable/tutorials/colors/colormaps.html
 
             figsize: tuple of floats; default is (8, 6) which is a 4:3 ratio.
                 values are in inches (width, height).
@@ -166,7 +123,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             render_mode: string as specified in the metadata or None; default is None.
 
             render_fps: float or None; default is 10.
-                if render_mode is 'human', for every dt_gym step the image,
+                if render_mode is "human", for every dt_gym step the image,
                 specified in the physigym.ModelPhysiCellEnv.get_img() function,
                 will be generated and displayed. this frame per second setting
                 specifies the time the computer sleeps after the image is
@@ -186,11 +143,11 @@ class CorePhysiCellEnv(gymnasium.Env):
             import gymnasium
             import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+            env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
             env = gymnasium.make(
-                'physigym/ModelPhysiCellEnv',
-                settingxml = 'config/PhysiCell_settings.xml',
+                "physigym/ModelPhysiCellEnv",
+                settingxml = "config/PhysiCell_settings.xml",
                 figsize = (8, 6),
                 render_mode = None,
                 render_fps = 10,
@@ -202,9 +159,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         # check global physigym environment flag
         if physicell.flag_envphysigym:
-            raise RuntimeWarning(
-                f"per runtime, only one physigym environment can be loaded. instance generation cancelled!"
-            )
+            raise RuntimeWarning(f"per runtime, only one physigym environment can be loaded. instance generation cancelled!")
 
         # handle verbose
         self.verbose = verbose
@@ -225,18 +180,21 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: reading {self.settingxml}")
         self.x_root = self.x_tree.getroot()
 
-        # handle render mode and figsize
+        # handle render mode
         if self.verbose:
             print(f"physigym: declare render settings.")
         assert render_mode is None or render_mode in self.metadata["render_modes"], (
-            f"'{render_mode}' is an unknown render_mode. known are {sorted(self.metadata['render_modes'])}, and None."
+            f'"{render_mode}" is an unknown render_mode. known are {sorted(self.metadata["render_modes"])}, and None.'
         )
-        self.figsize = figsize
         self.render_mode = render_mode
         self.metadata.update({"render_fps": render_fps})
+
+        # handle figsize
+        self.figsize = figsize
         if not (self.render_mode is None):
             self.fig, axs = plt.subplots(figsize=self.figsize)
 
+        # handle domain
         self.x_min = int(self.x_root.xpath("//domain/x_min")[0].text)
         self.x_max = int(self.x_root.xpath("//domain/x_max")[0].text)
         self.y_min = int(self.x_root.xpath("//domain/y_min")[0].text)
@@ -246,44 +204,38 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
         self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
         self.dz = int(self.x_root.xpath("//domain/dz")[0].text)
-        self.width = self.x_max + 2 * self.dx - self.x_min
-        self.height = self.y_max + 2 * self.dy - self.y_min
-        self.depth = self.z_max + 2 * self.dz - self.z_min
+        self.width = self.x_max - self.x_min + 2 * self.dx
+        self.height = self.y_max - self.y_min + 2 * self.dy
+        self.depth = self.z_max - self.z_min + 2 * self.dz
 
-        #cell_definitions = self.x_root.xpath("//cell_definitions/cell_definition")
-        #self.color_mapping = {}  # This will map type IDs to specific colors
+        # handle substrate mapping
+        self.substrate_to_id = dict(zip(
+            self.x_root.xpath("//microenvironment_setup/variable/@name"),
+            self.x_root.xpath("//microenvironment_setup/variable/@ID")
+        ))
 
-        # Get the list of unique cell types
-        #self.unique_cell_types = sorted(
-        #    [cell_def.xpath("./@name")[0] for cell_def in cell_definitions]
-        #)
-        #self.num_cell_types = len(self.unique_cell_types)
-        #self.type_to_idx = {
-        #    cell_type: idx for idx, cell_type in enumerate(self.unique_cell_types)
-        #}
+        self.substrate_unique = [s_key for s_key, s_value in sorted(self.substrate_to_id.items())]
 
-        #for i, cell_type in enumerate(self.unique_cell_types):
-        #    self.color_mapping[cell_type] = COLORS[i]
-
-        #self.color_mapping_255 = {
-        #    key: tuple(np.array(value) * 255)
-        #    for key, value in self.color_mapping.items()
-        #}
-
-        # cell type id mapping
-        self.type_to_idx = dict(zip(
+        # handle cell type mapping
+        self.cell_type_to_id = dict(zip(
             self.x_root.xpath("//cell_definitions/cell_definition/@name"),
             self.x_root.xpath("//cell_definitions/cell_definition/@ID")
         ))
-        self.num_cell_types = len(self.type_to_idx)
-        self.unique_cell_types = [s_key for s_key, s_value in sorted(self.type_to_idx.items())]
 
-        self.color_mapping = dict(zip(
-            self.x_root.xpath("//cell_definitions/cell_definition/@ID"),
-            ski.util.img_as_ubyte(plt.get_cmap("turbo", self.num_cell_types).colors)
-        ))
+        self.cell_type_unique = [s_key for s_key, s_value in sorted(self.cell_type_to_id.items())]
 
-        self.color_mapping_255 = self.color_mapping
+        self.cell_type_to_color = {}
+        if type(cell_type_cmap) is dict:
+            for s_cell_type in self.cell_type_unique:
+                try:
+                    self.cell_type_to_color.update({s_cell_type : cmap[s_cell_type]})
+                except KeyError:
+                    self.cell_type_to_color.update({s_cell_type : "gray"})
+        elif type(cell_type_cmap) is str:
+            for i, ar_color in enumerate(plt.get_cmap(cell_type_cmap, len(self.cell_type_unique)).colors):
+                self.cell_type_to_color.update({self.cell_type_unique[i] : colors.to_hex(ar_color)})
+        else:
+            raise ValueError(f"cell_type_cmap {cell_type_cmap} have to be a dictionary of string or a string.")
 
         # max time
         # bue 20241130: to run physigym full time increase the setting.xml max_time by dt_gym!
@@ -292,8 +244,8 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle spaces
         if self.verbose:
             print(f"physigym: declare action and observer space.")
-        self.action_space = self.get_action_space()
-        self.observation_space = self.get_observation_space()
+        self.action_space = self.get_action_space(kwargs)
+        self.observation_space = self.get_observation_space(kwargs)
 
         # set global physigym enviroment flag
         physicell.flag_envphysigym = True
@@ -303,10 +255,10 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: ok!")
 
 
-    def render(self):
+    def render(self, **kwargs):
         """
         input:
-            self.get_img()
+            self.get_img(kwargs)
 
         output:
             a_img: numpy array or None
@@ -318,9 +270,9 @@ class CorePhysiCellEnv(gymnasium.Env):
             import gymnasium
             import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode= None)
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='human')
-            env = gymnasium.make('physigym/ModelPhysiCellEnv', render_mode='rgb_array')
+            env = gymnasium.make("physigym/ModelPhysiCellEnv", render_mode= None)
+            env = gymnasium.make("physigym/ModelPhysiCellEnv", render_mode="human")
+            env = gymnasium.make("physigym/ModelPhysiCellEnv", render_mode="rgb_array")
 
             o_observation, d_info = env.reset()
             env.render()
@@ -345,12 +297,12 @@ class CorePhysiCellEnv(gymnasium.Env):
         return a_img
 
 
-    def reset(self, seed=None, options={}):
+    def reset(self, seed=None, options={}, **kwarks):
         """
         input:
-            self.get_observation()
-            self.get_info()
-            self.get_img()
+            self.get_observation(kwargs)
+            self.get_info(kwargs)
+            self.get_img(kwargs)
 
             seed: integer or None; default is None
                 seed = None: generate random seeds for python and PhyiCell (via the setting.xml file).
@@ -373,7 +325,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             import gymnasium
             import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+            env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
             o_observation, d_info = env.reset()
 
@@ -422,7 +374,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # self.step_env NOP
 
         # load reset values
-        self.get_reset_values()
+        self.get_reset_values(kwargs)
 
         # output folder
         os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
@@ -435,15 +387,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         # observe domain
         if self.verbose:
             print(f"physigym: domain observation.")
-        o_observation = self.get_observation()
-        d_info = self.get_info()
+        o_observation = self.get_observation(kwargs)
+        d_info = self.get_info(kwargs)
 
         # render domain
         if self.verbose:
             print(f"physigym: render {self.render_mode} frame.")
         if not (self.render_mode is None):
             plt.ion()
-            self.get_img()
+            self.get_img(kwargs)
             if self.render_mode == "human":  # human
                 if not (self.metadata["render_fps"] is None):
                     plt.pause(1 / self.metadata["render_fps"])
@@ -457,7 +409,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return o_observation, d_info
 
 
-    def get_truncated(self):
+    def get_truncated(self, **kwargs):
         """
         input:
             settingxml max_time
@@ -478,21 +430,22 @@ class CorePhysiCellEnv(gymnasium.Env):
         r_time_current = physicell.get_parameter("time")
         b_truncated = self.i_time_current == int(r_time_current)
         self.i_time_current = int(r_time_current)
-        print(f"current time python3: {round(r_time_current, 3)}")
+        if self.verbose:
+            print(f"current time python3: {round(r_time_current, 3)}")
 
         # output
         return b_truncated
 
 
-    def step(self, action):
+    def step(self, action, **kwargs):
         """
         input:
-            self.get_observation()
-            self.get_terminated()
-            self.get_truncated()
-            self.get_info()
-            self.get_reward()
-            self.get_img()
+            self.get_observation(kwargs)
+            self.get_terminated(kwargs)
+            self.get_truncated(kwargs)
+            self.get_info(kwrags)
+            self.get_reward(kwargs)
+            self.get_img(kwargs)
 
             action: dict
                 object compatible with the defined action space struct.
@@ -503,19 +456,19 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         output:
             o_observation: structure
-                structure defined by the user in self.get_observation_space().
+                structure defined by the user in self.get_observation_space(kwargs).
 
             r_reward: float or int or bool
-                algorithm defined by the user in self.get_reward().
+                algorithm defined by the user in self.get_reward(kwargs).
 
             b_terminated: bool
-                algorithm defined by the user in self.get_terminated().
+                algorithm defined by the user in self.get_terminated(kwargs).
 
             b_truncated: bool
-                algorithm defined in self.get_truncated().
+                algorithm defined in self.get_truncated(kwargs).
 
             info: dict
-                algorithm defined by the user in self.get_info().
+                algorithm defined by the user in self.get_info(kwargs).
 
             self.episode: integer
                 episode counter.
@@ -530,7 +483,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             import gymnasium
             import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+            env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
             o_observation, d_info = env.reset()
             o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action={})
@@ -622,19 +575,19 @@ class CorePhysiCellEnv(gymnasium.Env):
         # get observation
         if self.verbose:
             print(f"physigym: domain observation.")
-        o_observation = self.get_observation()
-        b_terminated = self.get_terminated()
-        b_truncated = self.get_truncated()
-        d_info = self.get_info()
+        o_observation = self.get_observation(kwargs)
+        b_terminated = self.get_terminated(kwargs)
+        b_truncated = self.get_truncated(kwargs)
+        d_info = self.get_info(kwargs)
 
         # get revard
-        r_reward = self.get_reward()
+        r_reward = self.get_reward(kwargs)
 
         # do rendering
         if self.verbose:
             print(f"physigym: render {self.render_mode} frame.")
         if not (self.render_mode is None):  # human or rgb_array
-            self.get_img()
+            self.get_img(kwargs)
             if (self.render_mode == "human") and not (self.metadata["render_fps"] is None):
                 plt.pause(1 / self.metadata["render_fps"])
 
@@ -650,7 +603,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         return o_observation, r_reward, b_terminated, b_truncated, d_info
 
 
-    def close(self):
+    def close(self, **kwargs):
         """
         input:
 
@@ -660,7 +613,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             import gymnasium
             import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+            env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
             env.close()
 
@@ -692,7 +645,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             import gymnasium
             import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+            env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
             env.unwrapped.verbose_true()
 
@@ -717,7 +670,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             import gymnasium
             import physigym
 
-            env = gymnasium.make('physigym/ModelPhysiCellEnv')
+            env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
             env.unwrapped.verbose_true()
 
