@@ -68,11 +68,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_mode=None,
             render_fps=10,
             verbose=True,
+            **kwargs
             #observation_type="scalars",
+            #img_rgb_scale_factor=1/6,
             #img_mc_grid_size_x=64,
             #img_mc_grid_size_y=64,
             #normalization_factor=512,
-            **kwargs
         ):
 
         # check redner mode
@@ -87,10 +88,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_mode=render_mode,
             render_fps=render_fps,
             verbose=verbose,
-            #observation_type=observation_type,
-            #img_mc_grid_size_x=img_mc_grid_size_x,
-            #img_mc_grid_size_y=img_mc_grid_size_y,
-            #normalization_factor=normalization_factor,
             **kwargs
         )
 
@@ -154,7 +151,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
             a_img = ski.transform.rescale(
-                ai_img,
+                a_img,
                 self.kwargs["img_rgb_scale_factor"],
                 anti_aliasing=False,
             )
@@ -237,7 +234,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
             a_img = ski.transform.rescale(
-                ai_img,
+                a_img,
                 self.kwargs["img_rgb_scale_factor"],
                 anti_aliasing=True,
             )
@@ -393,20 +390,42 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.fig.clf()
         ax = self.fig.add_subplot(1,1,1)
         ax.axis("equal")
-        #ax.axis("off")
+        ax.axis("off")
 
         ##################
         # substrate data #
         ##################
 
-        #df_conc = pd.DataFrame(physicell.get_microenv("my_substrate"), columns=["x","y","z","my_substrate"])
-        #df_conc = df_conc.loc[df_conc.z == 0.0, :]
-        #df_mesh = df_conc.pivot(index="y", columns="x", values="my_substrate")
-        #ax.contourf(
-        #    df_mesh.columns, df_mesh.index, df_mesh.values,
-        #    vmin=0.0, vmax=1.0, cmap="Reds",
-        #    #alpha=0.5,
-        #)
+        # debris
+        df_conc = pd.DataFrame(physicell.get_microenv("debris"), columns=["x","y","z","debris"])
+        df_conc = df_conc.loc[df_conc.z == 0.0, :]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="debris")
+        ax.contourf(
+            df_mesh.columns, df_mesh.index, df_mesh.values,
+            vmin=0.0, vmax=1.0, cmap="Reds",
+            alpha=1/3,
+        )
+
+        # pro-tumoral factor
+        df_conc = pd.DataFrame(physicell.get_microenv("pro-tumoral factor"), columns=["x","y","z","pro-tumoral factor"])
+        df_conc = df_conc.loc[df_conc.z == 0.0, :]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="pro-tumoral factor")
+        ax.contourf(
+            df_mesh.columns, df_mesh.index, df_mesh.values,
+            vmin=0.0, vmax=1.0, cmap="Blues",
+            alpha=1/3,
+        )
+
+        # anti-tumoral factor
+        df_conc = pd.DataFrame(physicell.get_microenv("anti-tumoral factor"), columns=["x","y","z","anti-tumoral factor"])
+        df_conc = df_conc.loc[df_conc.z == 0.0, :]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="anti-tumoral factor")
+        ax.contourf(
+            df_mesh.columns, df_mesh.index, df_mesh.values,
+            vmin=0.0, vmax=1.0, cmap="Greens",
+            alpha=1/3,
+        )
+
 
         ######################
         # substrate colorbar #
@@ -422,19 +441,22 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # cell data #
         #############
 
-        #df_cell = pd.DataFrame(physicell.get_cell(), columns=["ID","x","y","z","dead","cell_type"])
+        df_cell = pd.DataFrame(physicell.get_cell(), columns=["ID","x","y","z","dead","cell_type"])
+        df_cell["color"] = None
+        for s_cell_type, s_color in self.cell_type_to_color.items():
+            df_cell.loc[(df_cell.cell_type == s_cell_type), "color"] = s_color
         #df_variable = pd.DataFrame(physicell.get_variable("my_variable"), columns=["my_variable"])
         #df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how="left")
-        #df_cell = df_cell.loc[df_cell.z == 0.0, :]
-        #df_cell.plot(
-        #    kind="scatter", x="x", y="y", c="my_variable",
-        #    xlim=[self.x_min, self.x_max],
-        #    ylim=[self.y_min, self.y_max],
+        df_cell = df_cell.loc[df_cell.z == 0.0, :]
+        df_cell.plot(
+            kind="scatter", x="x", y="y", c="color",
+            xlim=[self.x_min, self.x_max],
+            ylim=[self.y_min, self.y_max],
         #    vmin=0.0, vmax=1.0, cmap="viridis",
         #    grid=True,
         #    title=f"dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} [cell]",
-        #    ax=ax,
-        #)
+            ax=ax,
+        )
 
         ################
         # save to file #

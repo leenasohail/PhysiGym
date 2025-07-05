@@ -272,6 +272,7 @@ class Actor(nn.Module):
 #############
 # Arguments #
 #############
+
 # run basics
 d_arg_run = {
     # basics
@@ -279,9 +280,7 @@ d_arg_run = {
     # hardware
     "cuda" : True,   # bool: should torch check for gpu (nvidia, amd mroc) accelerator?
     # tracking
-    "wandb_track" : False,   # bool: track with wandb
-    "wandb_entity" : "corporate-manu-sureli",   # str: the wandb s entity name
-    "wandb_project_name" : "SAC_IMAGE_TIB",   # str: the wandb s project name
+    "wandb_track" : False,   # bool: track with wandb, if false locallt tensorboard
     # random seed
     "seed" : 1,   # int: seed of the experiment
     "torch_deterministic" : True,   # bool: torch.backends.cudnn.deterministic
@@ -289,13 +288,24 @@ d_arg_run = {
     "total_timesteps" : int(1e6),    # int: the learning rate of the optimizer
 }
 
+# wandb
+d_arg_wandb = {
+    "entity" : "corporate-manu-sureli",   # str: the wandb s entity name
+    "project" : "SAC_IMAGE_TIB",    # str: the wandb s project name
+    "sync_tensorboard": True,
+    "monitor_gym": True,
+    "save_code": True,
+}
+
 # physigym
 d_arg_physigym_model = {
-    "env_id" : "physigym/ModelPhysiCellEnv-v0",   # str: the id of the gymnasium environment
-    "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "blue", "cell_2" : "green"},  # viridis
-    "observation_type" : "img_rgb",   # str: the type of observation scalars , img_rgb , img_mc
-    "render_mode" : "rgb_array",
-    "img_rgb_scale_factor" : 1/8,
+    "id" : "physigym/ModelPhysiCellEnv-v0",   # str: the id of the gymnasium environmenit
+    "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "green", "cell_2" : "navy"},  # viridis
+    "figsize": (6,6),
+    "observation_type" : "img_rgb",   # str: scalars , img_rgb , img_mc
+    "render_mode" : "human",
+    "verbose" : False,
+    "img_rgb_scale_factor" : 1/6,
     "img_mc_grid_size_x" : 64,
     "img_mc_grid_size_y" : 64,
     "normalization_factor" : 512,
@@ -304,9 +314,6 @@ d_arg_physigym_wrapper = {
     "ls_action" : ["drug_1"],  # list of str: of action varaible names
     "r_weight" : 0.5,   # float: weight for the reduction of tumor
 }
-d_arg_physigym = {}
-d_arg_physigym.update(d_arg_physigym_model)
-d_arg_physigym.update(d_arg_physigym_wrapper)
 
 # rl algorithm
 d_arg_rl = {
@@ -329,7 +336,9 @@ d_arg_rl = {
 # all in one
 d_arg = {}
 d_arg.update(d_arg_run)
-d_arg.update(d_arg_physigym)
+d_arg.update(d_arg_wandb)
+d_arg.update(d_arg_physigym_model)
+d_arg.update(d_arg_physigym_wrapper)
 d_arg.update(d_arg_rl)
 
 
@@ -341,15 +350,7 @@ d_arg.update(d_arg_rl)
 s_run = f'{d_arg["name"]}_seed_{d_arg["seed"]}_observationtype_{d_arg["observation_type"]}_weight_{d_arg["r_weight"]}_time_{int(time.time())}'
 if d_arg["wandb_track"]:
     print("tracking: wandb ...")
-    run = wandb.init(
-        project = d_arg["wandb_project_name"],
-        entity = d_arg["wandb_entity"],
-        name=s_run,
-        sync_tensorboard=True,
-        config=d_arg,
-        monitor_gym=True,
-        save_code=True,
-    )
+    run = wandb.init(name=s_run, config=d_arg, **d_arg_wandb)
     s_dir_run = os.path.join(run.dir, s_run)  # run.dir wandb/run-20250612_123456-abcdef
 else:
     print("tracking tensorboard ...")
@@ -371,21 +372,8 @@ torch.manual_seed(d_arg["seed"])
 torch.backends.cudnn.deterministic = d_arg["torch_deterministic"]
 
 # initialize physigym environment
-env = gymnasium.make(d_arg_physigym_model)
-env = PhysiCellModelWrapper(env=env, d_arg_physigym_wrapper)
-
-#    d_arg["env_id"],
-#    cell_type_cmap=d_arg["cell_type_cmap"],
-#    render_mode=d_arg["render_mode"],
-#    observation_type=d_arg["observation_type"],
-#    img_mc_grid_size_x=d_arg["img_mc_grid_size_x"],
-#    img_mc_grid_size_y=d_arg["img_mc_grid_size_y"],
-#    normalization_factor=d_arg["normalization_factor"],
-#)
-#    env=env,
-#    ls_action=d_arg["ls_action"],
-#    r_weight=d_arg["r_weight"],
-#)
+env = gymnasium.make(**d_arg_physigym_model)
+env = PhysiCellModelWrapper(env=env, **d_arg_physigym_wrapper)
 
 # initialize neural networks
 o_device = torch.device("cuda" if torch.cuda.is_available() and d_arg["cuda"] else "cpu") # cpu or gpu
@@ -561,12 +549,10 @@ while env.unwrapped.step_env < d_arg["total_timesteps"]:
     # if episode is over
     if b_episode_over:
         # write to tensorbord
-        #norm_coeff = (1 - d_arg["gamma"] ** (env.unwrapped.step_episode + 1)) / (1 - d_arg["gamma"])
-        #writer.add_scalar("charts/episodic_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
+        writer.add_scalar("charts/episodic_cumulative_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
         writer.add_scalar("charts/cumulative_return", r_cumulative_return, env.unwrapped.episode)
         writer.add_scalar("charts/episodic_length", env.unwrapped.step_episode, env.unwrapped.episode)
         writer.add_scalar("charts/discounted_cumulative_return", r_discounted_cumulative_return, env.unwrapped.episode)
-        #writer.add_scalar("charts/normalized_discounted_episodic_return", r_discounted_cumulative_return / norm_coeff, env.unwrapped.episode)
 
         # write data
         df = pd.DataFrame(ld_data)
@@ -584,4 +570,3 @@ while env.unwrapped.step_env < d_arg["total_timesteps"]:
 # finish
 env.close()
 writer.close()
-
