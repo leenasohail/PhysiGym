@@ -1,5 +1,5 @@
 #####
-# title: custom_modules/physigym/physigym/envs/alexlines1.py
+# title: custom_modules/physigym/physigym/envs/alexbaselines.py
 #
 # language: python3
 # main libraries: numpy, torch, tensordict
@@ -14,8 +14,8 @@
 #####
 
 import numpy as np
-import torch
 from tensordict import TensorDict
+import torch
 
 class ReplayBuffer(object):
     """

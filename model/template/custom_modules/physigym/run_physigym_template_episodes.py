@@ -2,8 +2,6 @@
 # title: run_physigym_template_episodes.py
 #
 # language: python3
-# library: gymnasium,
-#   and the extending and physigym custom_modules
 #
 # date:
 # license: <has to be comatiple with bsb-3-clause>
@@ -13,8 +11,8 @@
 # modified source code: <https://>
 #
 # run:
-#   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_template_episodes.py
+#   1. cd path/to/PhysiCell
+#   2. python3 custom_modules/physigym/physigym/envs/run_physigym_template_episode.py
 #
 # description:
 #   python script to run multiple episodes from the physigym template model.

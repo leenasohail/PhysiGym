@@ -17,12 +17,20 @@
 + source: <https:// your url goes here>
 
 + install:
-    1. cd path/to/PhysiGym
-    1. python3 install_physigym.py template
-    1. cd ../PhysiCell
-    1. make data-cleanup clean reset
-    1. make load PROJ=physigym_template
-    1. make
+```bash
+cd path/to/PhysiGym
+```
+```bash
+python3 install_physigym.py template
+```
+```bash
+cd ../PhysiCell
+```
+```bash
+make data-cleanup clean reset
+make load PROJ=physigym_template
+make
+```
 
 + run classic c++ episodes
 ```bash

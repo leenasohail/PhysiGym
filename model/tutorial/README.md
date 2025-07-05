@@ -18,12 +18,20 @@
 + source: https://github.com/Dante-Berth/PhysiGym/tree/main/model
 
 + install:
-    1. cd path/to/PhysiGym
-    1. python3 install_physigym.py tutorial
-    1. cd ../PhysiCell
-    1. make data-cleanup clean reset
-    1. make load PROJ=physigym_tutorial
-    1. make
+```bash
+cd path/to/PhysiGym
+```
+```bash
+python3 install_physigym.py tutorial
+```
+```bash
+cd ../PhysiCell
+```
+```bash
+make data-cleanup clean reset
+make load PROJ=physigym_tutorial
+make
+```
 
 + run classic c++ episodes
 ```bash

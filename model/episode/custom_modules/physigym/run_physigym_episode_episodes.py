@@ -2,8 +2,6 @@
 # title: run_physigym_episode_episodes.py
 #
 # language: python3
-# library: gymnasium, numpy,
-#   and the extending and physigym custom_modules
 #
 # date: 2024-spring
 # license: bsb-3-clause
@@ -12,8 +10,8 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # run:
-#   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_episode_episodes.py
+#   1. cd path/to/PhysiCell
+#   2. python3 custom_modules/physigym/physigym/envs/run_physigym_episode_episodes.py
 #
 # description:
 #   python script to run multiple episodes from the physigym episode model.

@@ -1,7 +1,9 @@
 gymnasium
 imageio[ffmpeg]
-numba
+matplotlib
 numpy
+pandas
+scikit-image
 tensordict
-tyro
+torch
 wandb

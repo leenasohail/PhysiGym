@@ -1,19 +1,23 @@
 #####
-# title: model/tumor_immune_base/custom_modules/physigym/sac_tib.py
+# title: run_physigym_tibbue_sac.py
 #
 # language: python3
-# main libraries: gymnasium, physigym, numpy, torch, wandb
 #
 # date: 2024-spring
 # license: BSD-3-Clause
 # author: Alexandre Bertin
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
+# run:
+#   1. cd path/to/PhysiCell
+#   2. python3 custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py
+#
 # description:
 #   sac implementation for tumor immune base model.
 #   implementation is based on the following source code:
 # + https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
 #####
+
 
 # basic python
 import numpy as np
@@ -38,7 +42,7 @@ from torch.utils import tensorboard
 import wandb
 
 # replybuffer
-from alexlines1 import ReplayBuffer
+from alexbaselines import ReplayBuffer
 
 
 ################################

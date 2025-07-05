@@ -2,8 +2,6 @@
 # title: run_physigym_tutorial.py
 #
 # language: python3
-# library: gymnasium, numpy,
-#   and the extending and physigym custom_modules
 #
 # date: 2024-spring
 # license: <has to be comatiple with bsb-3-clause>
@@ -13,8 +11,8 @@
 # modified source code: <https://>
 #
 # run:
-#   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_tutorial.py
+#   1. cd path/to/PhysiCell
+#   2. python3 custom_modules/physigym/physigym/envs/run_physigym_tutorial.py
 #
 # description:
 #   python script to run a single episode from the physigym tutorial model.
