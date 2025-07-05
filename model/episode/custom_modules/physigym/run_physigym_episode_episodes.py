@@ -27,7 +27,12 @@ import physigym
 
 
 # function
-def run(s_settingxml="config/PhysiCell_settings.xml", r_maxtime=1440.0, i_thread=8, i_seed=None):
+def run(
+        s_settingxml="config/PhysiCell_settings.xml",
+        r_maxtime=1440.0,
+        i_thread=8,
+        i_seed=None
+    ):
 
     # load PhysiCell Gymnasium environment
     # %matplotlib

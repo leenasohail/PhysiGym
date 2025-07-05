@@ -29,11 +29,11 @@ from random import randrange
 
 # function
 def run(
-    s_settingxml="config/PhysiCell_settings.xml",
-    r_maxtime=1440.0,
-    i_thread=8,
-    i_seed=3,
-):
+        s_settingxml="config/PhysiCell_settings.xml",
+        r_maxtime=1440.0,
+        i_thread=8,
+        i_seed=None,
+    ):
     # load PhysiCell Gymnasium environment
     # %matplotlib
     # env = gymnasium.make("physigym/ModelPhysiCellEnv-v0", settingxml="config/PhysiCell_settings.xml", cell_type_cmap="turbo", figsize=(8,6), render_mode="human", render_fps=10, verbose=True, **kwargs)
@@ -41,35 +41,32 @@ def run(
 
     # episode loop
     for i_episode in range(3):
+
         # manipulate setting xml before reset
-        env.get_wrapper_attr("x_root").xpath("//overall/max_time")[0].text = str(
-            r_maxtime
-        )
-        env.get_wrapper_attr("x_root").xpath("//parallel/omp_num_threads")[
-            0
-        ].text = str(i_thread)
-        env.get_wrapper_attr("x_root").xpath("//save/folder")[
-            0
-        ].text = f"output/episode{str(i_episode).zfill(8)}"
+        env.get_wrapper_attr("x_root").xpath("//overall/max_time")[0].text = str(r_maxtime)
+        env.get_wrapper_attr("x_root").xpath("//parallel/omp_num_threads")[0].text = str(i_thread)
+        env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
 
         # reset the environment
         r_reward = 0.0
-        o_observation, d_info = env.reset()
+        o_observation, d_info = env.reset(seed=i_seed)
 
         # time step loop
         b_episode_over = False
         while not b_episode_over:
+
             # policy according to o_observation
-            d_observation = o_observation
             d_action = {"drug_1": np.array([0.5], dtype=np.float16)}
-            print(f"Reward:{r_reward}")
-            print(f"Info: {d_info}")
+            print("observation:", sorted(o_observation))
+            print("reward:", r_reward)
+            print("info:", sorted(d_info))
+            print("action:", sorted(d_action))
+
             # action
-            o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(
-                d_action
-            )
+            o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
             b_episode_over = b_terminated or b_truncated
-            print(b_episode_over)
+            print("episode_over:", b_episode_over)
+
     # drop the environment
     env.close()
 
