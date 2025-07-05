@@ -40,9 +40,7 @@ python3 custom_modules/physigym/physigym/envs/run_physigym_template.py
 python3 custom_modules/physigym/physigym/envs/run_physigym_template_eposodes.py
 ```
 
-+ run python controlled reinforcemnt learning:
++ run python controlled reinforcement learning:
 ```bash
 not implemented.
 ```
-
-

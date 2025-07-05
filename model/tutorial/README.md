@@ -16,3 +16,32 @@
     + https://github.com/Dante-Berth/PhysiGym/blob/main/man/TUTORIAL_physigym.md
 
 + source: https://github.com/Dante-Berth/PhysiGym/tree/main/model
+
++ install:
+    1. cd path/to/PhysiGym
+    1. python3 install_physigym.py tutorial
+    1. cd ../PhysiCell
+    1. make data-cleanup clean reset
+    1. make load PROJ=physigym_tutorial
+    1. make
+
++ run classic c++ episodes
+```bash
+make classic
+./project
+```
+
++ run python controlled one episode:
+```bash
+python3 custom_modules/physigym/physigym/envs/run_physigym_tutorial.py
+```
+
++ run python controlled episodes:
+```bash
+python3 custom_modules/physigym/physigym/envs/run_physigym_tutorial_eposodes.py
+```
+
++ run python controlled reinforcement learning:
+```bash
+not implemented.
+```

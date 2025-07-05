@@ -28,8 +28,8 @@ import physigym
 
 # load PhysiCell Gymnasium environment
 # %matplotlib
-# env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode='human', render_fps=10)
-env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
+# env = gymnasium.make("physigym/ModelPhysiCellEnv-v0", settingxml="config/PhysiCell_settings.xml", cell_type_cmap="turbo", figsize=(8,6), render_mode="human", render_fps=10, verbose=True, **kwargs)
+env = gymnasium.make("physigym/ModelPhysiCellEnv-v0")
 
 # reset the environment
 r_reward = 0.0
@@ -41,10 +41,10 @@ while not b_episode_over:
 
     # policy according to o_observation
     i_observation = o_observation[0]
-    if (i_observation >= physicell.get_parameter('cell_count_target')):
-        d_action = {'drug_dose': np.array([1.0 - r_reward])}
+    if (i_observation >= physicell.get_parameter("cell_count_target")):
+        d_action = {"drug_dose": np.array([1.0 - r_reward])}
     else:
-        d_action = {'drug_dose': np.array([0.0])}
+        d_action = {"drug_dose": np.array([0.0])}
 
     # action
     o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
