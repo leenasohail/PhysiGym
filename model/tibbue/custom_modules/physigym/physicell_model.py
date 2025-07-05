@@ -80,7 +80,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         if kwargs["observation_type"] == "img_rgb" and render_mode == None :
            raise ValueError(f'if observation_type is img_rgb the render_mode can not be None. try: {self.metadata["render_modes"]}.')
 
-        # Corrected usage of super()
+        # call super class init
         super().__init__(
             settingxml=settingxml,
             cell_type_cmap=cell_type_cmap,
@@ -90,6 +90,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             verbose=verbose,
             **kwargs
         )
+
 
     def get_action_space(self):
         """

@@ -43,7 +43,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         import gymnasium
         import physigym
 
-        env = gymnasium.make('physigym/ModelPhysiCellEnv')
+        env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
         o_observation, d_info = env.reset()
         o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(action={})
@@ -58,8 +58,26 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         you will have to edit this class, to specify the model specific
         reinforcement learning environment.
     """
-    def __init__(self, settingxml='config/PhysiCell_settings.xml', figsize=(8, 6), render_mode=None, render_fps=10, verbose=True):
-        super(ModelPhysiCellEnv, self).__init__(settingxml=settingxml, figsize=figsize, render_mode=render_mode, render_fps=render_fps, verbose=verbose)
+    def __init__(
+            self,
+            settingxml="config/PhysiCell_settings.xml",
+            cell_type_cmap="turbo",
+            figsize=(8, 6),
+            render_mode=None,
+            render_fps=10,
+            verbose=True,
+            **kwargs
+        ):
+
+        super().__init__(
+            settingxml=settingxml,
+            cell_type_cmap=cell_type_cmap,
+            figsize=figsize,
+            render_mode=render_mode,
+            render_fps=render_fps,
+            verbose=verbose,
+            **kwargs
+        )
 
 
     def get_action_space(self):
@@ -82,16 +100,16 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # template
         #action_space = spaces.Dict({
-        #    'discrete': spaces.Discrete(2)  # boolean, integer (parameter, custom_variable)
-        #    'discrete': spaces.Text() # string (parameter)
-        #    'discrete': spaces.MultiBinary()  # boolean in a numpy array (parameter, custom_variable, custom_vector)
-        #    'discrete': spaces.MultiDiscrete()  # boolean, integer in a numpy array (parameter, custom_variable, custom_vector)
-        #    'numeric': spaces.Box()   # boolean, integer, float in a numpy array (parameter, custom_variable, custom_vector)
+        #    "discrete": spaces.Discrete(2)  # boolean, integer (parameter, custom_variable)
+        #    "discrete": spaces.Text() # string (parameter)
+        #    "discrete": spaces.MultiBinary()  # boolean in a numpy array (parameter, custom_variable, custom_vector)
+        #    "discrete": spaces.MultiDiscrete()  # boolean, integer in a numpy array (parameter, custom_variable, custom_vector)
+        #    "numeric": spaces.Box()   # boolean, integer, float in a numpy array (parameter, custom_variable, custom_vector)
         #})
 
         # model dependent action_space processing logic goes here!
         d_action_space = spaces.Dict({
-            'discrete': spaces.Discrete(2)
+            "discrete": spaces.Discrete(2)
         })
 
         # output
@@ -148,9 +166,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         description:
             data for the observation object for example be retrieved by:
-            + physicell.get_parameter('my_parameter')
-            + physicell.get_variable('my_variable')
-            + physicell.get_vector('my_vector')
+            + physicell.get_parameter("my_parameter")
+            + physicell.get_variable("my_variable")
+            + physicell.get_vector("my_vector")
             however, there are no limits.
         """
         # model dependent observation processing logic goes here!
@@ -261,27 +279,27 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             template code to generate a matplotlib figure from the data.
             for example from:
-            + physicell.get_microenv('my_substrate')
+            + physicell.get_microenv("my_substrate")
             + physicell.get_cell()
-            + physicell.get_variable('my_variable')
+            + physicell.get_variable("my_variable")
             however, there are no limits.
         """
         # model dependent img processing logic goes here!
         self.fig.clf()
         ax = self.fig.add_subplot(1,1,1)
-        ax.axis('equal')
-        #ax.axis('off')
+        ax.axis("equal")
+        #ax.axis("off")
 
         ##################
         # substrate data #
         ##################
 
-        #df_conc = pd.DataFrame(physicell.get_microenv('my_substrate'), columns=['x','y','z','my_substrate'])
+        #df_conc = pd.DataFrame(physicell.get_microenv("my_substrate"), columns=["x","y","z","my_substrate"])
         #df_conc = df_conc.loc[df_conc.z == 0.0, :]
-        #df_mesh = df_conc.pivot(index='y', columns='x', values='my_substrate')
+        #df_mesh = df_conc.pivot(index="y", columns="x", values="my_substrate")
         #ax.contourf(
         #    df_mesh.columns, df_mesh.index, df_mesh.values,
-        #    vmin=0.0, vmax=1.0, cmap='Reds',
+        #    vmin=0.0, vmax=1.0, cmap="Reds",
         #    #alpha=0.5,
         #)
 
@@ -290,8 +308,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         ######################
 
         #self.fig.colorbar(
-        #    mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=1.0), cmap='Reds'),
-        #    label='my_substrate',
+        #    mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=1.0), cmap="Reds"),
+        #    label="my_substrate",
         #    ax=ax,
         #)
 
@@ -299,21 +317,21 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # cell data #
         #############
 
-        #df_cell = pd.DataFrame(physicell.get_cell(), columns=['ID','x','y','z','dead','cell_type'])
-        #df_variable = pd.DataFrame(physicell.get_variable('my_variable'), columns=['my_variable'])
-        #df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how='left')
+        #df_cell = pd.DataFrame(physicell.get_cell(), columns=["ID","x","y","z","dead","cell_type"])
+        #df_variable = pd.DataFrame(physicell.get_variable("my_variable"), columns=["my_variable"])
+        #df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how="left")
         #df_cell = df_cell.loc[df_cell.z == 0.0, :]
         #df_cell.plot(
-        #    kind='scatter', x='x', y='y', c='my_variable',
+        #    kind="scatter", x="x", y="y", c="my_variable",
         #    xlim=[
-        #        int(self.x_root.xpath('//domain/x_min')[0].text),
-        #        int(self.x_root.xpath('//domain/x_max')[0].text),
+        #        int(self.x_root.xpath("//domain/x_min")[0].text),
+        #        int(self.x_root.xpath("//domain/x_max")[0].text),
         #    ],
         #    ylim=[
-        #        int(self.x_root.xpath('//domain/y_min')[0].text),
-        #        int(self.x_root.xpath('//domain/y_max')[0].text),
+        #        int(self.x_root.xpath("//domain/y_min")[0].text),
+        #        int(self.x_root.xpath("//domain/y_max")[0].text),
         #    ],
-        #    vmin=0.0, vmax=1.0, cmap='viridis',
+        #    vmin=0.0, vmax=1.0, cmap="viridis",
         #    grid=True,
         #    title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} [cell]',
         #    ax=ax,
@@ -324,7 +342,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         ################
 
         #plt.tight_layout()
-        #s_path = self.x_root.xpath('//save/folder')[0].text + '/render_mode_human/'
+        #s_path = self.x_root.xpath("//save/folder")[0].text + "/render_mode_human/"
         #os.makedirs(s_path, exist_ok=True)
-        #self.fig.savefig(f'{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg', facecolor='white')
+        #self.fig.savefig(f'{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg', facecolor="white")
 

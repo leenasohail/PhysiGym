@@ -28,8 +28,8 @@ import physigym
 
 # load PhysiCell Gymnasium environment
 # %matplotlib
-# env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode='human', render_fps=10)
-env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
+# env = gymnasium.make("physigym/ModelPhysiCellEnv-v0", settingxml="config/PhysiCell_settings.xml", cell_type_cmap="turbo", figsize=(8,6), render_mode="human", render_fps=10, verbose=True, **kwargs)
+env = gymnasium.make("physigym/ModelPhysiCellEnv-v0")
 
 # reset the environment
 r_reward = 0.0
