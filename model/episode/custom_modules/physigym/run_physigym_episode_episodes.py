@@ -1,23 +1,22 @@
 #####
-# title: run_physigym_template_episodes.py
+# title: run_physigym_episode_episodes.py
 #
 # language: python3
-# library: gymnasium,
+# library: gymnasium, numpy,
 #   and the extending and physigym custom_modules
 #
-# date:
-# license: <has to be comatiple with bsb-3-clause>
-# author: <your name goes here>
+# date: 2024-spring
+# license: bsb-3-clause
+# author: Alexandre Bertin, Elmar Bucher
 # input: https://gymnasium.farama.org/main/
 # original source code: https://github.com/Dante-Berth/PhysiGym
-# modified source code: <https://>
 #
 # run:
 #   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_template_episodes.py
+#   2. python3 run_physigym_episode_episodes.py
 #
 # description:
-#   python script to run multiple episodes from the physigym template model.
+#   python script to run multiple episodes from the physigym episode model.
 #####
 
 
@@ -25,6 +24,7 @@
 import argparse
 from extending import physicell
 import gymnasium
+import numpy as np
 import physigym
 
 
@@ -53,11 +53,21 @@ def run(s_settingxml="config/PhysiCell_settings.xml", r_maxtime=1440.0, i_thread
         while not b_episode_over:
 
             # policy according to o_observation
-            b_observation = o_observation
-            if (b_observation):
-                d_action = {}
-            else:
-                d_action = {}
+            d_observation = o_observation
+            d_action = {
+                "secretion_a": np.array([0.0]),
+                "secretion_b": np.array([0.0]),
+                "secretion_c": np.array([0.0]),
+            }
+            # celltype a
+            if (d_observation["celltype_a"][0] <= physicell.get_parameter("cell_count_target")):
+                d_action.update({"secretion_a": np.array([(1 - r_reward) * 1/12])})
+            # celltype b
+            if (d_observation["celltype_b"][0] <= physicell.get_parameter("cell_count_target")):
+                d_action.update({"secretion_b": np.array([(1 - r_reward) * 1/12])})
+            # celltype c
+            if (d_observation["celltype_c"][0] <= physicell.get_parameter("cell_count_target")):
+                d_action.update({"secretion_c": np.array([(1 - r_reward) * 1/12])})
 
             # action
             o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
@@ -69,12 +79,12 @@ def run(s_settingxml="config/PhysiCell_settings.xml", r_maxtime=1440.0, i_thread
 
 # run
 if __name__ == "__main__":
-    print("run physigym episodes ...")
+    print(f"run physigym episodes ...")
 
     # argv
     parser = argparse.ArgumentParser(
-        prog = "run physigym episodes",
-        description = "script to run physigym episodes.",
+        prog = f"run physigym episodes",
+        description = f"script to run physigym episodes.",
     )
     # settingxml file
     parser.add_argument(
@@ -116,7 +126,6 @@ if __name__ == "__main__":
     # processing
     run(
         s_settingxml = args.settingxml,
-        r_maxtime = float(args.max_time),
         i_thread = args.thread,
         i_seed = None if args.seed.lower() == "none" else int(args.seed),
     )
