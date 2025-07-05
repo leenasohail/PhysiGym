@@ -205,7 +205,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             physicell.get_cell(),
             columns=["ID", "x", "y", "z", "dead", "type"]
         )
-        df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
+        df_alive = self.df_cell[self.df_cell["dead"] < 0.1]
 
         # update tumor cell count
         self.c_prev = self.c_t
@@ -442,6 +442,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         #############
 
         df_cell = pd.DataFrame(physicell.get_cell(), columns=["ID","x","y","z","dead","cell_type"])
+        df_cell = df_cell.loc[(df_cell.dead < 0.1), :]
         df_cell["color"] = None
         for s_cell_type, s_color in self.cell_type_to_color.items():
             df_cell.loc[(df_cell.cell_type == s_cell_type), "color"] = s_color
