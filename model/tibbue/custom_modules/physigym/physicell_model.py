@@ -69,15 +69,15 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_fps=10,
             verbose=True,
             #observation_type="scalars",
-            #grid_size_x=64,
-            #grid_size_y=64,
+            #img_mc_grid_size_x=64,
+            #img_mc_grid_size_y=64,
             #normalization_factor=512,
             **kwargs
         ):
 
         # check redner mode
-        if kwargs["observation_type"] == "img_rgba" and render_mode == None :
-           raise ValueError(f'if observation_type is img_rgba the render_mode can not be None. try: {self.metadata["render_modes"]}.')
+        if kwargs["observation_type"] == "img_rgb" and render_mode == None :
+           raise ValueError(f'if observation_type is img_rgb the render_mode can not be None. try: {self.metadata["render_modes"]}.')
 
         # Corrected usage of super()
         super().__init__(
@@ -88,8 +88,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_fps=render_fps,
             verbose=verbose,
             #observation_type=observation_type,
-            #grid_size_x=grid_size_x,
-            #grid_size_y=grid_size_y,
+            #img_mc_grid_size_x=img_mc_grid_size_x,
+            #img_mc_grid_size_y=img_mc_grid_size_y,
             #normalization_factor=normalization_factor,
             **kwargs
         )
@@ -149,11 +149,15 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_type"] == "img_rgba":
+        elif self.kwargs["observation_type"] == "img_rgb":
             # Define the Box space for the rgb alpha image
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
-            a_img = ski.transform.rescale(a_img, 1/8, anti_aliasing=False)
+            a_img = ski.transform.rescale(
+                ai_img,
+                self.kwargs["img_rgb_scale_factor"],
+                anti_aliasing=False,
+            )
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
@@ -161,14 +165,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.uint8,
             )
 
-        elif self.kwargs["observation_type"] == "img_multichannel":
+        elif self.kwargs["observation_type"] == "img_mc":
             # Define the Box space for the multichannel image
-            self.ratio_img_size_y = self.height / self.kwargs["grid_size_y"]
-            self.ratio_img_size_x = self.width / self.kwargs["grid_size_x"]
+            self.ratio_img_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
+            self.ratio_img_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(self.cell_type_count, self.kwargs["grid_size_x"], self.kwargs["grid_size_y"]),
+                shape=(self.cell_type_count, self.kwargs["img_mc_grid_size_x"], self.kwargs["img_mc_grid_size_y"]),
                 dtype=np.uint8,
             )
 
@@ -199,81 +203,78 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent observation processing logic goes here!
 
+        # get cell data frame
         self.df_cell = pd.DataFrame(
             physicell.get_cell(),
             columns=["ID", "x", "y", "z", "dead", "type"]
         )
+        df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
 
         # update tumor cell count
         self.c_prev = self.c_t
-        self.c_t = self.df_cell.loc[
-            (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"),
-            :
-        ].shape[0]
+        self.c_t = df_alive.loc[(df_alive.type == "tumor"), :].shape[0]
         if self.c_prev is None:
             self.c_prev = self.c_t
-
         self.nb_tumor = self.c_t
 
         # update cell_1 cell count
-        self.nb_cell_1 = self.df_cell.loc[
-            (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_1"),
-            :
-        ].shape[0]
+        self.nb_cell_1 = df_alive.loc[(df_alive.type == "cell_1"), :].shape[0]
 
         # update cell_2 cell count
-        self.nb_cell_2 = self.df_cell.loc[
-            (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_2"),
-            :
-        ].shape[0]
+        self.nb_cell_2 = df_alive.loc[(df_alive.type == "cell_2"), :].shape[0]
 
         # observe the environemnt
         if self.kwargs["observation_type"] == "scalars":
             a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=float)
-            for i in range(self.cell_type_count):
-                a_norm_cell_count[i] = self.df_cell.loc[
-                    (self.df_cell.dead == 0.0) & (self.df_cell.type == self.cell_type_unique[i]),
+            for s_cell_type, i_id in self.cell_type_to_id.items():
+                a_norm_cell_count[i_id] = df_alive.loc[
+                    (df_alive.type == s_cell_type),
                     :,
                 ].shape[0] / self.kwargs["normalization_factor"] - 1
             o_observation = a_norm_cell_count
 
-        elif self.kwargs["observation_type"] == "img_rgba":
+        elif self.kwargs["observation_type"] == "img_rgb":
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
-            a_img = ski.transform.rescale(a_img, 1/8, anti_aliasing=True)
+            a_img = ski.transform.rescale(
+                ai_img,
+                self.kwargs["img_rgb_scale_factor"],
+                anti_aliasing=True,
+            )
             o_observation = a_img
 
-        elif self.kwargs["observation_type"] == "img_multichannel":
-            image = np.zeros(
-                (self.cell_type_count, self.kwargs["grid_size_x"], self.kwargs["grid_size_y"]),
-                dtype=np.float32,
-            )
-
-            # Only
-            df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
+        elif self.kwargs["observation_type"] == "img_mc":
+            # get cell_type indices
             cell_type_indices = df_alive["type"].map(self.cell_type_to_id).to_numpy()
 
-            # Discretize
+            # discretize
             x_bin = (
                 (df_alive["x"] - self.x_min)
                 / (self.x_max - self.x_min)
-                * (self.kwargs["grid_size_x"] - 1)
+                * (self.kwargs["img_mc_grid_size_x"] - 1)
             ).astype(int)
             y_bin = (
                 (df_alive["y"] - self.y_min)
                 / (self.y_max - self.y_min)
-                * (self.kwargs["grid_size_y"] - 1)
+                * (self.kwargs["img_mc_grid_size_y"] - 1)
             ).astype(int)
 
-            # Clip in case of rounding issues
-            x_bin = np.clip(x_bin, 0, self.kwargs["grid_size_x"] - 1)
-            y_bin = np.clip(y_bin, 0, self.kwargs["grid_size_y"] - 1)
+            # clip in case of rounding issues
+            x_bin = np.clip(x_bin, 0, self.kwargs["img_mc_grid_size_x"] - 1)
+            y_bin = np.clip(y_bin, 0, self.kwargs["img_mc_grid_size_y"] - 1)
 
+            # get numpy array
+            image = np.zeros(
+                (self.cell_type_count, self.kwargs["img_mc_grid_size_x"], self.kwargs["img_mc_grid_size_y"]),
+                dtype=np.float32,
+            )
             np.add.at(
                 image,
                 (cell_type_indices, x_bin, y_bin),
                 1 / (self.ratio_img_size_x * self.ratio_img_size_y),
             )
+
+            # output
             o_observation = (image * 255).astype(np.uint8)
 
         else:

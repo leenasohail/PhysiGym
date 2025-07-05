@@ -272,55 +272,65 @@ class Actor(nn.Module):
 #############
 # Arguments #
 #############
-
-d_arg = {
+# run basics
+d_arg_run = {
     # basics
     "name" : "sac",   # str: the name of this experiment
-
     # hardware
     "cuda" : True,   # bool: should torch check for gpu (nvidia, amd mroc) accelerator?
-
     # tracking
     "wandb_track" : False,   # bool: track with wandb
     "wandb_entity" : "corporate-manu-sureli",   # str: the wandb s entity name
     "wandb_project_name" : "SAC_IMAGE_TIB",   # str: the wandb s project name
-
     # random seed
     "seed" : 1,   # int: seed of the experiment
     "torch_deterministic" : True,   # bool: torch.backends.cudnn.deterministic
+    # steps
+    "total_timesteps" : int(1e6),    # int: the learning rate of the optimizer
+}
 
-    # physigym
+# physigym
+d_arg_physigym_model = {
     "env_id" : "physigym/ModelPhysiCellEnv-v0",   # str: the id of the gymnasium environment
-    "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "blue", "cell_2" : "green"},
-    #"cell_type_cmap" : "viridis",
+    "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "blue", "cell_2" : "green"},  # viridis
+    "observation_type" : "img_rgb",   # str: the type of observation scalars , img_rgb , img_mc
     "render_mode" : "rgb_array",
-    #"observation_type" : "scalars",   # str: the type of observation scalars, img_rgba, img_multichannel
-    #"observation_type" : "img_multichannel",   # str: the type of observation scalars, img_rgba, img_multichannel
-    "observation_type" : "img_rgba",   # str: the type of observation scalars, img_rgba, img_multichannel
-    "grid_size_x" : 64,
-    "grid_size_y" : 64,
+    "img_rgb_scale_factor" : 1/8,
+    "img_mc_grid_size_x" : 64,
+    "img_mc_grid_size_y" : 64,
     "normalization_factor" : 512,
+}
+d_arg_physigym_wrapper = {
     "ls_action" : ["drug_1"],  # list of str: of action varaible names
     "r_weight" : 0.5,   # float: weight for the reduction of tumor
-    "total_timesteps" : int(1e6),    # int: the learning rate of the optimizer
+}
+d_arg_physigym = {}
+d_arg_physigym.update(d_arg_physigym_model)
+d_arg_physigym.update(d_arg_physigym_wrapper)
 
-    # neural network
-    "alpha" : 0.2,   # float: set manuall entropy regularization coefficient.
-    "autotune" : True,   # bool: automatic tuning the the entropy coefficient.
-
-    # algorithm I
-    "buffer_size" : int(1e6),    # int: the replay memory buffer size
+# rl algorithm
+d_arg_rl = {
+    # algoritm neural network I
+    "buffer_size" : int(1e4),    # int: the replay memory buffer size
     "batch_size" : 256,   # int: the batch size of sample from the reply memory
     "learning_starts" : 10e3,   # float: timestep to start learning
     "policy_frequency" : 2,    # int: the frequency of training policy (delayed)
     "target_network_frequency" : 1,   # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
-
-    # algorithm II
-    "gamma" : 0.99,    # float: the discount factor gamma
+    # algorithm neural network II
+    "autotune" : True,   # bool: automatic tuning the the entropy coefficient.
+    "alpha" : 0.2,   # float: set manuall entropy regularization coefficient.
     "tau" : 0.005,    # float: target smoothing coefficient (default" : 0.005)
     "q_lr" : 3e-4,    # float: the learning rate of the Q network network optimizer
     "policy_lr" : 3e-4,    # float: the learning rate of the policy network optimizer
+    # algorithm neural network III
+    "gamma" : 0.99,    # float: the discount factor gamma (how much learning)
 }
+
+# all in one
+d_arg = {}
+d_arg.update(d_arg_run)
+d_arg.update(d_arg_physigym)
+d_arg.update(d_arg_rl)
 
 
 #############
@@ -361,21 +371,21 @@ torch.manual_seed(d_arg["seed"])
 torch.backends.cudnn.deterministic = d_arg["torch_deterministic"]
 
 # initialize physigym environment
-env = gymnasium.make(
-    d_arg["env_id"],
-    cell_type_cmap=d_arg["cell_type_cmap"],
-    render_mode=d_arg["render_mode"],
-    observation_type=d_arg["observation_type"],
-    grid_size_x=d_arg["grid_size_x"],
-    grid_size_y=d_arg["grid_size_y"],
-    normalization_factor=d_arg["normalization_factor"],
-)
-env = PhysiCellModelWrapper(
-    env=env,
-    ls_action=d_arg["ls_action"],
-    r_weight=d_arg["r_weight"],
+env = gymnasium.make(d_arg_physigym_model)
+env = PhysiCellModelWrapper(env=env, d_arg_physigym_wrapper)
 
-)
+#    d_arg["env_id"],
+#    cell_type_cmap=d_arg["cell_type_cmap"],
+#    render_mode=d_arg["render_mode"],
+#    observation_type=d_arg["observation_type"],
+#    img_mc_grid_size_x=d_arg["img_mc_grid_size_x"],
+#    img_mc_grid_size_y=d_arg["img_mc_grid_size_y"],
+#    normalization_factor=d_arg["normalization_factor"],
+#)
+#    env=env,
+#    ls_action=d_arg["ls_action"],
+#    r_weight=d_arg["r_weight"],
+#)
 
 # initialize neural networks
 o_device = torch.device("cuda" if torch.cuda.is_available() and d_arg["cuda"] else "cpu") # cpu or gpu
@@ -391,7 +401,8 @@ qf1_target.load_state_dict(qf1.state_dict())
 qf2_target.load_state_dict(qf2.state_dict())
 q_optimizer = optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["q_lr"])
 actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg["policy_lr"])
-# neural network automatic entropy tuning or manual alpha
+
+# set neural network entropy alpha by automatic tuning or manual
 if d_arg["autotune"]:
     target_entropy = - torch.prod(torch.Tensor(env.action_space.shape).to(o_device)).item()
     log_alpha = torch.zeros(1, requires_grad=True, device=o_device)
@@ -444,7 +455,6 @@ while env.unwrapped.step_env < d_arg["total_timesteps"]:
 
     # handle observation
     o_observation = o_observation_next
-
 
     # upadte data output
     d_data = {
@@ -529,8 +539,7 @@ while env.unwrapped.step_env < d_arg["total_timesteps"]:
             writer.add_scalar("losses/qf2_loss", qf2_loss.item(), env.unwrapped.step_env)
             writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, env.unwrapped.step_env)
             writer.add_scalar("losses/actor_loss", actor_loss.item(), env.unwrapped.step_env)
-            entropy = - log_pi.mean().item()
-            writer.add_scalar("losses/entropy", entropy, env.unwrapped.step_env)
+            writer.add_scalar("losses/entropy", - log_pi.mean().item(), env.unwrapped.step_env)
 
         # update the target networks
         if env.unwrapped.step_env % d_arg["target_network_frequency"] == 0:
