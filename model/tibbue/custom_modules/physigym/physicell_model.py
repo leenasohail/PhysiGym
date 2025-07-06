@@ -68,16 +68,16 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_mode=None,
             render_fps=10,
             verbose=True,
-            **kwargs
-            #observation_type="scalars",
-            #img_rgb_scale_factor=1/6,
-            #img_mc_grid_size_x=64,
-            #img_mc_grid_size_y=64,
-            #normalization_factor=512,
+            #**kwargs
+            observation_type="scalars",
+            img_rgb_scale_factor=1/6,
+            img_mc_grid_size_x=64,
+            img_mc_grid_size_y=64,
+            normalization_factor=512,
         ):
 
         # check redner mode
-        if kwargs["observation_type"] == "img_rgb" and render_mode == None :
+        if observation_type == "img_rgb" and render_mode == None :
            raise ValueError(f'if observation_type is img_rgb the render_mode can not be None. try: {self.metadata["render_modes"]}.')
 
         # call super class init
@@ -88,7 +88,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_mode=render_mode,
             render_fps=render_fps,
             verbose=verbose,
-            **kwargs
+            #**kwargs
+            observation_type=observation_type,
+            img_rgb_scale_factor=img_rgb_scale_factor,
+            img_mc_grid_size_x=img_mc_grid_size_x,
+            img_mc_grid_size_y=img_mc_grid_size_y,
+            normalization_factor=normalization_factor,
         )
 
 
