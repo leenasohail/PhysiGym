@@ -15,8 +15,8 @@
 
 
 // constantes variables
-static const double ZERO = 0;
-static const std::vector<double> VECTOR_ZERO (4, ZERO);  // generate a 4 character long vector of zeros.
+//static const double ZERO = 0;
+//static const std::vector<double> VECTOR_ZERO (4, ZERO);  // generate a 4 character long vector of zeros.
 
 
 // functions
@@ -123,10 +123,10 @@ void setup_tissue(void) {
     set_parameters_from_distributions();
 
     // add custom data vector
-    for (int i = 0 ; i < all_cells->size(); i++) {
-        std::vector<double> vector_double = VECTOR_ZERO;
-        (*all_cells)[i]->custom_data.add_vector_variable("my_vector", vector_double);
-    }
+    //for (int i = 0 ; i < all_cells->size(); i++) {
+    //    std::vector<double> vector_double = VECTOR_ZERO;
+    //    (*all_cells)[i]->custom_data.add_vector_variable("my_vector", vector_double);
+    //}
 
     return;
 }

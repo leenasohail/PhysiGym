@@ -69,7 +69,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_fps=10,
             verbose=True,
             #**kwargs
-            observation_type="scalars",
+            observation_mode="scalars",
             img_rgb_scale_factor=1/6,
             img_mc_grid_size_x=64,
             img_mc_grid_size_y=64,
@@ -77,8 +77,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         ):
 
         # check redner mode
-        if observation_type == "img_rgb" and render_mode == None :
-           raise ValueError(f'if observation_type is img_rgb the render_mode can not be None. try: {self.metadata["render_modes"]}.')
+        if observation_mode == "img_rgb" and render_mode == None :
+           raise ValueError(f'if observation_mode is img_rgb the render_mode can not be None. try: {self.metadata["render_modes"]}.')
 
         # call super class init
         super().__init__(
@@ -89,7 +89,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_fps=render_fps,
             verbose=verbose,
             #**kwargs
-            observation_type=observation_type,
+            observation_mode=observation_mode,
             img_rgb_scale_factor=img_rgb_scale_factor,
             img_mc_grid_size_x=img_mc_grid_size_x,
             img_mc_grid_size_y=img_mc_grid_size_y,
@@ -144,7 +144,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             for each observed variable.
         """
         # model dependent observation_space processing logic goes here!
-        if self.kwargs["observation_type"] == "scalars":
+        if self.kwargs["observation_mode"] == "scalars":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
@@ -152,7 +152,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_type"] == "img_rgb":
+        elif self.kwargs["observation_mode"] == "img_rgb":
             # Define the Box space for the rgb alpha image
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
@@ -168,7 +168,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.uint8,
             )
 
-        elif self.kwargs["observation_type"] == "img_mc":
+        elif self.kwargs["observation_mode"] == "img_mc":
             # Define the Box space for the multichannel image
             self.ratio_img_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
             self.ratio_img_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
@@ -180,7 +180,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             )
 
         else:
-            raise ValueError(f'unknown observation type: {self.kwargs["observation_type"]}')
+            raise ValueError(f'unknown observation type: {self.kwargs["observation_mode"]}')
 
         # output
         return o_observation_space
@@ -227,7 +227,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.nb_cell_2 = df_alive.loc[(df_alive.type == "cell_2"), :].shape[0]
 
         # observe the environemnt
-        if self.kwargs["observation_type"] == "scalars":
+        if self.kwargs["observation_mode"] == "scalars":
             a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=float)
             for s_cell_type, i_id in self.cell_type_to_id.items():
                 a_norm_cell_count[i_id] = df_alive.loc[
@@ -236,7 +236,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 ].shape[0] / self.kwargs["normalization_factor"] - 1
             o_observation = a_norm_cell_count
 
-        elif self.kwargs["observation_type"] == "img_rgb":
+        elif self.kwargs["observation_mode"] == "img_rgb":
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
             a_img = ski.transform.rescale(
@@ -246,7 +246,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             )
             o_observation = a_img
 
-        elif self.kwargs["observation_type"] == "img_mc":
+        elif self.kwargs["observation_mode"] == "img_mc":
             # get cell_type indices
             cell_type_indices = df_alive["type"].map(self.cell_type_to_id).to_numpy()
 
@@ -281,7 +281,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation = (image * 255).astype(np.uint8)
 
         else:
-            raise ValueError(f'unknown observation type: {self.kwargs["observation_type"]}')
+            raise ValueError(f'unknown observation type: {self.kwargs["observation_mode"]}')
 
         # output
         return o_observation

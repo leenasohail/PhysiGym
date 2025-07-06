@@ -273,6 +273,7 @@ class Actor(nn.Module):
         mean = torch.tanh(mean) * self.action_scale + self.action_bias
         return action, log_prob, mean
 
+
 ########
 # Run #
 #######
@@ -281,9 +282,11 @@ def run(
         r_max_time_episode=1440.0,  # xpath
         i_thread=8,  # xpath
         i_seed=None,
+        s_observation_mode="scalars",
+        s_render_mode=None,
         s_name="sac",
-        b_wandb_track=False,
-        total_timesteps=int(1e6)
+        b_wandb=False,
+        i_total_step_learn=int(1e6)
     ):
 
     #############
@@ -319,9 +322,9 @@ def run(
         "settingxml" : s_settingxml,
         "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "green", "cell_2" : "navy"},  # viridis
         "figsize": (6,6),
-        "observation_type" : "img_rgb",   # str: scalars , img_rgb , img_mc
-        "render_mode" : "human",
-        "verbose" : False,
+        "observation_mode" : s_observation_mode,   # str: scalars , img_rgb , img_mc
+        "render_mode" : s_render_mode,  # human, rgb_array
+        "verbose" : True,
         "img_rgb_scale_factor" : 1/6,
         "img_mc_grid_size_x" : 64,
         "img_mc_grid_size_y" : 64,
@@ -364,7 +367,7 @@ def run(
     #############
 
     # initialize tracking
-    s_run = f'{d_arg["name"]}_seed_{d_arg["seed"]}_observationtype_{d_arg["observation_type"]}_weight_{d_arg["r_weight"]}_time_{int(time.time())}'
+    s_run = f'{d_arg["name"]}_seed_{d_arg["seed"]}_observationtype_{d_arg["observation_mode"]}_weight_{d_arg["r_weight"]}_time_{int(time.time())}'
     if d_arg["wandb_track"]:
         print("tracking: wandb ...")
         run = wandb.init(name=s_run, config=d_arg, **d_arg_wandb)
@@ -432,7 +435,7 @@ def run(
         o_device=o_device,
         i_buffer_size=d_arg["buffer_size"],
         i_batch_size=d_arg["batch_size"],
-        o_observation_type=env.observation_space.dtype,
+        o_observation_mode=env.observation_space.dtype,
     )
 
     # reset gymnasium env
@@ -638,6 +641,22 @@ if __name__ == "__main__":
         default = "none",
         help = "set options random_seed in the settings.xml file and python."
     )
+    # observation_mode
+    parser.add_argument(
+        "--observation_mode",
+        #type = str,
+        nargs = "?",
+        default = "scalars",
+        help = "observation mode scalars, img_rgb, or img_mc."
+    )
+    # render_mode
+    parser.add_argument(
+        "--render_mode",
+        #type = str,
+        nargs = "?",
+        default = "none",
+        help = "render mode None, rgb_array, or human. observation mode scalars needs either render mode rgb_array or human."
+    )
     # name
     parser.add_argument(
         "--name",
@@ -673,7 +692,10 @@ if __name__ == "__main__":
         r_max_time_episode = float(args.max_time_episode),
         i_thread = args.thread,
         i_seed = None if args.seed.lower() == "none" else int(args.seed),
+        s_observation_mode = args.observation_mode,
+        s_render_mode = None if args.render_mode.lower() == "none" else args.render_mode,
         s_name = args.name,
         b_wandb = True if args.wandb.lower() == "true" else False,
         i_total_step_learn = int(args.total_step_learn),
     )
+

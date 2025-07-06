@@ -30,14 +30,14 @@ class ReplayBuffer(object):
             o_device,
             i_buffer_size,
             i_batch_size,
-            o_observation_type=np.float32,
+            o_observation_mode=np.float32,
         ):
         """
         Initializes the replay buffer.
 
         Parameters:
         - li_observation_dim tuple(int): Dimensionality of the o_observation space.
-        - o_observation_type (numpy dtype, optional): Data type of the o_observation representation (default: np.float32).
+        - o_observation_mode (numpy dtype, optional): Data type of the o_observation representation (default: np.float32).
         - li_action_dim tuple(int): Dimensionality of the a_action space.
         - o_device (torch.o_device): Device where tensors should be stored.
         - i_buffer_size (int): Maximum size of the replay buffer.
@@ -47,8 +47,8 @@ class ReplayBuffer(object):
         self.i_buffer_size = int(i_buffer_size)
         self.i_batch_size = int(i_batch_size)
 
-        self.ao_observation = np.empty((self.i_buffer_size, *li_observation_dim), dtype=o_observation_type)
-        self.ao_observation_next = np.empty((self.i_buffer_size, *li_observation_dim), dtype=o_observation_type)
+        self.ao_observation = np.empty((self.i_buffer_size, *li_observation_dim), dtype=o_observation_mode)
+        self.ao_observation_next = np.empty((self.i_buffer_size, *li_observation_dim), dtype=o_observation_mode)
         self.aa_action = np.empty((self.i_buffer_size, *li_action_dim), dtype=np.float32)
         self.ar_reward = np.empty((self.i_buffer_size, 1), dtype=np.float32)
         self.ab_episode_over = np.empty((self.i_buffer_size, 1), dtype=np.uint8)
