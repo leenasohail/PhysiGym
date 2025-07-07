@@ -49,24 +49,24 @@ all: main.cpp
 	make python-instruction
 
 python-instruction:
-	@echo ""
-	@echo "open a Python shell and try:"
-	@echo ""
-	@echo "import gymnasium"
-	@echo "import physigym"
-	@echo ""
-	@echo "gymnasium.envs.pprint_registry()"
-	@echo ""
-	@echo "env = gymnasium.make('physigym/ModelPhysiCellEnv')"
-	@echo ""
-	@echo "help(physigym.envs.ModelPhysiCellEnv)"
-	@echo ""
-	@echo "env.reset()"
-	@echo "env.step(action={})"
-	@echo "env.close()"
-	@echo ""
-	@echo "exit()"
-	@echo ""
+	@echo ''
+	@echo 'open a Python shell and try:'
+	@echo ''
+	@echo 'import gymnasium'
+	@echo 'import physigym'
+	@echo ''
+	@echo 'gymnasium.envs.pprint_registry()'
+	@echo ''
+	@echo 'env = gymnasium.make("physigym/ModelPhysiCellEnv")'
+	@echo ''
+	@echo 'help(physigym.envs.ModelPhysiCellEnv)'
+	@echo ''
+	@echo 'env.reset()'
+	@echo 'env.step(action={})'
+	@echo 'env.close()'
+	@echo ''
+	@echo 'exit()'
+	@echo ''
 
 install-requirement:
 	pip3 install --force-reinstall --editable custom_modules/physigym

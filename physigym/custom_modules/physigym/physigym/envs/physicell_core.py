@@ -163,7 +163,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         # check global physigym environment flag
         if physicell.flag_envphysigym:
-            raise RuntimeWarning(f"per runtime, only one physigym environment can be loaded. instance generation cancelled!")
+            raise RuntimeWarning(f"per runtime, only one PhysiCellEnv gymnasium environment can be loaded. instance generation cancelled!")
 
         # handle verbose
         self.verbose = verbose
@@ -418,7 +418,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         if self.verbose:
-            print(f"Warning: per runtime, only one physigym environment can be generated.\nto run another physicell model, it will be necessary to initiate a new runtime!")
+            print(f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\nto run another env, it will be necessary to fork or spawn the runtime!")
             print(f"physigym: ok!")
         return o_observation, d_info
 
@@ -658,7 +658,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         if self.verbose:
-            print(f"Warning: per runtime, only one physigym environment can be generated.\nto run another physicell model, it will be necessary to initiate a new runtime!")
+            print(f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\nto run another env, it will be necessary to fork or spawn the runtime!")
             print(f"physigym: ok!")
 
 
