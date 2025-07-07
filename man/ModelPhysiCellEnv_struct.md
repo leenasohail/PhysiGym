@@ -1,6 +1,6 @@
 # ModelPhysiCellEnv Gymnasium Environment Structure
 
-## Main Functions
+## &#x2728; Main Functions
 
 ```python
 env.__init__
@@ -44,7 +44,7 @@ env.verbose_true  # enable standard output verbosity.
 env.verbose_false  # disable standard output verbosity.
 ```
 
-## Internal Functions
+## &#x2728; Internal Functions
 
 ### Model specific
 ```python
@@ -85,7 +85,7 @@ env.get_truncated  # determine if the episode reached the max_time specified in 
 ```
 
 
-## Internal Variables
+## &#x2728; Internal Variables
 
 ### Time
 ```python
@@ -139,7 +139,7 @@ env.substrate_unique  # list of name strings sorted by id.
 env.substrate_count  # total number of substrates.
 ```
 
-### PhysiCell cell_type
+### PhysiCell cell\_type
 ```python
 env.cell_type_to_id  # dictionary with name string to integer id mapping.
 env.cell_type_unique  # list of name strings sorted by id.
