@@ -2,7 +2,6 @@
 
 ## Main Functions
 
-# env
 ```python
 env.__init__
     +- settingxml="config/PhysiCell_settings.xml"
@@ -45,7 +44,9 @@ env.verbose_true  # enable standard output verbosity.
 env.verbose_false  # disable standard output verbosity.
 ```
 
-## Internal Functions (model specific)
+## Internal Functions
+
+### Model specific
 ```python
 env.get_action_space  # specify type and range of each action parameter.
 ```
@@ -78,10 +79,11 @@ env.get_reward  # evaulate the cost function and return a float value.
 env.get_img  # specify the render image as a matplotlib plot.
 ```
 
-## Internal Function (generic)
+### Generic
 ```python
 env.get_truncated  # determine if the episode reached the max_time specified in the PhysiCell settings.xml.
 ```
+
 
 ## Internal Variables
 
