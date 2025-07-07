@@ -140,7 +140,7 @@ env.substrate_count  # total number of substrates.
 ```
 
 ### PhysiCell cell_type
-```physicell
+```python
 env.cell_type_to_id  # dictionary with name string to integer id mapping.
 env.cell_type_unique  # list of name strings sorted by id.
 env.cell_type_count  # total number of cell_types.
