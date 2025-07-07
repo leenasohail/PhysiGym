@@ -210,6 +210,37 @@ class PixelPreprocess(nn.Module):
         return x.div(255.0).sub(0.5)
 
 
+class ResidualBlock(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.conv1 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.conv2 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.activation = nn.Mish()
+
+    def forward(self, x):
+        residual = x
+        x = self.activation(self.conv1(x))
+        x = self.activation(self.conv2(x))
+        return x + residual
+
+
+class ImpalaBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.pool = nn.MaxPool2d(3, stride=2, padding=1)
+        self.res1 = ResidualBlock(out_channels)
+        self.res2 = ResidualBlock(out_channels)
+        self.activation = nn.Mish()
+
+    def forward(self, x):
+        x = self.activation(self.conv(x))
+        x = self.pool(x)
+        x = self.res1(x)
+        x = self.res2(x)
+        return x
+
+
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
@@ -222,16 +253,11 @@ class FeatureExtractor(nn.Module):
 
         if self.is_image:
             # CNN feature extractor
-            num_channels = 8
             layers = [
                 PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 5, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=1),
+                ImpalaBlock(obs_shape[0], 16),
+                ImpalaBlock(16, 32),
+                ImpalaBlock(32, 32),
                 nn.Flatten(),
             ]
             self.feature_extractor = nn.Sequential(*layers)
