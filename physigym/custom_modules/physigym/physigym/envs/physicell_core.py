@@ -176,7 +176,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.episode = -1
         self.step_episode = None
         self.step_env = 0
-        self.i_time_current = -1
+        self.time_simulation = -1  # integer
 
         # handle keyword arguments input
         self.kwargs = kwargs
@@ -213,9 +213,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
         self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
         self.dz = int(self.x_root.xpath("//domain/dz")[0].text)
-        self.width = self.x_max - self.x_min + 2 * self.dx
-        self.height = self.y_max - self.y_min + 2 * self.dy
-        self.depth = self.z_max - self.z_min + 2 * self.dz
+        self.width = self.x_max - self.x_min #+ self.dx
+        self.height = self.y_max - self.y_min #+ self.dy
+        self.depth = self.z_max - self.z_min #+ self.dz
 
         # handle substrate mapping
         self.substrate_to_id = dict(zip(
@@ -240,7 +240,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 except KeyError:
                     self.cell_type_to_color.update({s_cell_type : "gray"})
         elif type(cell_type_cmap) is str:
-            for i, ar_color in enumerate(plt.get_cmap(cell_type_cmap, len(self.cell_type_unique)).colors):
+            for i, ar_color in enumerate(plt.get_cmap(cell_type_cmap, self.cell_type_count).colors):
                 self.cell_type_to_color.update({self.cell_type_unique[i] : colors.to_hex(ar_color)})
         else:
             raise ValueError(f"cell_type_cmap {cell_type_cmap} have to be a dictionary of string or a string.")
@@ -441,11 +441,11 @@ class CorePhysiCellEnv(gymnasium.Env):
         # processing
         b_truncated = False
         # achtung: time has to be declared as parameter of type float in the settings.xml file!
-        r_time_current = physicell.get_parameter("time")
-        b_truncated = self.i_time_current == int(r_time_current)
-        self.i_time_current = int(r_time_current)
+        r_time_simulation = physicell.get_parameter("time")
+        b_truncated = self.time_simulation == int(r_time_simulation)
+        self.time_simulation = int(r_time_simulation)
         if self.verbose:
-            print(f"current time python3: {round(r_time_current, 3)}")
+            print(f"current time python3: {round(r_time_simulation, 3)}")
 
         # output
         return b_truncated

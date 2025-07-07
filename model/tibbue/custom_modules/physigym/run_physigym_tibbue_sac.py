@@ -286,7 +286,7 @@ def run(
         s_render_mode=None,
         s_name="sac",
         b_wandb=False,
-        i_total_step_learn=int(1e6)
+        i_total_step_learn=int(1e5)
     ):
 
     #############
