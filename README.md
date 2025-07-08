@@ -60,7 +60,7 @@ May the force be with you!
 # &#x1F9E9; Reference Manual:
 
 + [reference manual](https://github.com/Dante-Berth/PhysiGym/blob/main/man/REFERENCE.md)
-
++ [class ModelPhysiCellEnv gymnasium environment structure](https://github.com/Dante-Berth/PhysiGym/blob/main/man/ModelPhysiCellEnv_struct.md)
 
 # Discussion:
 

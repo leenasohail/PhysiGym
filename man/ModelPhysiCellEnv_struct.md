@@ -118,18 +118,18 @@ env.x_root  # lxml etree Element object for xpath operations on the parsed xml f
 
 ### PhysiCell domain
 ```python
-env.x_min  # float
-env.x_max  # float
-env.y_min  # float
-env.y_max  # float
-env.z_min  # float
-env.z_max  # float
-env.dx  # float
-env.dy  # float
-env.dz  # float
-env.width  # float
-env.height  # float
-env.depth  # float
+env.x_min  # float micrometer
+env.x_max  # float micrometer
+env.y_min  # float micrometer
+env.y_max  # float micrometer
+env.z_min  # float micrometer
+env.z_max  # float micrometer
+env.dx  # float micrometer
+env.dy  # float micrometer
+env.dz  # float micrometer
+env.width  # float micrometer
+env.height  # float micrometer
+env.depth  # float micrometer
 ```
 
 ### PhysiCell substrate
