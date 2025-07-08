@@ -15,3 +15,40 @@
     most minimalistic physigym physicell user_project.
 
 + source: <https:// your url goes here>
+
++ install:
+```bash
+cd path/to/PhysiGym
+```
+```bash
+python3 install_physigym.py template
+```
+```bash
+cd ../PhysiCell
+```
+```bash
+make data-cleanup clean reset
+make load PROJ=physigym_template
+make
+```
+
++ run classic c++ episodes
+```bash
+make classic
+./project
+```
+
++ run python controlled one episode:
+```bash
+python3 custom_modules/physigym/physigym/envs/run_physigym_template.py
+```
+
++ run python controlled episodes:
+```bash
+python3 custom_modules/physigym/physigym/envs/run_physigym_template_eposodes.py
+```
+
++ run python controlled reinforcement learning:
+```bash
+not implemented.
+```

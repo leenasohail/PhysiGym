@@ -2,8 +2,6 @@
 # title: run_physigym_template.py
 #
 # language: python3
-# library: gymnasium,
-#   and the extending and physigym custom_modules
 #
 # date:
 # license: <compatible with bsb-3-clause>
@@ -13,8 +11,8 @@
 # modified source code: <https://>
 #
 # run:
-#   1. copy this file into the PhysiCell root folder
-#   2. python3 run_physigym_template.py
+#   1. cd path/to/PhysiCell
+#   2. python3 custom_modules/physigym/physigym/envs/run_physigym_template.py
 #
 # description:
 #   python script to run a single episode from the physigym template model.
@@ -28,8 +26,8 @@ import physigym
 
 # load PhysiCell Gymnasium environment
 # %matplotlib
-# env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', settingxml='config/PhysiCell_settings.xml', figsize=(8,6), render_mode='human', render_fps=10)
-env = gymnasium.make('physigym/ModelPhysiCellEnv-v0')
+# env = gymnasium.make("physigym/ModelPhysiCellEnv-v0", settingxml="config/PhysiCell_settings.xml", cell_type_cmap="turbo", figsize=(8,6), render_mode="human", render_fps=10, verbose=True, **kwargs)
+env = gymnasium.make("physigym/ModelPhysiCellEnv-v0")
 
 # reset the environment
 r_reward = 0.0

@@ -15,8 +15,8 @@
 
 
 // constantes variables
-static const double ZERO = 0;
-static const std::vector<double> VECTOR_ZERO (4, ZERO);  // generate a 4 character long vector of zeros.
+//static const double ZERO = 0;
+//static const std::vector<double> VECTOR_ZERO (4, ZERO);  // generate a 4 character long vector of zeros.
 
 
 // functions
