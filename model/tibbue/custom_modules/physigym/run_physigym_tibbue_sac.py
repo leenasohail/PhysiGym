@@ -379,13 +379,16 @@ def run(
         s_dir_run = os.path.join("tensorboard", s_run)
     s_dir_data = os.path.join(s_dir_run, "data")
 
-    # initialize tensorbord writer
+    # initialize tensorbord recording
     writer = tensorboard.SummaryWriter(s_dir_run)
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s"
         % ("\n".join([f"|{s_key}|{s_value}|" for s_key, s_value in sorted(d_arg.items())])),
     )
+
+    # initialize csv recording
+    ld_data = []
 
     # set random seed
     random.seed(d_arg["seed"])
@@ -400,11 +403,9 @@ def run(
     # initialize physigym environment
     env = gymnasium.make(**d_arg_physigym_model)
     env = PhysiCellModelWrapper(env=env, **d_arg_physigym_wrapper)
-    # manipulate setting xml before reset
+    # manipulate setting xml
     env.get_wrapper_attr("x_root").xpath("//overall/max_time")[0].text = str(r_max_time_episode)
     env.get_wrapper_attr("x_root").xpath("//parallel/omp_num_threads")[0].text = str(i_thread)
-    # bue can be used for track or not track stuff, e.g. every 1024 episode
-    #env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
 
     # initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() and d_arg["cuda"] else "cpu") # cpu or gpu
@@ -420,7 +421,6 @@ def run(
     qf2_target.load_state_dict(qf2.state_dict())
     q_optimizer = optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["q_lr"])
     actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg["policy_lr"])
-
     # set neural network entropy alpha by automatic tuning or manual
     if d_arg["autotune"]:
         target_entropy = - torch.prod(torch.Tensor(env.action_space.shape).to(o_device)).item()
@@ -440,163 +440,163 @@ def run(
         o_observation_mode=env.observation_space.dtype,
     )
 
-    # reset gymnasium env
-    o_observation, d_info = env.reset(seed=d_arg["seed"])
-    r_cumulative_return = 0
-    r_discounted_cumulative_return = 0
-
     # do reinforcement
-    ld_data = []
     while env.unwrapped.step_env < d_arg["total_timesteps"]:
 
-        # sample the action space or learn
-        if env.unwrapped.step_env <= d_arg["learning_starts"]:
-            a_action = np.array(env.action_space.sample(), dtype=np.float16)
-        else:
-            x = torch.Tensor(o_observation).to(o_device).unsqueeze(0)
-            actions, _, _ = actor.get_action(x)
-            a_action = actions.detach().squeeze(0).cpu().numpy()
+        # manipulate setting xml before reset
+        # bue can be used for track or not track stuff, e.g. every 1024 episode
+        #env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
 
-        # physigym step
-        o_observation_next, r_reward, b_terminated, b_truncated, d_info = env.step(a_action)
-        b_episode_over = b_terminated or b_truncated
-        r_cumulative_return += r_reward
-        r_discounted_cumulative_return += r_reward * d_arg["gamma"] ** (env.unwrapped.step_episode)
+        # reset gymnasium env
+        r_cumulative_return = 0
+        r_discounted_cumulative_return = 0
+        o_observation, d_info = env.reset(seed=d_arg["seed"])
 
-        # record to reply buffer
-        rb.add(
-            o_observation=o_observation,
-            a_action=a_action,
-            o_observation_next=o_observation_next,
-            r_reward=r_reward,
-            b_episode_over=b_episode_over,
-        )
+        # time step loop
+        b_episode_over = False
+        while not b_episode_over:
 
-        # handle observation
-        o_observation = o_observation_next
+            # sample the action space or learn
+            if env.unwrapped.step_env <= d_arg["learning_starts"]:
+                a_action = np.array(env.action_space.sample(), dtype=np.float16)
+            else:
+                x = torch.Tensor(o_observation).to(o_device).unsqueeze(0)
+                actions, _, _ = actor.get_action(x)
+                a_action = actions.detach().squeeze(0).cpu().numpy()
 
-        # upadte data output
-        d_data = {
-            "step": env.unwrapped.step_episode,
-            "reward": r_reward,
-            "cumulative_return": r_cumulative_return,
-            "discounted_cumulative_return": r_discounted_cumulative_return,
-            "drug_1": a_action[0],
-            "number_tumor": d_info["number_tumor"],
-            "number_cell_1": d_info["number_cell_1"],
-            "number_cell_2": d_info["number_cell_2"],
-        }
-        ld_data.append(d_data)
+            # physigym step
+            o_observation_next, r_reward, b_terminated, b_truncated, d_info = env.step(a_action)
+            r_cumulative_return += r_reward
+            r_discounted_cumulative_return += r_reward * d_arg["gamma"]**(env.unwrapped.step_episode)
+            b_episode_over = b_terminated or b_truncated
 
+            # record to reply buffer
+            rb.add(
+                o_observation=o_observation,
+                a_action=a_action,
+                o_observation_next=o_observation_next,
+                r_reward=r_reward,
+                b_episode_over=b_episode_over,
+            )
 
-        # for debugung the reply buffer
-        #if env.unwrapped.step_env == d_arg["batch_size"]:
-        #    data = rb.sample()
-        #    with torch.no_grad():
-        #        next_state_actions, _, _ = actor.get_action(data["observation_next"])
-        #        qf1(data["observation_next"], next_state_actions)
-        #        qf2(data["observation_next"], next_state_actions)
-        #        qf1_target(data["observation_next"], next_state_actions)
-        #        qf2_target(data["observation_next"], next_state_actions)
-        #    del data, next_state_actions
+            # for debuging the reply buffer
+            #if env.unwrapped.step_env == d_arg["batch_size"]:
+            #    data = rb.sample()
+            #    with torch.no_grad():
+            #        next_state_actions, _, _ = actor.get_action(data["observation_next"])
+            #        qf1(data["observation_next"], next_state_actions)
+            #        qf2(data["observation_next"], next_state_actions)
+            #        qf1_target(data["observation_next"], next_state_actions)
+            #        qf2_target(data["observation_next"], next_state_actions)
+            #    del data, next_state_actions
 
-        # learning
-        if env.unwrapped.step_env > d_arg["learning_starts"]:
-            data = rb.sample()
-            with torch.no_grad():
-                next_state_actions, next_state_log_pi, _ = actor.get_action(data["observation_next"])
-                qf1_next_target = qf1_target(data["observation_next"], next_state_actions)
-                qf2_next_target = qf2_target(data["observation_next"], next_state_actions)
-                min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - alpha * next_state_log_pi
-                next_q_value = data["reward"].flatten() + (1 - data["episode_over"].flatten()) * d_arg["gamma"] * (min_qf_next_target).view(-1)
+            # learning
+            if env.unwrapped.step_env > d_arg["learning_starts"]:
+                data = rb.sample()
+                with torch.no_grad():
+                    next_state_actions, next_state_log_pi, _ = actor.get_action(data["observation_next"])
+                    qf1_next_target = qf1_target(data["observation_next"], next_state_actions)
+                    qf2_next_target = qf2_target(data["observation_next"], next_state_actions)
+                    min_qf_next_target = torch.min(qf1_next_target, qf2_next_target) - alpha * next_state_log_pi
+                    next_q_value = data["reward"].flatten() + (1 - data["episode_over"].flatten()) * d_arg["gamma"] * (min_qf_next_target).view(-1)
 
-            qf1_a_values = qf1(data["observation"], data["action"]).view(-1)
-            qf2_a_values = qf2(data["observation"], data["action"]).view(-1)
-            qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
-            qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
-            qf_loss = qf1_loss + qf2_loss
+                qf1_a_values = qf1(data["observation"], data["action"]).view(-1)
+                qf2_a_values = qf2(data["observation"], data["action"]).view(-1)
+                qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
+                qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
+                qf_loss = qf1_loss + qf2_loss
 
-            # optimize the model
-            q_optimizer.zero_grad()
-            qf_loss.backward()
-            q_optimizer.step()
+                # optimize the model
+                q_optimizer.zero_grad()
+                qf_loss.backward()
+                q_optimizer.step()
 
-            # every policy frequency
-            if env.unwrapped.step_env % d_arg["policy_frequency"] == 0:  # TD 3 Delayed update support
+                # update the target networks
+                if env.unwrapped.step_env % d_arg["target_network_frequency"] == 0:
+                    for param, target_param in zip(qf1.parameters(), qf1_target.parameters()):
+                        target_param.data.copy_(d_arg["tau"] * param.data + (1 - d_arg["tau"]) * target_param.data)
+                    for param, target_param in zip(qf2.parameters(), qf2_target.parameters()):
+                        target_param.data.copy_(d_arg["tau"] * param.data + (1 - d_arg["tau"]) * target_param.data)
 
-                # compensate for the delay by doing "actor_update_interval" instead of 1
-                for _ in range(d_arg["policy_frequency"]):
-                    pi, log_pi, _ = actor.get_action(data["observation"])
+                # update the policy
+                if env.unwrapped.step_env % d_arg["policy_frequency"] == 0:  # TD 3 Delayed update support
 
-                    qf1_pi = qf1(data["observation"], pi)
-                    qf2_pi = qf2(data["observation"], pi)
-                    min_qf_pi = torch.min(qf1_pi, qf2_pi)
-                    actor_loss = ((alpha * log_pi) - min_qf_pi).mean()
+                    # compensate for the delay by doing "actor_update_interval" instead of 1
+                    for _ in range(d_arg["policy_frequency"]):
+                        pi, log_pi, _ = actor.get_action(data["observation"])
 
-                    actor_optimizer.zero_grad()
-                    actor_loss.backward()
-                    actor_optimizer.step()
+                        qf1_pi = qf1(data["observation"], pi)
+                        qf2_pi = qf2(data["observation"], pi)
+                        min_qf_pi = torch.min(qf1_pi, qf2_pi)
+                        actor_loss = ((alpha * log_pi) - min_qf_pi).mean()
 
-                    # entropy autotune
-                    if d_arg["autotune"]:
-                        with torch.no_grad():
-                            _, log_pi, _ = actor.get_action(data["observation"])
+                        actor_optimizer.zero_grad()
+                        actor_loss.backward()
+                        actor_optimizer.step()
 
-                        alpha_loss = (-log_alpha.exp() * (log_pi + target_entropy)).mean()
+                        # entropy autotune
+                        if d_arg["autotune"]:
+                            with torch.no_grad():
+                                _, log_pi, _ = actor.get_action(data["observation"])
 
-                        a_optimizer.zero_grad()
-                        alpha_loss.backward()
-                        a_optimizer.step()
+                            alpha_loss = (-log_alpha.exp() * (log_pi + target_entropy)).mean()
 
-                        alpha = log_alpha.exp().item()
+                            a_optimizer.zero_grad()
+                            alpha_loss.backward()
+                            a_optimizer.step()
 
-                # write to tensoboard
-                writer.add_scalar("losses/min_qf_next_target", min_qf_next_target.mean().item(), env.unwrapped.step_env)
-                writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), env.unwrapped.step_env)
-                writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), env.unwrapped.step_env)
-                writer.add_scalar("losses/qf1_loss", qf1_loss.item(), env.unwrapped.step_env)
-                writer.add_scalar("losses/qf2_loss", qf2_loss.item(), env.unwrapped.step_env)
-                writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, env.unwrapped.step_env)
-                writer.add_scalar("losses/actor_loss", actor_loss.item(), env.unwrapped.step_env)
-                writer.add_scalar("losses/entropy", - log_pi.mean().item(), env.unwrapped.step_env)
+                            alpha = log_alpha.exp().item()
 
-            # update the target networks
-            if env.unwrapped.step_env % d_arg["target_network_frequency"] == 0:
-                for param, target_param in zip(qf1.parameters(), qf1_target.parameters()):
-                    target_param.data.copy_(d_arg["tau"] * param.data + (1 - d_arg["tau"]) * target_param.data)
-                for param, target_param in zip(qf2.parameters(), qf2_target.parameters()):
-                    target_param.data.copy_(d_arg["tau"] * param.data + (1 - d_arg["tau"]) * target_param.data)
+                    # record policy update to tensoboard
+                    writer.add_scalar("losses/min_qf_next_target", min_qf_next_target.mean().item(), env.unwrapped.step_env)
+                    writer.add_scalar("losses/qf1_values", qf1_a_values.mean().item(), env.unwrapped.step_env)
+                    writer.add_scalar("losses/qf2_values", qf2_a_values.mean().item(), env.unwrapped.step_env)
+                    writer.add_scalar("losses/qf1_loss", qf1_loss.item(), env.unwrapped.step_env)
+                    writer.add_scalar("losses/qf2_loss", qf2_loss.item(), env.unwrapped.step_env)
+                    writer.add_scalar("losses/qf_loss", qf_loss.item() / 2.0, env.unwrapped.step_env)
+                    writer.add_scalar("losses/actor_loss", actor_loss.item(), env.unwrapped.step_env)
+                    writer.add_scalar("losses/entropy", - log_pi.mean().item(), env.unwrapped.step_env)
 
+                    # record policy update to csv
+                    # pass
 
-        # write to tensorboard
-        writer.add_scalar("env/drug_1", a_action[0], env.unwrapped.episode)
-        writer.add_scalar("env/number_tumor", d_info["number_tumor"], env.unwrapped.episode)
-        writer.add_scalar("env/number_cell_1", d_info["number_cell_1"], env.unwrapped.episode)
-        writer.add_scalar("env/number_cell_2", d_info["number_cell_2"], env.unwrapped.episode)
-        writer.add_scalar("env/reward", r_reward, env.unwrapped.episode)
-        writer.add_scalar("env/reward_tumor", d_info["reward_tumor"], env.unwrapped.episode)
-        writer.add_scalar("env/reward_drugs", d_info["reward_drugs"], env.unwrapped.episode)
+            # handle observation
+            o_observation = o_observation_next
 
-        # if episode is over
-        if b_episode_over:
-            # write to tensorbord
-            writer.add_scalar("charts/episodic_cumulative_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
-            writer.add_scalar("charts/cumulative_return", r_cumulative_return, env.unwrapped.episode)
-            writer.add_scalar("charts/episodic_length", env.unwrapped.step_episode, env.unwrapped.episode)
-            writer.add_scalar("charts/discounted_cumulative_return", r_discounted_cumulative_return, env.unwrapped.episode)
+            # recording step to tensorboard
+            writer.add_scalar("env/drug_1", a_action[0], env.unwrapped.episode)
+            writer.add_scalar("env/number_tumor", d_info["number_tumor"], env.unwrapped.episode)
+            writer.add_scalar("env/number_cell_1", d_info["number_cell_1"], env.unwrapped.episode)
+            writer.add_scalar("env/number_cell_2", d_info["number_cell_2"], env.unwrapped.episode)
+            writer.add_scalar("env/reward", r_reward, env.unwrapped.episode)
+            writer.add_scalar("env/reward_tumor", d_info["reward_tumor"], env.unwrapped.episode)
+            writer.add_scalar("env/reward_drugs", d_info["reward_drugs"], env.unwrapped.episode)
 
-            # write data
-            df = pd.DataFrame(ld_data)
-            s_dir_data_episode = os.path.join(s_dir_data, str(env.unwrapped.episode))
-            os.makedirs(s_dir_data_episode, exist_ok=True)
-            df.to_csv(os.path.join(s_dir_data_episode, "data.csv"), index=False)
+            # record step to csv
+            d_data = {
+                "step": env.unwrapped.step_episode,
+                "reward": r_reward,
+                "cumulative_return": r_cumulative_return,
+                "discounted_cumulative_return": r_discounted_cumulative_return,
+                "drug_1": a_action[0],
+                "number_tumor": d_info["number_tumor"],
+                "number_cell_1": d_info["number_cell_1"],
+                "number_cell_2": d_info["number_cell_2"],
+            }
+            ld_data.append(d_data)
 
-            # reset gymnasium environment and global variables
-            o_observation, d_info = env.reset(seed=d_arg["seed"])
-            r_cumulative_return = 0
-            r_discounted_cumulative_return = 0
-            b_episode_over = False
-            ld_data = []
+        # recording episode to tensorbord
+        writer.add_scalar("charts/episodic_cumulative_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
+        writer.add_scalar("charts/cumulative_return", r_cumulative_return, env.unwrapped.episode)
+        writer.add_scalar("charts/episodic_length", env.unwrapped.step_episode, env.unwrapped.episode)
+        writer.add_scalar("charts/discounted_cumulative_return", r_discounted_cumulative_return, env.unwrapped.episode)
+
+        # recording episode to csv
+        df = pd.DataFrame(ld_data)
+        s_dir_data_episode = os.path.join(s_dir_data, str(env.unwrapped.episode))
+        os.makedirs(s_dir_data_episode, exist_ok=True)
+        df.to_csv(os.path.join(s_dir_data_episode, "data.csv"), index=False)
+        ld_data = []
 
     # finish
     env.close()
@@ -690,7 +690,7 @@ if __name__ == "__main__":
 
     # parse arguments
     args = parser.parse_args()
-    #print(args)
+    print(args)
 
     # processing
     run(
