@@ -147,18 +147,12 @@ void contact_function(Cell* pMe, Phenotype& phenoMe, Cell* pOther, Phenotype& ph
     return;
 }
 
-int set_secretion_rate() {
-    for (Cell* pCell : (*all_cells)) {
-        if (pCell->type_name == "celltype_a") {
-            pCell->phenotype.secretion.secretion_rate("substrate_a") = parameters.doubles("secretion_a");
-        } else if (pCell->type_name == "celltype_b") {
-            pCell->phenotype.secretion.secretion_rate("substrate_b") = parameters.doubles("secretion_b");
-        } else if (pCell->type_name == "celltype_c") {
-            pCell->phenotype.secretion.secretion_rate("substrate_c") = parameters.doubles("secretion_c");
-        } else {
-            std::cout << "Error custom::set_secretion_rate : " <<  pCell->type_name << " unknowne cell type detected detected!" << std::endl;
-            exit(-1);
-        }
+// physigym
+int add_substrate(std::string s_substrate, double r_dose) {
+    // update substrate concentration
+    int k = microenvironment.find_density_index(s_substrate);
+    for (unsigned int n=0; n < microenvironment.number_of_voxels(); n++) {
+        microenvironment(n)[k] += r_dose;
     }
     return 0;
 }

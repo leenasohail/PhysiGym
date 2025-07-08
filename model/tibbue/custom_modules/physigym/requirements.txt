@@ -1,0 +1,9 @@
+gymnasium
+imageio[ffmpeg]
+matplotlib
+numpy
+pandas
+scikit-image
+tensordict
+torch
+wandb
