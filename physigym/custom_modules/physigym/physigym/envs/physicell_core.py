@@ -206,7 +206,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.metadata.update({"render_fps": render_fps})
         if self.verbose:
             print("physigym: self.render_mode", self.render_mode)
-            print("physigym: self.metadata", sorted(self.render_mode))
+            print("physigym: self.metadata", sorted(self.metadata))
 
         # handle figsize
         self.figsize = figsize

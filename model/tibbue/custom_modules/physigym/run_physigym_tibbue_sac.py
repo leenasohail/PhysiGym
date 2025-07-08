@@ -5,7 +5,7 @@
 #
 # date: 2024-spring
 # license: BSD-3-Clause
-# author: Alexandre Bertin
+# author: Alexandre Bertin, Elmar Bucher
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # run:
@@ -277,6 +277,7 @@ class Actor(nn.Module):
 ########
 # Run #
 #######
+
 def run(
         s_settingxml="config/PhysiCell_settings.xml",
         r_max_time_episode=1440.0,  # xpath
@@ -602,6 +603,10 @@ def run(
     writer.close()
 
 
+########
+# Main #
+########
+
 if __name__ == "__main__":
     print("run physigym learing ...")
 
@@ -699,4 +704,3 @@ if __name__ == "__main__":
         b_wandb = True if args.wandb.lower() == "true" else False,
         i_total_step_learn = int(args.total_step_learn),
     )
-

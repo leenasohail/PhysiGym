@@ -220,7 +220,7 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
-        print("\n", o_result)
+        #print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000023.xml")) and \
               (os.path.exists("output/episode00000001/output00000023.xml")) and \
@@ -229,7 +229,65 @@ class TestPhysigymTib(object):
         shutil.rmtree("output/")
 
 
-    def test_physigym_tib_rl(self):
+    def test_physigym_tib_rl_scalars(self):
+        """ note: be hooked up to the internet to run this test successfully. """
+        s_unittest = "test_physigym_tib_rl"
+        # install model
+        os.chdir(s_path_physigym)
+        o_result = subprocess.run(["python3", "install_physigym.py", "tibbue", "-f"], check=False, capture_output=True)
+        os.chdir(s_path_physicell)
+        # rest output folder
+        shutil.rmtree("output/", ignore_errors=True)
+        if os.path.exists("tensorboard/"):
+            for s_dir in os.listdir("tensorboard/"):
+                if (s_dir.startswith(s_unittest)):
+                    shutil.rmtree(f"tensorboard/{s_dir}")
+        # load, compile, and run model
+        o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
+        o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
+        o_result = subprocess.run(['make'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'scalars', '--render_mode', 'None', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
+        #print("\n", o_result)
+        # test for output
+        assert(os.path.exists("output/output00000023.xml")) and \
+              (any([s_dir.startswith(s_unittest) for s_dir in os.listdir("tensorboard/")]))
+        # reset output folder
+        shutil.rmtree("output/")
+        for s_dir in os.listdir("tensorboard/"):
+            if (s_dir.startswith(s_unittest)):
+                shutil.rmtree(f"tensorboard/{s_dir}")
+
+
+    def test_physigym_tib_rl_rgb(self):
+        """ note: be hooked up to the internet to run this test successfully. """
+        s_unittest = "test_physigym_tib_rl"
+        # install model
+        os.chdir(s_path_physigym)
+        o_result = subprocess.run(["python3", "install_physigym.py", "tibbue", "-f"], check=False, capture_output=True)
+        os.chdir(s_path_physicell)
+        # rest output folder
+        shutil.rmtree("output/", ignore_errors=True)
+        if os.path.exists("tensorboard/"):
+            for s_dir in os.listdir("tensorboard/"):
+                if (s_dir.startswith(s_unittest)):
+                    shutil.rmtree(f"tensorboard/{s_dir}")
+        # load, compile, and run model
+        o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
+        o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
+        o_result = subprocess.run(['make'], check=False, capture_output=True)
+        o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'img_rgb', '--render_mode', 'rgb_array', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
+        #print("\n", o_result)
+        # test for output
+        assert(os.path.exists("output/output00000023.xml")) and \
+              (any([s_dir.startswith(s_unittest) for s_dir in os.listdir("tensorboard/")]))
+        # reset output folder
+        shutil.rmtree("output/")
+        for s_dir in os.listdir("tensorboard/"):
+            if (s_dir.startswith(s_unittest)):
+                shutil.rmtree(f"tensorboard/{s_dir}")
+
+
+    def test_physigym_tib_rl_mc(self):
         """ note: be hooked up to the internet to run this test successfully. """
         s_unittest = "test_physigym_tib_rl"
         # install model
@@ -247,8 +305,6 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'img_mc', '--render_mode', 'None', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
-        o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'img_rgb', '--render_mode', 'rgb_array', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
-        o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'scalars', '--render_mode', 'None', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
         #print("\n", o_result)
         # test for output
         assert(os.path.exists("output/output00000023.xml")) and \
