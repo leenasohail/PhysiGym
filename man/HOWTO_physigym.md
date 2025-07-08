@@ -31,7 +31,7 @@ make
 import gymnasium
 import physigym
 
-env = gymnasium.make('physigym/ModelPhysiCellEnv')
+env = gymnasium.make("physigym/ModelPhysiCellEnv")
 env.reset()
 env.step(action={})
 env.close()
