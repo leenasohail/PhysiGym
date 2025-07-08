@@ -227,9 +227,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
         self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
         self.dz = int(self.x_root.xpath("//domain/dz")[0].text)
-        self.width = self.x_max - self.x_min #+ self.dx
-        self.height = self.y_max - self.y_min #+ self.dy
-        self.depth = self.z_max - self.z_min #+ self.dz
+        self.width = self.x_max - self.x_min + self.dx
+        self.height = self.y_max - self.y_min + self.dy
+        self.depth = self.z_max - self.z_min + self.dz
         if self.verbose:
             print("physigym: self.x_min", self.x_min)
             print("physigym: self.x_max", self.x_max)
