@@ -67,15 +67,19 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         reward_type="dummy_linear",
         grid_size_x=64,
         grid_size_y=64,
+        normalization_factor=512,
     ):
         self.observation_type = "scalars" if None else observation_type
         if self.observation_type not in [
             "scalars",
-            "image_cell_types",
+            "multi_channels",
         ]:
             raise ValueError(
                 f"Error: unknown observation type: {self.observation_type}"
             )
+        if self.observation_type == "multi_channels":
+            self.grid_size_x = grid_size_x
+            self.grid_size_y = grid_size_y
 
         # Corrected usage of super()
         super().__init__(
@@ -85,18 +89,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             render_fps=render_fps,
             verbose=verbose,
         )
-        # self.init_cancer_cells = int(
-        #     self.x_root.xpath("//user_parameters/number_of_tumor")[0].text
-        # )
-        self.init_cancer_cells = 512
+        self.normalization_factor = normalization_factor
         self.nb_cell_types = len(self.unique_cell_types)
-        self.np_ratio_nb_cancer_cells = None
-        self.np_ratio_old_nb_cancer_cells = None
+        self.c_t = None
+        self.c_prev = None
         self.reward_type = reward_type
         self.type_map = {t: i for i, t in enumerate(self.unique_cell_types)}
-        if self.observation_type == "image_cell_types":
-            self.grid_size_x = grid_size_x
-            self.grid_size_y = grid_size_y
+
+        if self.observation_type == "multi_channels":
             self.ratio_img_size_x = self.width / self.grid_size_x
             self.ratio_img_size_y = self.height / self.grid_size_y
 
@@ -118,15 +118,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             this struct has to specify type and range for each
             action parameter, action custom variable, and action custom vector.
         """
-
-        # model dependent action_space processing logic goes here!
         d_action_space = spaces.Dict(
             {
                 "drug_1": spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float16),
             }
         )
 
-        # output
         return d_action_space
 
     def get_observation_space(self):
@@ -147,19 +144,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             this struct has to specify type and range
             for each observed variable.
         """
-        # template
-        # observation_space =
-        # compositione: spaces.Dict({})
-        # compositione: spaces.Tuple(())
-        # discrete: spaces.Discrete()  # boolean, integer
-        # discrete: spaces.Text()  # string
-        # discrete: spaces.MultiBinary()  # boolean numpy array
-        # discrete: spaces.MultiDiscrete() # boolean, integer numpy array
-        # numeric: spaces.Box()  # boolean, integer, float numpy array
-        # niche: spaces.Graph(())
-        # niche: spaces.Sequence(())  # set of spaces
-
-        # model dependent observation_space processing logic goes here!
         if self.observation_type == "scalars":
             o_observation_space = spaces.Box(
                 low=-(2**8),
@@ -167,9 +151,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 shape=(len(self.unique_cell_types),),
                 dtype=np.float32,
             )
-        elif self.observation_type == "image_cell_types":
-            # Define the Box space for the image
-            # Step 2: Create empty image [64, 64, num_cell_types]
+        elif self.observation_type == "multi_channels":
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
@@ -204,12 +186,15 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.df_cell = pd.DataFrame(
             physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "type"]
         )
+        self.c_prev = self.c_t if self.c_t is not None else None
 
-        self.nb_cancer_cells = len(
+        self.c_t = len(
             self.df_cell.loc[
                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"), :
             ]
         )
+
+        self.c_prev = self.c_t if self.c_prev is None else self.c_prev
 
         self.nb_cell_1 = len(
             self.df_cell.loc[
@@ -221,23 +206,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_2"), :
             ]
         )
-
-        self.np_ratio_old_nb_cancer_cells = (
-            self.np_ratio_nb_cancer_cells
-            if self.np_ratio_nb_cancer_cells is not None
-            else None
-        )
-        self.np_ratio_nb_cancer_cells = np.array(
-            [self.nb_cancer_cells / self.init_cancer_cells], dtype=np.float64
-        )
-
-        self.np_ratio_old_nb_cancer_cells = (
-            self.np_ratio_nb_cancer_cells
-            if self.np_ratio_old_nb_cancer_cells is None
-            else self.np_ratio_old_nb_cancer_cells
-        )
-        # model dependent observation processing logic goes here!
-
         if self.observation_type == "scalars":
             normalized_concentration_cells = np.zeros((self.nb_cell_types,))
             for i in range(self.nb_cell_types):
@@ -248,10 +216,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                         :,
                     ]
                 )
-            o_observation = normalized_concentration_cells / self.init_cancer_cells - 1
+            o_observation = (
+                normalized_concentration_cells / self.normalization_factor - 1
+            )
             o_observation = np.array(o_observation, dtype=float)
 
-        elif self.observation_type == "image_cell_types":
+        elif self.observation_type == "multi_channels":
             image = np.zeros(
                 (self.num_cell_types, self.grid_size_x, self.grid_size_y),
                 dtype=np.float32,
@@ -280,11 +250,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
             np.add.at(
                 image,
-                (cell_type_indices, y_bin, x_bin),
-                1 / (self.grid_size_x * self.grid_size_y),
+                (cell_type_indices, x_bin, y_bin),
+                1 / (self.ratio_img_size_x * self.ratio_img_size_y),
             )
             o_observation = (image * 255).astype(np.uint8)
-
         else:
             raise f"Observation type: {self.observation_type} does not exist"
         return o_observation
@@ -307,7 +276,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent info processing logic goes here!
         info = {
-            "number_cancer_cells": self.nb_cancer_cells,
+            "number_cancer_cells": self.c_t,
             "df_cell": self.df_cell,
             "number_cell_1": self.nb_cell_1,
             "number_cell_2": self.nb_cell_2,
@@ -333,9 +302,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             please notice, that this ending is different form
             truncated (the episode reached the max time limit).
         """
-        # model dependent terminated processing logic goes here!
-        return True if self.nb_cancer_cells == 0 else False
-        # return False
+        return True if self.c_t == 0 else False
 
     def get_reset_values(self):
         """
@@ -350,8 +317,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             function to reset model specific self.variables. e.g.:
             self.my_variable = None
         """
-        self.np_ratio_old_nb_cancer_cells = None
-        self.np_ratio_nb_cancer_cells = None
+        self.c_t = None
+        self.c_prev = None
 
     def get_reward(self):
         """
@@ -370,12 +337,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        C_t = self.np_ratio_nb_cancer_cells * self.init_cancer_cells
-        C_prev = C_prev = self.np_ratio_old_nb_cancer_cells * self.init_cancer_cells
-        return self.normalize(C_t=C_t, C_prev=C_prev)
-
-    def normalize(self, C_t, C_prev):
         if self.reward_type == "dummy_linear":
-            return (C_prev - C_t) / np.log(self.init_cancer_cells)
+            return (self.c_prev - self.c_t) / np.log(self.normalization_factor)
         else:
             raise f"The reward type is not implemented{self.reward_type}"

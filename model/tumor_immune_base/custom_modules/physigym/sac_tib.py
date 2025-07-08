@@ -56,7 +56,7 @@ import matplotlib.pyplot as plt
 class Args:
     name: str = "sac"
     """the name of this experiment"""
-    weight: float = 0.5
+    weight: float = 0.8
     """weight for the reduction of tumor"""
     reward_type: str = "dummy_linear"
     """type of the reward"""
@@ -78,7 +78,7 @@ class Args:
     # Algorithm specific arguments
     env_id: str = "physigym/ModelPhysiCellEnv-v0"
     """the id of the environment"""
-    observation_type: str = "image_cell_types"
+    observation_type: str = "multi_channels"
     """the type of observation"""
     total_timesteps: int = int(1e6)
     """the learning rate of the optimizer"""
@@ -181,15 +181,12 @@ class PhysiCellModelWrapper(gym.Wrapper):
         )
 
         r_drugs = np.mean(action)
-
+        # Add information into the dictionnary info
         info["action"] = d_action
         info["reward_drugs"] = r_drugs
         info["reward_cancer_cells"] = r_cancer_cells
-        # If you reward function is different from a sum you can add a new condition
-        if self.reward_type == "log_exp":
-            r_reward = -r_cancer_cells * np.exp(r_drugs - 1)
-        else:
-            r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+
+        r_reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
 
         return o_observation, r_reward, b_terminated, b_truncated, info
 
@@ -213,6 +210,37 @@ class PixelPreprocess(nn.Module):
         return x.div(255.0).sub(0.5)
 
 
+class ResidualBlock(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.conv1 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.conv2 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.activation = nn.Mish()
+
+    def forward(self, x):
+        residual = x
+        x = self.activation(self.conv1(x))
+        x = self.activation(self.conv2(x))
+        return x + residual
+
+
+class ImpalaBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.pool = nn.MaxPool2d(3, stride=2, padding=1)
+        self.res1 = ResidualBlock(out_channels)
+        self.res2 = ResidualBlock(out_channels)
+        self.activation = nn.Mish()
+
+    def forward(self, x):
+        x = self.activation(self.conv(x))
+        x = self.pool(x)
+        x = self.res1(x)
+        x = self.res2(x)
+        return x
+
+
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
@@ -225,16 +253,11 @@ class FeatureExtractor(nn.Module):
 
         if self.is_image:
             # CNN feature extractor
-            num_channels = 8
             layers = [
                 PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 5, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=1),
+                ImpalaBlock(obs_shape[0], 16),
+                ImpalaBlock(16, 32),
+                ImpalaBlock(32, 32),
                 nn.Flatten(),
             ]
             self.feature_extractor = nn.Sequential(*layers)
@@ -516,7 +539,7 @@ def main():
     )
 
     # Wrapper
-    env = PhysiCellModelWrapper(env=env)
+    env = PhysiCellModelWrapper(env=env, weight=args.weight)
     cfg = {"cfg_FeatureExtractor": {}}
     # Neural Networks/ Optimisers init.
     actor = Actor(env, cfg).to(device)
@@ -555,8 +578,6 @@ def main():
     # Start the env and init, tracking values
     obs, info = env.reset(seed=args.seed)
     cumulative_return = 0
-    episode = 1
-    step_episode = 0
     discounted_cumulative_return = 0
     list_data = []
     for global_step in range(args.total_timesteps):
@@ -570,9 +591,9 @@ def main():
             actions = actions.detach().squeeze(0).cpu().numpy()
         # execute a step forward and log data.
         next_obs, rewards, terminations, truncations, info = env.step(actions)
-        step_episode += 1
         done = terminations or truncations
         cumulative_return += rewards
+        step_episode = env.unwrapped.step_episode
         discounted_cumulative_return += rewards * args.gamma ** (step_episode)
         rb.add(obs, actions, rewards, next_obs, done)
         obs = next_obs.copy()
@@ -693,6 +714,7 @@ def main():
                     target_param.data.copy_(
                         args.tau * param.data + (1 - args.tau) * target_param.data
                     )
+        episode = env.unwrapped.episode
         scalars = {
             "env/drug_1": actions[0],
             "env/reward_value": rewards,
@@ -706,40 +728,16 @@ def main():
         for tag, value in scalars.items():
             writer.add_scalar(tag, value, episode)
         if done:
-            norm_coeff = (1 - args.gamma ** (step_episode + 1)) / (1 - args.gamma)
             scalars = {
-                "charts/episodic_return": cumulative_return / step_episode,
                 "charts/cumulative_return": cumulative_return,
                 "charts/episodic_length": step_episode,
                 "charts/discounted_cumulative_return": discounted_cumulative_return,
-                "charts/normalized_discounted_episodic_return": discounted_cumulative_return
-                / norm_coeff,
             }
             for tag, value in scalars.items():
                 writer.add_scalar(tag, value, episode)
             df = pd.DataFrame(list_data)
             df.to_csv(data_folder + f"/{episode}/data.csv", index=False)
-
-            # Plotting each feature vs step
-            features_to_plot = [
-                "discounted_cumulative_return",
-                "drug_1",
-                "number_cancer_cells",
-                "number_cell_1",
-            ]
-
-            plt.figure(figsize=(12, 8))
-            for i, feature in enumerate(features_to_plot):
-                plt.subplot(len(features_to_plot), 1, i + 1)
-                plt.plot(df["step"], df[feature])
-                plt.title(f"{feature} vs steps")
-                plt.xlabel("step")
-            plt.tight_layout()
-            plt.savefig(data_folder + f"/{episode}/plot.pdf")
-
             list_data = []
-            episode += 1
-            step_episode = 0
             discounted_cumulative_return = 0
             cumulative_return = 0
             obs, info = env.reset()

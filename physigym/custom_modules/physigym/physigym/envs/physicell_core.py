@@ -227,9 +227,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
         self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
         self.dz = int(self.x_root.xpath("//domain/dz")[0].text)
-        self.width = self.x_max - self.x_min #+ self.dx
-        self.height = self.y_max - self.y_min #+ self.dy
-        self.depth = self.z_max - self.z_min #+ self.dz
+        self.width = self.x_max - self.x_min + self.dx
+        self.height = self.y_max - self.y_min + self.dy
+        self.depth = self.z_max - self.z_min + self.dz
         if self.verbose:
             print("physigym: self.x_min", self.x_min)
             print("physigym: self.x_max", self.x_max)
@@ -489,7 +489,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         b_truncated = self.time_simulation == int(r_time_simulation)
         self.time_simulation = int(r_time_simulation)
         if self.verbose:
-            print(f"current time python3: {round(r_time_simulation, 3)}")
+            print(f"simulation time python3: {round(r_time_simulation, 3)}")
 
         # output
         return b_truncated
@@ -642,13 +642,12 @@ class CorePhysiCellEnv(gymnasium.Env):
         # get observation
         if self.verbose:
             print(f"physigym: domain observation.")
+
         o_observation = self.get_observation()
         b_terminated = self.get_terminated()
         b_truncated = self.get_truncated()
-        d_info = self.get_info()
-
-        # get revard
         r_reward = self.get_reward()
+        d_info = self.get_info()
 
         # do rendering
         if self.verbose:

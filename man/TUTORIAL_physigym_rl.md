@@ -53,7 +53,7 @@ make
 ### 1. Problem Statement
 
 How can we find a treatment regime that reduces tumor size while minimizing drug usage?
-In other words, we aim to learn a **policy**  a mapping from states to actions that defines the optimal amount of drug to apply over time.
+In other words, we aim to learn a **Policy**  a mapping from states to actions that defines the optimal amount of drug to apply over time.
 
 A suitable framework to solve this control problem is **Reinforcement Learning (RL)**, which we will use in this tutorial.
 
@@ -121,9 +121,11 @@ Besides, the parameter $\alpha$ balances between **therapeutic effectiveness** (
 By adjusting $\alpha$, you can simulate different treatment strategies:
   - **Aggressive**: $\alpha \approx 1$ → Maximize tumor reduction, ignore drug cost.
   - **Conservative**: $\alpha \approx 0$ → Minimize drug use, even if tumor persists.
+  - **Perfect Balanced**: $\alpha = 0.5$ -> Perfect Trade-off between treatment effectiveness and side effects.
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
+In this tutorial, we take $\alpha=0.5$.
 
-The first **state space** in this model is **multi_channels** a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality. For instance for a grid size of $64$ and for our three cell types we can represent the data by: [image cell types representation](img/multi_channels.png). We reduce the shape of the original size given by the **PhysiCell_settings.xml** file by discretizing the continuous environment into a uniform grid. We also compute $r_{x}=\lfloor \frac{width}\rfloor{gridsize_{x}}$ and $r_{y}=\lfloor\frac{height}{gridsize_{y}}\rfloor$. In our environment, $r_{x}=r_{y}$ because $width = height$ and $gridsize_{x}=gridsize_{y}=gridsize=64$
+The first **state space** in this model is **multi_channels** a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality. For instance for a grid size of $64$ and for our three cell types we can represent the data by: [image cell types representation](img/multi_channels.png). We reduce the shape of the original size given by the **PhysiCell_settings.xml** file by discretizing the continuous environment into a uniform grid. We also compute $r_{x}=\lfloor \frac{width}{gridsize_{x}}\rfloor$ and $r_{y}=\lfloor\frac{height}{gridsize_{y}}\rfloor$. In our environment, $r_{x}=r_{y}$ because $width = height$ and $gridsize_{x}=gridsize_{y}=gridsize=64$
 
 The size of the bins is calculated by mapping the continuous coordinates into discrete indices. Specifically:
 
@@ -158,7 +160,7 @@ where each channel counts the number of cells of a given type in each spatial bi
 The second state space is **scalars** a mathematical function that computes the **cell count for each cell type**.
 
 The **action space** consists of a single continuous variable:
-- **drug_1** ∈ [0, 1], representing the intensity or dosage of a drug intervention applied at each step.
+- **drug_1**$\in[0, 1]$, representing the intensity or dosage of a drug intervention applied at each step.
 
 Deep reinforcement learning is used because our policy is a neural network. Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them. While for scalars, we only use multi layer perceptrons. 
 
@@ -287,13 +289,79 @@ You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGy
 
 The **y-axis** represents the expected return, while the **x-axis** represents the training steps. Note that although it is labeled as *3 million steps*, it does **not** correspond to 3 million environment interaction steps — in reality, it represents **fewer** than 3 million actual interactions.
 
-The figure shows three different learning curves corresponding to different state space representations. In our environment, the **scalars** and **multi_channels** state spaces achieve a higher discounted cumulative return compared to **image_gray**.
-A video of the dynamic treatment regime proposed: [800 episode with image](video/tumor_immune_base_ep_800.mp4).
+The figure shows two different learning curves corresponding to different state space representations. In our environment, the **scalars** and **multi_channels** state spaces achieve the same discounted cumulative return.
 
-You may also see the difference between a [random policy](img/plot_random.pdf) and the [policy found](img/plot_policy.pdf) by the reinforcement learning algorithm .
+You may also see the ![different dynamic treatment regimes](img/final_plot.jpg).
+- 🟢 **Default**
+  - No treatment: $d_t = 0$ for all $t$.
+- 🟠 **Random**
+  - Random drug doses sampled uniformly from $[0,1]$ each step.
+- 🔵 **Policy**
+  - Drug doses selected by the learned SAC reinforcement learning policy.
+
+### First plot: Discounted cumulative return
+
+- Defined as:
+
+$$
+\sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi
+$$
+
+- Observations:
+  - 🔵 **Policy** achieves the highest return, rising quickly and plateauing caused by the termination.
+  - 🟠 **Random** performs moderately well but less efficiently.
+  - 🟢 **Default** declines over time due to unchecked tumor growth.
+
+### Second plot: Drug administration (drug_1)
+
+- 🔵 **Policy** applies drug in a more controlled, adaptive manner.
+- 🟠 **Random** shows wide fluctuations.
+- 🟢 **Default** remains at zero.
+
+### Third plot: Number of tumor cells (center cells)
+
+- 🔵 **Policy** rapidly reduces tumor cells to near zero.
+- 🟠 **Random** reduces them more slowly.
+- 🟢 **Default** shows tumor cells growing over time.
+
+### Fourth plot: Cell counts (cell_1 and cell_2)
+
+- 🔵 **Policy**, the environment terminates early due to successful tumor elimination, hence sudden drop.
+- 🟠 **Random** keeps cell counts fluctuating, reducing over time.
+- 🟢 **Default** sees cell_1 growing due to no intervention.
+
+---
+The SAC-learned policy is significantly more effective at controlling tumor growth while balancing drug use, achieving higher discounted returns compared to random or no treatment.
+
+A video of the dynamic treatment regime proposed by the learning agent using **multi_channels** as the state space: [800 episode with image](video/tumor_immune_base_ep_800.mp4), you can observe phases of the dynamic treatment regime:
+
+1. **Initial phase:**  
+   The agent administers almost no drugs. During this period, when **cell_1** come into contact with **tumor_cells**, they can transform into **cell_2** due to increased pressure.
+
+2. **Intermediate phase:**  
+   The agent starts applying a high amount of drugs to reduce the tumor burden.  
+   During this phase, **cell_1** and **cell_2** are heavily mixed into the tumor. This increases the probability that **cell_1** will become **cell_2**.  
+   According to the environment rules, **cell_2** negatively impacts **cell_1** because **cell_1** experiences a reduction in its anti-tumoral effect due to the intake of pro-tumoral factors produced by **cell_2**.
+
+3. **Final phase:**  
+   This regime continues until the killing rate of **cell_1** becomes higher than the division rate of **tumor_cells**.  
+   Additionally, based on the environment rules, there is now enough **cell_1** to kill the remaining tumor even if some **cell_1** still convert into **cell_2**.  
+   This is explained by the fact that the **total killing effect over time** is much higher than:
+   - the pro-tumoral factor from **cell_2**,
+   - the pressure causing **cell_1** to become **cell_2**, and
+   - the division rate of the remaining cancer cells.
+
+This showcases how the agent adapts its treatment strategy over time, balancing drug use and immune interactions, to effectively control tumor growth.
 
 
-This difference in performance can be attributed to factors such as the choice of hyperparameters. To improve performance further, one could retain the more effective state representations and focus on optimizing neural network architectures and hyperparameters. This is where Deep Reinforcement Learning becomes more challenging — it may be due to suboptimal tuning or that certain state spaces (like **image_gray**) are inherently less informative for the environment in question.
 
-Conducting deeper research across various environments to compare the effectiveness of different state representations is a promising direction for future work.
+## Conclusion
 
+In this tutorial, you learned how to integrate a PhysiCell-based agent-based model — the tumor immune base (TIB) model — with reinforcement learning using Gymnasium.  
+We explored how to define the state and action spaces, set up the reward function, and apply a deep reinforcement learning algorithm to learn an optimal drug administration policy that balances treatment effectiveness against toxicity.
+
+By following these steps, you can now adapt the framework to other agent-based models or explore different RL algorithms, reward structures, and state representations.  
+This approach opens new possibilities for automating complex decision-making in biological systems and testing novel therapeutic strategies **in silico** before moving to costly wet-lab experiments.
+
+Feel free to experiment with the parameters, the $\alpha$ trade-off, or even your own models to discover new insights.  
+Happy experimenting :blush:, and may your simulations lead to impactful discoveries!
