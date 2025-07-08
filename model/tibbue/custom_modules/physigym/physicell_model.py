@@ -246,7 +246,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 output_shape=(
                     self.kwargs["img_rgb_grid_size_y"],
                     self.kwargs["img_rgb_grid_size_x"]
-                )
+                ),
                 anti_aliasing=True,
             )
             o_observation = a_img
