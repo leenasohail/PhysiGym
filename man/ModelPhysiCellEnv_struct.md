@@ -1,6 +1,6 @@
 # ModelPhysiCellEnv Gymnasium Environment Structure
 
-## &#x2728; Main Functions
+## &#x1F9E9; Main Functions
 
 ```python
 env.__init__
@@ -44,7 +44,7 @@ env.verbose_true  # enable standard output verbosity.
 env.verbose_false  # disable standard output verbosity.
 ```
 
-## &#x2728; Internal Functions
+## &#x1F9E9; Internal Functions
 
 ### Model specific
 ```python
@@ -85,7 +85,7 @@ env.get_truncated  # determine if the episode reached the max_time specified in 
 ```
 
 
-## &#x2728; Internal Variables
+## &#x1F9E9; Internal Variables
 
 ### Time
 ```python

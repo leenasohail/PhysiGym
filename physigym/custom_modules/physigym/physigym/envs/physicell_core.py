@@ -177,9 +177,16 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.step_episode = None
         self.step_env = 0
         self.time_simulation = -1  # integer
+        if self.verbose:
+            print("physigym: self.episode", self.episode)
+            print("physigym: self.step_episode", self.step_episode)
+            print("physigym: self.step_env", self.step_env)
+            print("physigym: self.episode", self.episode)
 
         # handle keyword arguments input
         self.kwargs = kwargs
+        if self.verbose:
+            print("physigym: self.kwargs", sorted(self.kwargs))
 
         # load PhysiCell settings.xml file
         # bue 20241130: to gather full-time observation, increase the setting.xml max_time by dt_gym for one more action!
@@ -197,13 +204,20 @@ class CorePhysiCellEnv(gymnasium.Env):
         )
         self.render_mode = render_mode
         self.metadata.update({"render_fps": render_fps})
+        if self.verbose:
+            print("physigym: self.render_mode", self.render_mode)
+            print("physigym: self.metadata", sorted(self.render_mode))
 
         # handle figsize
         self.figsize = figsize
         if not (self.render_mode is None):
             self.fig, axs = plt.subplots(figsize=self.figsize)
+        if self.verbose:
+            print("physigym: self.figsize", self.figsize)
 
         # handle domain
+        if self.verbose:
+            print(f"physigym: extract domain settings.")
         self.x_min = int(self.x_root.xpath("//domain/x_min")[0].text)
         self.x_max = int(self.x_root.xpath("//domain/x_max")[0].text)
         self.y_min = int(self.x_root.xpath("//domain/y_min")[0].text)
@@ -216,16 +230,37 @@ class CorePhysiCellEnv(gymnasium.Env):
         self.width = self.x_max - self.x_min #+ self.dx
         self.height = self.y_max - self.y_min #+ self.dy
         self.depth = self.z_max - self.z_min #+ self.dz
+        if self.verbose:
+            print("physigym: self.x_min", self.x_min)
+            print("physigym: self.x_max", self.x_max)
+            print("physigym: self.y_min", self.y_min)
+            print("physigym: self.y_max", self.y_max)
+            print("physigym: self.z_min", self.z_min)
+            print("physigym: self.z_max", self.z_max)
+            print("physigym: self.dx", self.dx)
+            print("physigym: self.dy", self.dy)
+            print("physigym: self.dz", self.dz)
+            print("physigym: self.width", self.width)
+            print("physigym: self.height", self.height)
+            print("physigym: self.depth", self.depth)
 
         # handle substrate mapping
+        if self.verbose:
+            print(f"physigym: extract substrate settings.")
         self.substrate_to_id = dict(zip(
             self.x_root.xpath("//microenvironment_setup/variable/@name"),
             [int(s_id) for s_id in self.x_root.xpath("//microenvironment_setup/variable/@ID")]
         ))
         self.substrate_unique = sorted(self.substrate_to_id.keys(), key=self.substrate_to_id.get)
         self.substrate_count = len(self.substrate_unique)
+        if self.verbose:
+            print("physigym: self.substrate_to_id", sorted(self.substrate_to_id))
+            print("physigym: self.substrate_unique", self.substrate_unique)
+            print("physigym: self.substrate_count", self.substrate_count)
 
         # handle cell_type mapping
+        if self.verbose:
+            print(f"physigym: extract cell_type settings.")
         self.cell_type_to_id = dict(zip(
             self.x_root.xpath("//cell_definitions/cell_definition/@name"),
             [int(s_id) for s_id in self.x_root.xpath("//cell_definitions/cell_definition/@ID")]
@@ -244,6 +279,11 @@ class CorePhysiCellEnv(gymnasium.Env):
                 self.cell_type_to_color.update({self.cell_type_unique[i] : colors.to_hex(ar_color)})
         else:
             raise ValueError(f"cell_type_cmap {cell_type_cmap} have to be a dictionary of string or a string.")
+        if self.verbose:
+            print("physigym: self.cell_type_to_id", sorted(self.cell_type_to_id))
+            print("physigym: self.cell_type_unique", self.cell_type_unique)
+            print("physigym: self.cell_type_count", self.cell_type_count)
+            print("physigym: self.cell_type_to_color", sorted(self.cell_type_to_color))
 
         # handle spaces
         if self.verbose:
@@ -294,6 +334,8 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # handle keyword arguments input
         self.kwargs.update(kwargs)
+        if self.verbose and len(kwargs) > 0:
+            print("physigym: self.kwarg", sorted(self.kwarg))
 
         # processing
         a_img = None
@@ -386,6 +428,8 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # handle possible keyword arguments input
         self.kwargs.update(kwargs)
+        if self.verbose and len(kwargs) > 0:
+            print("physigym: self.kwarg", sorted(self.kwarg))
 
         # load reset values
         self.get_reset_values()
@@ -516,6 +560,8 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # handle keyword arguments input
         self.kwargs.update(kwargs)
+        if self.verbose and len(kwargs) > 0:
+            print("physigym: self.kwarg", sorted(self.kwarg))
 
         # do action
         if self.verbose:
@@ -649,6 +695,8 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # handle keyword arguments input
         self.kwargs.update(kwargs)
+        if self.verbose and len(kwargs) > 0:
+            print("physigym: self.kwarg", sorted(self.kwarg))
 
         # processing
         if self.verbose:

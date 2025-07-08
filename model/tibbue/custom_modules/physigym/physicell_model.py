@@ -64,15 +64,16 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             self,
             settingxml="config/PhysiCell_settings.xml",
             cell_type_cmap="turbo",
-            figsize=(8, 6),
+            figsize=(6, 6),  # inch
             render_mode=None,
             render_fps=10,
             verbose=True,
             #**kwargs
             observation_mode="scalars",
-            img_rgb_scale_factor=1/6,
-            img_mc_grid_size_x=64,
-            img_mc_grid_size_y=64,
+            img_rgb_grid_size_y=64,  # pixel
+            img_rgb_grid_size_x=64,  # pixel
+            img_mc_grid_size_x=64,  # pixel
+            img_mc_grid_size_y=64,  # pixel
             normalization_factor=512,
         ):
 
@@ -90,7 +91,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             verbose=verbose,
             #**kwargs
             observation_mode=observation_mode,
-            img_rgb_scale_factor=img_rgb_scale_factor,
+            img_rgb_grid_size_x=img_mc_grid_size_x,
+            img_rgb_grid_size_y=img_mc_grid_size_y,
             img_mc_grid_size_x=img_mc_grid_size_x,
             img_mc_grid_size_y=img_mc_grid_size_y,
             normalization_factor=normalization_factor,
@@ -154,28 +156,28 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         elif self.kwargs["observation_mode"] == "img_rgb":
             # Define the Box space for the rgb alpha image
-            a_img = self.render()
-            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
-            a_img = ski.transform.rescale(
-                a_img,
-                self.kwargs["img_rgb_scale_factor"],
-                anti_aliasing=False,
-            )
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(a_img.shape[0], a_img.shape[1]),
+                shape=(
+                    self.kwargs["img_rgb_grid_size_y"],
+                    self.kwargs["img_rgb_grid_size_x"]
+                ),
                 dtype=np.uint8,
             )
 
         elif self.kwargs["observation_mode"] == "img_mc":
             # Define the Box space for the multichannel image
-            self.ratio_img_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
-            self.ratio_img_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
+            self.ratio_img_mc_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
+            self.ratio_img_mc_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(self.cell_type_count, self.kwargs["img_mc_grid_size_x"], self.kwargs["img_mc_grid_size_y"]),
+                shape=(
+                    self.cell_type_count,
+                    self.kwargs["img_mc_grid_size_x"],
+                    self.kwargs["img_mc_grid_size_y"]
+                ),
                 dtype=np.uint8,
             )
 
@@ -239,9 +241,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         elif self.kwargs["observation_mode"] == "img_rgb":
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
-            a_img = ski.transform.rescale(
+            a_img = ski.transform.resize(  # ski.transform.rescale
                 a_img,
-                self.kwargs["img_rgb_scale_factor"],
+                output_shape=(
+                    self.kwargs["img_rgb_grid_size_y"],
+                    self.kwargs["img_rgb_grid_size_x"]
+                )
                 anti_aliasing=True,
             )
             o_observation = a_img
@@ -268,13 +273,17 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
             # get numpy array
             image = np.zeros(
-                (self.cell_type_count, self.kwargs["img_mc_grid_size_x"], self.kwargs["img_mc_grid_size_y"]),
+                shape=(
+                    self.cell_type_count,
+                    self.kwargs["img_mc_grid_size_x"],
+                    self.kwargs["img_mc_grid_size_y"]
+                ),
                 dtype=np.float32,
             )
             np.add.at(
                 image,
                 (cell_type_indices, x_bin, y_bin),
-                1 / (self.ratio_img_size_x * self.ratio_img_size_y),
+                1 / (self.ratio_img_mc_size_x * self.ratio_img_mc_size_y),
             )
 
             # output

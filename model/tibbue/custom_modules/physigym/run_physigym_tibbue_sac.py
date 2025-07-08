@@ -321,13 +321,14 @@ def run(
         "id" : "physigym/ModelPhysiCellEnv-v0",   # str: the id of the gymnasium environmenit
         "settingxml" : s_settingxml,
         "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "green", "cell_2" : "navy"},  # viridis
-        "figsize": (6,6),
+        "figsize": (6, 6),
         "observation_mode" : s_observation_mode,   # str: scalars , img_rgb , img_mc
         "render_mode" : s_render_mode,  # human, rgb_array
         "verbose" : True,
-        "img_rgb_scale_factor" : 1/6,
-        "img_mc_grid_size_x" : 64,
-        "img_mc_grid_size_y" : 64,
+        "img_rgb_grid_size_x" : 64,  # pixel size
+        "img_rgb_grid_size_y" : 64,  # pixel size
+        "img_mc_grid_size_x" : 64,  # pixel size
+        "img_mc_grid_size_y" : 64,  # pixel size
         "normalization_factor" : 512,
     }
     d_arg_physigym_wrapper = {

@@ -246,14 +246,9 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['make', 'data-cleanup', 'clean', 'reset'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
-        # bue
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'img_mc', '--render_mode', 'None', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'img_rgb', '--render_mode', 'rgb_array', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'scalars', '--render_mode', 'None', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
-        # alex
-        #o_result = subprocess.run(['sed', '-ie ', rf's/name: str = ".*"/name: str = "{s_unittest}"/g', 'custom_modules/physigym/physigym/envs/sac_tib.py'], check=False, capture_output=True)
-        #o_result = subprocess.run(['sed', '-ie ', r's/wandb_track:.*bool.*=.*True/wandb_track: bool = False/g', 'custom_modules/physigym/physigym/envs/sac_tib.py'], check=False, capture_output=True)
-        #o_result = subprocess.run(['sed', '-ie ', r's/total_timesteps:.*int.*=.*int(.*)/total_timesteps: int = int(72)/g', 'custom_modules/physigym/physigym/envs/sac_tib.py'], check=False, capture_output=True)
         #print("\n", o_result)
         # test for output
         assert(os.path.exists("output/output00000023.xml")) and \
