@@ -21,10 +21,14 @@
 # library
 from extending import physicell
 from gymnasium import spaces
-import gymnasium as gym
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib import colors
 import numpy as np
+import os
 import pandas as pd
 from physigym.envs.physicell_core import CorePhysiCellEnv
+import skimage as ski
 
 
 # function
@@ -40,7 +44,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         import gymnasium
         import physigym
 
-        env = gymnasium.make('physigym/ModelPhysiCellEnv')
+        env = gymnasium.make("physigym/ModelPhysiCellEnv")
 
         o_observation, info = env.reset()
         o_observation, r_reward, b_terminated, b_truncated, info = env.step(action={})
@@ -59,46 +63,45 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
     def __init__(
         self,
         settingxml="config/PhysiCell_settings.xml",
-        figsize=(8, 6),
+        cell_type_cmap="turbo",
+        figsize=(6, 6),  # inch
         render_mode=None,
         render_fps=10,
-        verbose=False,
-        observation_type="scalars",
-        reward_type="dummy_linear",
-        grid_size_x=64,
-        grid_size_y=64,
+        verbose=True,
+        # **kwargs
+        observation_mode="scalars",
+        img_rgb_grid_size_x=64,  # pixel
+        img_rgb_grid_size_y=64,  # pixel
+        img_mc_grid_size_x=64,  # pixel
+        img_mc_grid_size_y=64,  # pixel
         normalization_factor=512,
+        reward_type="dummy_linear",
     ):
-        self.observation_type = "scalars" if None else observation_type
-        if self.observation_type not in [
-            "scalars",
-            "multi_channels",
-        ]:
+        if observation_mode not in ["scalars", "img_rgb", "img_mc"]:
+            raise ValueError(f"Error: unknown observation type: {observation_mode}")
+        # check redner mode
+        if observation_mode == "img_rgb" and render_mode == None:
             raise ValueError(
-                f"Error: unknown observation type: {self.observation_type}"
+                f"If observation_mode is img_rgb the render_mode can not be None. try: {self.metadata['render_modes']}."
             )
-        if self.observation_type == "multi_channels":
-            self.grid_size_x = grid_size_x
-            self.grid_size_y = grid_size_y
 
-        # Corrected usage of super()
+        # call super class init
         super().__init__(
             settingxml=settingxml,
+            cell_type_cmap=cell_type_cmap,
             figsize=figsize,
             render_mode=render_mode,
             render_fps=render_fps,
             verbose=verbose,
+            # **kwargs
+            observation_mode=observation_mode,
+            img_rgb_grid_size_x=img_mc_grid_size_x,
+            img_rgb_grid_size_y=img_mc_grid_size_y,
+            img_mc_grid_size_x=img_mc_grid_size_x,
+            img_mc_grid_size_y=img_mc_grid_size_y,
+            normalization_factor=normalization_factor,
+            reward_type=reward_type,
         )
-        self.normalization_factor = normalization_factor
-        self.nb_cell_types = len(self.unique_cell_types)
-        self.c_t = None
-        self.c_prev = None
-        self.reward_type = reward_type
-        self.type_map = {t: i for i, t in enumerate(self.unique_cell_types)}
-
-        if self.observation_type == "multi_channels":
-            self.ratio_img_size_x = self.width / self.grid_size_x
-            self.ratio_img_size_y = self.height / self.grid_size_y
 
     def get_action_space(self):
         """
@@ -118,12 +121,15 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             this struct has to specify type and range for each
             action parameter, action custom variable, and action custom vector.
         """
+
+        # model dependent action_space processing logic goes here!
         d_action_space = spaces.Dict(
             {
                 "drug_1": spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float16),
             }
         )
 
+        # output
         return d_action_space
 
     def get_observation_space(self):
@@ -144,23 +150,46 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             this struct has to specify type and range
             for each observed variable.
         """
-        if self.observation_type == "scalars":
+        # model dependent observation_space processing logic goes here!
+        if self.kwargs["observation_mode"] == "scalars":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
-                shape=(len(self.unique_cell_types),),
+                shape=(self.cell_type_count,),
                 dtype=np.float32,
             )
-        elif self.observation_type == "multi_channels":
+
+        elif self.kwargs["observation_mode"] == "img_rgb":
+            # Define the Box space for the rgb alpha image
             o_observation_space = spaces.Box(
                 low=0,
                 high=255,
-                shape=(self.num_cell_types, self.grid_size_x, self.grid_size_y),
+                shape=(
+                    self.kwargs["img_rgb_grid_size_y"],
+                    self.kwargs["img_rgb_grid_size_x"],
+                ),
+                dtype=np.uint8,
+            )
+
+        elif self.kwargs["observation_mode"] == "img_mc":
+            # Define the Box space for the multichannel image
+            self.ratio_img_mc_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
+            self.ratio_img_mc_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
+            o_observation_space = spaces.Box(
+                low=0,
+                high=255,
+                shape=(
+                    self.cell_type_count,
+                    self.kwargs["img_mc_grid_size_x"],
+                    self.kwargs["img_mc_grid_size_y"],
+                ),
                 dtype=np.uint8,
             )
 
         else:
-            raise f"Error unknown observation type: {o_observation_space}"
+            raise ValueError(
+                f"unknown observation type: {self.kwargs['observation_mode']}"
+            )
 
         # output
         return o_observation_space
@@ -186,15 +215,15 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.df_cell = pd.DataFrame(
             physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "type"]
         )
-        self.c_prev = self.c_t if self.c_t is not None else None
-
+        self.c_prev = self.c_t
         self.c_t = len(
             self.df_cell.loc[
                 (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"), :
             ]
         )
 
-        self.c_prev = self.c_t if self.c_prev is None else self.c_prev
+        if self.c_prev is None:
+            self.c_prev = self.c_t
 
         self.nb_cell_1 = len(
             self.df_cell.loc[
@@ -208,22 +237,25 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         )
         if self.observation_type == "scalars":
             normalized_concentration_cells = np.zeros((self.nb_cell_types,))
-            for i in range(self.nb_cell_types):
-                normalized_concentration_cells[i] = len(
+            for s_cell_type, i_id in self.cell_type_to_id.items():
+                normalized_concentration_cells[i_id] = len(
                     self.df_cell.loc[
-                        (self.df_cell.dead == 0.0)
-                        & (self.df_cell.type == self.unique_cell_types[i]),
+                        (self.df_cell.dead == 0.0) & (self.df_cell.type == s_cell_type),
                         :,
                     ]
                 )
             o_observation = (
-                normalized_concentration_cells / self.normalization_factor - 1
+                normalized_concentration_cells / self.kwargs["normalization_factor"] - 1
             )
             o_observation = np.array(o_observation, dtype=float)
 
-        elif self.observation_type == "multi_channels":
+        elif self.kwargs["observation_mode"] == "img_mc":
             image = np.zeros(
-                (self.num_cell_types, self.grid_size_x, self.grid_size_y),
+                shape=(
+                    self.cell_type_count,
+                    self.kwargs["img_mc_grid_size_x"],
+                    self.kwargs["img_mc_grid_size_y"],
+                ),
                 dtype=np.float32,
             )
 
@@ -254,6 +286,20 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 1 / (self.ratio_img_size_x * self.ratio_img_size_y),
             )
             o_observation = (image * 255).astype(np.uint8)
+
+        elif self.kwargs["observation_mode"] == "img_rgb":
+            a_img = self.render()
+            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
+            a_img = ski.transform.resize(  # ski.transform.rescale
+                a_img,
+                output_shape=(
+                    self.grid_size_x,
+                    self.grid_size_y,
+                ),
+                anti_aliasing=True,
+            )
+            o_observation = a_img
+
         else:
             raise f"Observation type: {self.observation_type} does not exist"
         return o_observation
@@ -276,8 +322,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent info processing logic goes here!
         info = {
-            "number_cancer_cells": self.c_t,
             "df_cell": self.df_cell,
+            "number_cancer_cells": self.c_t,
             "number_cell_1": self.nb_cell_1,
             "number_cell_2": self.nb_cell_2,
         }
@@ -341,3 +387,128 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             return (self.c_prev - self.c_t) / np.log(self.normalization_factor)
         else:
             raise f"The reward type is not implemented{self.reward_type}"
+
+    def get_img(self):
+        """
+        input:
+
+        output:
+            self.fig.savefig
+                instance attached matplotlib figure.
+
+        run:
+            internal function, user defined.
+
+        description:
+            template code to generate a matplotlib figure from the data.
+            for example from:
+            + physicell.get_microenv("my_substrate")
+            + physicell.get_cell()
+            + physicell.get_variable("my_variable")
+            however, there are no limits.
+        """
+        # model dependent img processing logic goes here!
+        self.fig.clf()
+        ax = self.fig.add_subplot(1, 1, 1)
+        ax.axis("equal")
+        ax.axis("off")
+
+        ##################
+        # substrate data #
+        ##################
+
+        # debris
+        df_conc = pd.DataFrame(
+            physicell.get_microenv("debris"), columns=["x", "y", "z", "debris"]
+        )
+        df_conc = df_conc.loc[df_conc.z == 0.0, :]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="debris")
+        ax.contourf(
+            df_mesh.columns,
+            df_mesh.index,
+            df_mesh.values,
+            vmin=0.0,
+            vmax=1.0,
+            cmap="Reds",
+            alpha=1 / 3,
+        )
+
+        # pro-tumoral factor
+        df_conc = pd.DataFrame(
+            physicell.get_microenv("pro-tumoral factor"),
+            columns=["x", "y", "z", "pro-tumoral factor"],
+        )
+        df_conc = df_conc.loc[df_conc.z == 0.0, :]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="pro-tumoral factor")
+        ax.contourf(
+            df_mesh.columns,
+            df_mesh.index,
+            df_mesh.values,
+            vmin=0.0,
+            vmax=1.0,
+            cmap="Blues",
+            alpha=1 / 3,
+        )
+
+        # anti-tumoral factor
+        df_conc = pd.DataFrame(
+            physicell.get_microenv("anti-tumoral factor"),
+            columns=["x", "y", "z", "anti-tumoral factor"],
+        )
+        df_conc = df_conc.loc[df_conc.z == 0.0, :]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="anti-tumoral factor")
+        ax.contourf(
+            df_mesh.columns,
+            df_mesh.index,
+            df_mesh.values,
+            vmin=0.0,
+            vmax=1.0,
+            cmap="Greens",
+            alpha=1 / 3,
+        )
+
+        ######################
+        # substrate colorbar #
+        ######################
+
+        # self.fig.colorbar(
+        #    mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=1.0), cmap="Reds"),
+        #    label="my_substrate",
+        #    ax=ax,
+        # )
+
+        #############
+        # cell data #
+        #############
+
+        df_cell = pd.DataFrame(
+            physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "cell_type"]
+        )
+        df_cell = df_cell.loc[(df_cell.dead < 0.1), :]
+        df_cell["color"] = None
+        for s_cell_type, s_color in self.cell_type_to_color.items():
+            df_cell.loc[(df_cell.cell_type == s_cell_type), "color"] = s_color
+        # df_variable = pd.DataFrame(physicell.get_variable("my_variable"), columns=["my_variable"])
+        # df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how="left")
+        df_cell = df_cell.loc[df_cell.z == 0.0, :]
+        df_cell.plot(
+            kind="scatter",
+            x="x",
+            y="y",
+            c="color",
+            xlim=[self.x_min, self.x_max],
+            ylim=[self.y_min, self.y_max],
+            #    vmin=0.0, vmax=1.0, cmap="viridis",
+            #    grid=True,
+            #    title=f"dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} [cell]",
+            ax=ax,
+        )
+
+        ################
+        # save to file #
+        ################
+
+        # plt.tight_layout()
+        # s_path = self.x_root.xpath("//save/folder")[0].text + "/render_mode_human/"
+        # os.makedirs(s_path, exist_ok=True)
+        # self.fig.savefig(f"{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg", facecolor="white")
