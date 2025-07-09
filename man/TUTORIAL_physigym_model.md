@@ -22,7 +22,7 @@ gymnasium.envs.pprint_registry()
 Let's make an instance of the ModelPhysiCellEnv class and do a manual PhysiCell run.
 The output should look familiar to PhysiCell users.
 ```python
-env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', settingxml='config/PhysiCell_settings.xml')
+env = gymnasium.make("physigym/ModelPhysiCellEnv-v0", settingxml="config/PhysiCell_settings.xml")
 
 env.reset()  # initialize PhysiCell run
 env.step(action={})  # do one Gymnasium time step (similar to a mcds timestep)
@@ -164,7 +164,7 @@ We still have to connect them to something meaningful.
 This is done in the custom_modules/extending/physicellmodule.cpp in the physicell_step function.
 Please have a look at this function.
 
-At *line around 217*, you will find already prepared, commented out example code, for action and observation, for all possible parameter, variable and vector types.
+At *line around 218*, you will find already prepared, commented out example code, for action and observation, for all possible parameter, variable and vector types.
 
 2.1 Edit the *custom_modules/extending/physicellmodule.cpp* file for action.
 
@@ -210,7 +210,7 @@ Let's declare the action space.
 In the studio, we specified the unit of the drug_dose parameter as a fraction.
 This means, in Gymnasium terms, we have a Box space.
 
-First, let's comment out or delete the default 'discrete': spaces.Discrete(2)!
+First, let's comment out or delete the default "discrete": spaces.Discrete(2)!
 Then let's declare a Box space labeled drug_dose
 This is a single continuous vector with all possible real values from 0 to 1.
 
@@ -221,7 +221,7 @@ PhysiCell model and the custom_modules/extending/physicellmodule.cpp.
 Your modified action space dictionary should look something like this:
 ```python
 d_action_space = spaces.Dict({
-    'drug_dose': spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64)
+    "drug_dose": spaces.Box(low=0.0, high=1.0, shape=(1,), dtype=np.float64)
 })
 ```
 
@@ -245,7 +245,7 @@ The way we provide this information has to be compatible with the observation sp
 Replace the default `o_observation = True` with:
 
 ```python
-o_observation = np.array([physicell.get_parameter('cell_count')], dtype=np.uint16)
+o_observation = np.array([physicell.get_parameter("cell_count")], dtype=np.uint16)
 ```
 
 3.1.4 *get_info* function.
@@ -266,7 +266,7 @@ Note that it is a huge difference, if the model is terminated (all cells are dea
 Replace the default `b_terminated = False` with:
 
 ```python
-b_terminated = physicell.get_parameter('cell_count') <= 0
+b_terminated = physicell.get_parameter("cell_count") <= 0
 ```
 
 
@@ -277,9 +277,9 @@ Comment out or delete the default `r_reward = 0.0`.
 Our reward algorithm looks like this:
 
 ```python
-i_cellcount_target = physicell.get_parameter('cell_count_target')
+i_cellcount_target = physicell.get_parameter("cell_count_target")
 i_max = i_cellcount_target * 2
-i_cellcount = np.clip(physicell.get_parameter('cell_count'), a_min=0, a_max=i_max)
+i_cellcount = np.clip(physicell.get_parameter("cell_count"), a_min=0, a_max=i_max)
 if (i_cellcount == i_cellcount_target):
     r_reward = 1
 elif (i_cellcount < i_cellcount_target):
@@ -287,7 +287,7 @@ elif (i_cellcount < i_cellcount_target):
 elif (i_cellcount > i_cellcount_target):
     r_reward = 1 - (i_cellcount - i_cellcount_target) / i_cellcount_target
 else:
-    sys.exit('Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.')
+    sys.exit(f"Error @ CorePhysiCellEnv.get_reward : strange clipped cell_count detected {i_cellcount}.")
 ```
 
 
@@ -300,12 +300,12 @@ We will now implement a plot, to display drug concentration in the domain, as we
 # substrate data #
 ##################
 
-df_conc = pd.DataFrame(physicell.get_microenv('drug'), columns=['x','y','z','drug'])
+df_conc = pd.DataFrame(physicell.get_microenv("drug"), columns=["x","y","z","drug"])
 df_conc = df_conc.loc[df_conc.z == 0.0, :]
-df_mesh = df_conc.pivot(index='y', columns='x', values='drug')
+df_mesh = df_conc.pivot(index="y", columns="x", values="drug")
 ax.contourf(
     df_mesh.columns, df_mesh.index, df_mesh.values,
-    vmin=0.0, vmax=0.2, cmap='Reds',
+    vmin=0.0, vmax=0.2, cmap="Reds",
     #alpha=0.5,
 )
 
@@ -314,8 +314,8 @@ ax.contourf(
 #######################
 
 self.fig.colorbar(
-    mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=0.2), cmap='Reds'),
-    label='drug_concentration',
+    mappable=cm.ScalarMappable(norm=colors.Normalize(vmin=0.0, vmax=0.2), cmap="Reds"),
+    label="drug_concentration",
     ax=ax,
 )
 
@@ -323,21 +323,21 @@ self.fig.colorbar(
 # cell data #
 #############
 
-df_cell = pd.DataFrame(physicell.get_cell(), columns=['ID','x','y','z','dead','cell_type'])
-df_variable = pd.DataFrame(physicell.get_variable('apoptosis_rate'), columns=['apoptosis_rate'])
-df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how='left')
+df_cell = pd.DataFrame(physicell.get_cell(), columns=["ID","x","y","z","dead","cell_type"])
+df_variable = pd.DataFrame(physicell.get_variable("apoptosis_rate"), columns=["apoptosis_rate"])
+df_cell = pd.merge(df_cell, df_variable, left_index=True, right_index=True, how="left")
 df_cell = df_cell.loc[df_cell.z == 0.0, :]
 df_cell.plot(
-    kind='scatter', x='x', y='y', c='apoptosis_rate',
+    kind="scatter", x="x", y="y", c="apoptosis_rate",
     xlim=[
-        int(self.x_root.xpath('//domain/x_min')[0].text),
-        int(self.x_root.xpath('//domain/x_max')[0].text),
+        int(self.x_root.xpath("//domain/x_min")[0].text),
+        int(self.x_root.xpath("//domain/x_max")[0].text),
     ],
     ylim=[
-        int(self.x_root.xpath('//domain/y_min')[0].text),
-        int(self.x_root.xpath('//domain/y_max')[0].text),
+        int(self.x_root.xpath("//domain/y_min")[0].text),
+        int(self.x_root.xpath("//domain/y_max")[0].text),
     ],
-    vmin=0.0, vmax=0.1, cmap='viridis',
+    vmin=0.0, vmax=0.1, cmap="viridis",
     grid=True,
     title=f'dt_gym env step {str(self.step_env).zfill(4)} episode {str(self.episode).zfill(3)} episode step {str(self.step_episode).zfill(3)} : {df_cell.shape[0]} / {physicell.get_parameter("cell_count_target")} [cell]',
     ax=ax,
@@ -376,7 +376,7 @@ import numpy as np
 import physigym
 
 # load PhysiCell Gymnasium environment
-env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', render_mode='human', render_fps=10)
+env = gymnasium.make("physigym/ModelPhysiCellEnv-v0", render_mode="human", render_fps=10)
 
 # reset the environment
 r_reward = 0.0
@@ -388,10 +388,10 @@ while not b_episode_over:
 
     # policy according to o_observation
     i_observation = o_observation[0]
-    if (i_observation >= physicell.get_parameter('cell_count_target')):
-        d_action = {'drug_dose': np.array([1.0 - r_reward])}
+    if (i_observation >= physicell.get_parameter("cell_count_target")):
+        d_action = {"drug_dose": np.array([1.0 - r_reward])}
     else:
-        d_action = {'drug_dose': np.array([0.0])}
+        d_action = {"drug_dose": np.array([0.0])}
 
     # action
     o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
@@ -417,13 +417,13 @@ import numpy as np
 import physigym
 
 # load PhysiCell Gymnasium environment
-env = gymnasium.make('physigym/ModelPhysiCellEnv-v0', render_mode='human', render_fps=10)
+env = gymnasium.make("physigym/ModelPhysiCellEnv-v0", render_mode="human", render_fps=10)
 
 # episode loop
 for i_episode in range(3):
 
     # set episode output folder
-    env.get_wrapper_attr('x_root').xpath("//save/folder")[0].text = f'output/episode{str(i_episode).zfill(8)}'
+    env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
 
     # reset the environment
     r_reward = 0.0
@@ -435,10 +435,10 @@ for i_episode in range(3):
 
         # policy according to o_observation
         i_observation = o_observation[0]
-        if (i_observation > physicell.get_parameter('cell_count_target')):
-            d_action = {'drug_dose': np.array([1.0 - r_reward])}
+        if (i_observation > physicell.get_parameter("cell_count_target")):
+            d_action = {"drug_dose": np.array([1.0 - r_reward])}
         else:
-            d_action = {'drug_dose': np.array([0.0])}
+            d_action = {"drug_dose": np.array([0.0])}
 
         # action
         o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
@@ -477,27 +477,27 @@ import os
 import pcdl
 
 # load time series
-mcdsts = pcdl.TimeSeries('output/')
+mcdsts = pcdl.TimeSeries("output/")
 
 # make scatter and contour plot overlays
-os.makedirs('output/render_pcdl/', exist_ok=True)
+os.makedirs("output/render_pcdl/", exist_ok=True)
 for i, mcds in enumerate(mcdsts.l_mcds):
     fig, ax = plt.subplots(figsize=(9,6))
-    fig.suptitle(f'drug controlled time series: {int(mcds.get_time())}[min] {mcds.get_cell_df().shape[0]}[cell]')
-    ax.axis('equal')
-    mcds.plot_contour('drug', vmin=0.0, vmax=0.2, cmap='Reds', ax=ax)
-    mcds.plot_scatter('apoptosis_rate', z_axis=[0.0,0.01], cmap='viridis', ax=ax)
+    fig.suptitle(f"drug controlled time series: {int(mcds.get_time())}[min] {mcds.get_cell_df().shape[0]}[cell]")
+    ax.axis("equal")
+    mcds.plot_contour("drug", vmin=0.0, vmax=0.2, cmap="Reds", ax=ax)
+    mcds.plot_scatter("apoptosis_rate", z_axis=[0.0,0.01], cmap="viridis", ax=ax)
     plt.tight_layout()
-    fig.savefig(f'output/render_pcdl/drug_ctrld_timeseries_time{str(int(mcds.get_time())).zfill(8)}min.jpeg', facecolor='white')
+    fig.savefig(f"output/render_pcdl/drug_ctrld_timeseries_time{str(int(mcds.get_time())).zfill(8)}min.jpeg", facecolor="white")
     plt.close()
 
 # make a gif from the plots
-mcdsts.make_gif('output/render_pcdl/', interface='jpeg')
+mcdsts.make_gif("output/render_pcdl/", interface="jpeg")
 
 # additionally, make time series plots
-mcdsts.plot_timeseries(title='total cell count over time', ext='jpeg')
-mcdsts.plot_timeseries(focus_cat='cell_type', focus_num='apoptosis_rate', frame='cell_df', title='mean apoptosis rate over time', ext='jpeg')
-mcdsts.plot_timeseries(focus_num='drug', frame='conc_df', title='mean drug concentration over time', ext='jpeg')
+mcdsts.plot_timeseries(title="total cell count over time", ext="jpeg")
+mcdsts.plot_timeseries(focus_cat="cell_type", focus_num="apoptosis_rate", frame="cell_df", title="mean apoptosis rate over time", ext="jpeg")
+mcdsts.plot_timeseries(focus_num="drug", frame="conc_df", title="mean drug concentration over time", ext="jpeg")
 ```
 
 ![Tutorial Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tutorial.gif)
@@ -561,10 +561,10 @@ import physigym
 # load PhysiCell Gymnasium environment
 %matplotlib
 env = gymnasium.make(
-     'physigym/ModelPhysiCellEnv-v0',
-     settingxml='config/PhysiCell_settings.xml',
+     "physigym/ModelPhysiCellEnv-v0",
+     settingxml="config/PhysiCell_settings.xml",
      figsize=(12,6),
-     render_mode='human',
+     render_mode="human",
      render_fps=10
 )
 
@@ -579,19 +579,19 @@ while not b_episode_over:
     # policy according to o_observation
     d_observation = o_observation
     d_action = {
-        'secretion_a': np.array([0.0]),
-        'secretion_b': np.array([0.0]),
-        'secretion_c': np.array([0.0]),
+        "secretion_a": np.array([0.0]),
+        "secretion_b": np.array([0.0]),
+        "secretion_c": np.array([0.0]),
     }
     # celltype a
-    if (d_observation['celltype_a'][0] <= physicell.get_parameter('cell_count_target')):
-        d_action.update({'secretion_a': np.array([(1 - r_reward) * 1/12])})
+    if (d_observation["celltype_a"][0] <= physicell.get_parameter("cell_count_target")):
+        d_action.update({"secretion_a": np.array([(1 - r_reward) * 1/12])})
     # celltype b
-    if (d_observation['celltype_b'][0] <= physicell.get_parameter('cell_count_target')):
-        d_action.update({'secretion_b': np.array([(1 - r_reward) * 1/12])})
+    if (d_observation["celltype_b"][0] <= physicell.get_parameter("cell_count_target")):
+        d_action.update({"secretion_b": np.array([(1 - r_reward) * 1/12])})
     # celltype c
-    if (d_observation['celltype_c'][0] <= physicell.get_parameter('cell_count_target')):
-        d_action.update({'secretion_c': np.array([(1 - r_reward) * 1/12])})
+    if (d_observation["celltype_c"][0] <= physicell.get_parameter("cell_count_target")):
+        d_action.update({"secretion_c": np.array([(1 - r_reward) * 1/12])})
 
     # action
     o_observation, r_reward, b_terminated, b_truncated, d_info = env.step(d_action)
