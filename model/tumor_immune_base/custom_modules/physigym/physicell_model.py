@@ -70,12 +70,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         verbose=True,
         # **kwargs
         observation_mode="scalars",
-        img_rgb_grid_size_x=64,  # pixel
         img_rgb_grid_size_y=64,  # pixel
+        img_rgb_grid_size_x=64,  # pixel
         img_mc_grid_size_x=64,  # pixel
         img_mc_grid_size_y=64,  # pixel
         normalization_factor=512,
-        reward_type="dummy_linear",
     ):
         if observation_mode not in ["scalars", "img_rgb", "img_mc"]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
@@ -84,7 +83,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             raise ValueError(
                 f"If observation_mode is img_rgb the render_mode can not be None. try: {self.metadata['render_modes']}."
             )
-
         # call super class init
         super().__init__(
             settingxml=settingxml,
@@ -100,7 +98,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             img_mc_grid_size_x=img_mc_grid_size_x,
             img_mc_grid_size_y=img_mc_grid_size_y,
             normalization_factor=normalization_factor,
-            reward_type=reward_type,
         )
 
     def get_action_space(self):
@@ -207,49 +204,80 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         description:
             data for the observation object for example be retrieved by:
-            + physicell.get_parameter('my_parameter')
-            + physicell.get_variable('my_variable')
-            + physicell.get_vector('my_vector')
+            + physicell.get_parameter("my_parameter")
+            + physicell.get_variable("my_variable")
+            + physicell.get_vector("my_vector")
             however, there are no limits.
         """
+        # model dependent observation processing logic goes here!
+
+        # get cell data frame
         self.df_cell = pd.DataFrame(
             physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "type"]
         )
-        self.c_prev = self.c_t
-        self.c_t = len(
-            self.df_cell.loc[
-                (self.df_cell.dead == 0.0) & (self.df_cell.type == "tumor"), :
-            ]
-        )
+        df_alive = self.df_cell[self.df_cell["dead"] < 0.1]
 
+        # update tumor cell count
+        self.c_prev = self.c_t
+        self.c_t = df_alive.loc[(df_alive.type == "tumor"), :].shape[0]
         if self.c_prev is None:
             self.c_prev = self.c_t
+        self.nb_tumor = self.c_t
 
-        self.nb_cell_1 = len(
-            self.df_cell.loc[
-                (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_1"), :
-            ]
-        )
-        self.nb_cell_2 = len(
-            self.df_cell.loc[
-                (self.df_cell.dead == 0.0) & (self.df_cell.type == "cell_2"), :
-            ]
-        )
-        if self.observation_type == "scalars":
-            normalized_concentration_cells = np.zeros((self.nb_cell_types,))
+        # update cell_1 cell count
+        self.nb_cell_1 = df_alive.loc[(df_alive.type == "cell_1"), :].shape[0]
+
+        # update cell_2 cell count
+        self.nb_cell_2 = df_alive.loc[(df_alive.type == "cell_2"), :].shape[0]
+
+        # observe the environemnt
+        if self.kwargs["observation_mode"] == "scalars":
+            a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=float)
             for s_cell_type, i_id in self.cell_type_to_id.items():
-                normalized_concentration_cells[i_id] = len(
-                    self.df_cell.loc[
-                        (self.df_cell.dead == 0.0) & (self.df_cell.type == s_cell_type),
+                a_norm_cell_count[i_id] = (
+                    df_alive.loc[
+                        (df_alive.type == s_cell_type),
                         :,
-                    ]
+                    ].shape[0]
+                    / self.kwargs["normalization_factor"]
+                    - 1
                 )
-            o_observation = (
-                normalized_concentration_cells / self.kwargs["normalization_factor"] - 1
+            o_observation = a_norm_cell_count
+
+        elif self.kwargs["observation_mode"] == "img_rgb":
+            a_img = self.render()
+            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
+            a_img = ski.transform.resize(  # ski.transform.rescale
+                a_img,
+                output_shape=(
+                    self.kwargs["img_rgb_grid_size_x"],
+                    self.kwargs["img_rgb_grid_size_y"],
+                ),
+                anti_aliasing=True,
             )
-            o_observation = np.array(o_observation, dtype=float)
+            o_observation = a_img
 
         elif self.kwargs["observation_mode"] == "img_mc":
+            # get cell_type indices
+            cell_type_indices = df_alive["type"].map(self.cell_type_to_id).to_numpy()
+
+            # discretize
+            x_bin = (
+                (df_alive["x"] - self.x_min)
+                / (self.x_max - self.x_min)
+                * (self.kwargs["img_mc_grid_size_x"] - 1)
+            ).astype(int)
+            y_bin = (
+                (df_alive["y"] - self.y_min)
+                / (self.y_max - self.y_min)
+                * (self.kwargs["img_mc_grid_size_y"] - 1)
+            ).astype(int)
+
+            # clip in case of rounding issues
+            x_bin = np.clip(x_bin, 0, self.kwargs["img_mc_grid_size_x"] - 1)
+            y_bin = np.clip(y_bin, 0, self.kwargs["img_mc_grid_size_y"] - 1)
+
+            # get numpy array
             image = np.zeros(
                 shape=(
                     self.cell_type_count,
@@ -258,50 +286,21 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 ),
                 dtype=np.float32,
             )
-
-            # Only
-            df_alive = self.df_cell[self.df_cell["dead"] == 0.0]
-
-            cell_type_indices = df_alive["type"].map(self.type_map).to_numpy()
-
-            # Discretize
-            x_bin = (
-                (df_alive["x"] - self.x_min)
-                / (self.x_max - self.x_min)
-                * (self.grid_size_x - 1)
-            ).astype(int)
-            y_bin = (
-                (df_alive["y"] - self.y_min)
-                / (self.y_max - self.y_min)
-                * (self.grid_size_y - 1)
-            ).astype(int)
-
-            # Clip in case of rounding issues
-            x_bin = np.clip(x_bin, 0, self.grid_size_x - 1)
-            y_bin = np.clip(y_bin, 0, self.grid_size_y - 1)
-
             np.add.at(
                 image,
                 (cell_type_indices, x_bin, y_bin),
-                1 / (self.ratio_img_size_x * self.ratio_img_size_y),
+                1 / (self.ratio_img_mc_size_x * self.ratio_img_mc_size_y),
             )
+
+            # output
             o_observation = (image * 255).astype(np.uint8)
 
-        elif self.kwargs["observation_mode"] == "img_rgb":
-            a_img = self.render()
-            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
-            a_img = ski.transform.resize(  # ski.transform.rescale
-                a_img,
-                output_shape=(
-                    self.grid_size_x,
-                    self.grid_size_y,
-                ),
-                anti_aliasing=True,
-            )
-            o_observation = a_img
-
         else:
-            raise f"Observation type: {self.observation_type} does not exist"
+            raise ValueError(
+                f"unknown observation type: {self.kwargs['observation_mode']}"
+            )
+
+        # output
         return o_observation
 
     def get_info(self):
@@ -323,7 +322,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # model dependent info processing logic goes here!
         info = {
             "df_cell": self.df_cell,
-            "number_cancer_cells": self.c_t,
+            "number_tumor": self.nb_tumor,
             "number_cell_1": self.nb_cell_1,
             "number_cell_2": self.nb_cell_2,
         }
@@ -348,6 +347,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             please notice, that this ending is different form
             truncated (the episode reached the max time limit).
         """
+        # model dependent terminated processing logic goes here!
         return True if self.c_t == 0 else False
 
     def get_reset_values(self):
@@ -383,10 +383,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        if self.reward_type == "dummy_linear":
-            return (self.c_prev - self.c_t) / np.log(self.normalization_factor)
-        else:
-            raise f"The reward type is not implemented{self.reward_type}"
+        return (self.c_prev - self.c_t) / np.log(self.kwargs["normalization_factor"])
 
     def get_img(self):
         """

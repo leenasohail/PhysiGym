@@ -305,7 +305,7 @@ def run(
         # random seed
         "seed" : i_seed,   # int or none: seed of the experiment
         # steps
-        "total_timesteps" : i_total_step_learn,    # int: the learning rate of the optimizer
+        "total_timesteps" : i_total_step_learn,    # int: the total number of steps
     }
 
     # wandb
@@ -330,7 +330,7 @@ def run(
         "img_rgb_grid_size_y" : 64,  # pixel size
         "img_mc_grid_size_x" : 64,  # pixel size
         "img_mc_grid_size_y" : 64,  # pixel size
-        "normalization_factor" : 512,
+        "normalization_factor" : 512, # normalization factor
     }
     d_arg_physigym_wrapper = {
         "ls_action" : ["drug_1"],  # list of str: of action varaible names
@@ -415,8 +415,6 @@ def run(
     qf2 = QNetwork(env, cfg).to(o_device)
     qf1_target = QNetwork(env, cfg).to(o_device)
     qf2_target = QNetwork(env, cfg).to(o_device)
-    target_actor = Actor(env, cfg).to(o_device)  # bue: where is target_actor used?
-    target_actor.load_state_dict(actor.state_dict())
     qf1_target.load_state_dict(qf1.state_dict())
     qf2_target.load_state_dict(qf2.state_dict())
     q_optimizer = optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["q_lr"])
