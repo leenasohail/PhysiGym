@@ -155,7 +155,7 @@ Formally, for each cell:
 ```
 By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$.
 This produces an image tensor of shape $(\text{num cell types}, gridsize, gridsize)$,
-where each channel counts the number of cells of a given type in each spatial bin![image cell types](img/multi_channels.png).
+where each channel counts the number of cells of a given type in each spatial bin![image cell types](img/img_mc.png).
 
 The second state space is **scalars** a mathematical function that computes the **cell count for each cell type**.
 
