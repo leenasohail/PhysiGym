@@ -197,7 +197,8 @@ Use your favorite text editor (here we use nano) to open the **sac_tib.py** file
 nano custom_modules/physigym/physigym/envs/sac_tib.py
 ```
 
-Scroll down to **run** and adjust the following settings:
+Scroll down to **class Args** and adjust the following settings:
++ cuda: bool = *True or False*
 + wandb\_track: bool = *False*
 
 <!-- bue 20250611: anythong else, if you only wanna run with tenserboard?
@@ -332,7 +333,7 @@ $$
 ---
 The SAC-learned policy is significantly more effective at controlling tumor growth while balancing drug use, achieving higher discounted returns compared to random or no treatment.
 
-A video of the dynamic treatment regime proposed by the learning agent using **multi_channels** as the state space: [800 episode with image](video/tumor_immune_base_ep_800.mp4), you can observe phases of the dynamic treatment regime:
+A video of the dynamic treatment regime proposed by the learning agent using **multi_channels** as the state space: [800 episode with image](img/tumor_immune_base_ep_800.mp4), you can observe phases of the dynamic treatment regime:
 
 1. **Initial phase:**  
    The agent administers almost no drugs. During this period, when **cell_1** come into contact with **tumor_cells**, they can transform into **cell_2** due to increased pressure.
