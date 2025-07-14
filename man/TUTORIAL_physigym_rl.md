@@ -197,8 +197,7 @@ Use your favorite text editor (here we use nano) to open the **sac_tib.py** file
 nano custom_modules/physigym/physigym/envs/sac_tib.py
 ```
 
-Scroll down to **class Args** and adjust the following settings:
-+ cuda: bool = *True or False*
+Scroll down to **run** and adjust the following settings:
 + wandb\_track: bool = *False*
 
 <!-- bue 20250611: anythong else, if you only wanna run with tenserboard?
