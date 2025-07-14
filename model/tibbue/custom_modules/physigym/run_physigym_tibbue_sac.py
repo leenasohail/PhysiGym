@@ -111,17 +111,19 @@ class PhysiCellModelWrapper(gymnasium.Wrapper):
             d_action.update({s_action: np.array([r_value])})
 
         # take a step in the environment
-        o_observation, r_tumor, b_terminated, b_truncated, d_info = self.env.step(d_action)
+        o_observation, r_reward_tumor, b_terminated, b_truncated, d_info = self.env.step(d_action)
 
-        # the mean of all the actions (e.g. one or multiple drugs).
-        r_drugs = np.mean(ar_action)
-        r_reward = - (1 - self.r_weight) * r_drugs + self.r_weight * r_tumor
+        # the reward is the negative mean of all the actions (e.g. one or multiple drugs).
+        r_reward_drug = - np.mean(ar_action)
+
+        # calculate overall reward
+        r_reward = self.r_weight * r_reward_tumor + (1 - self.r_weight) * r_reward_drug
 
         # update the info dictionary
-        d_info["action"] = d_action
+        d_info["action"] = d_action  # drug_added
         d_info["reward"] = r_reward
-        d_info["reward_drugs"] = r_drugs
-        d_info["reward_tumor"] = r_tumor
+        d_info["reward_tumor"] = r_reward_tumor
+        d_info["reward_drug"] = r_reward_drug
 
         # going home
         return o_observation, r_reward, b_terminated, b_truncated, d_info
@@ -141,6 +143,37 @@ class PixelPreprocess(nn.Module):
         return x.div(255.0).sub(0.5)
 
 
+class ResidualBlock(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.conv1 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.conv2 = nn.Conv2d(channels, channels, 3, padding=1)
+        self.activation = nn.Mish()
+
+    def forward(self, x):
+        residual = x
+        x = self.activation(self.conv1(x))
+        x = self.activation(self.conv2(x))
+        return x + residual
+
+
+class ImpalaBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.pool = nn.MaxPool2d(3, stride=2, padding=1)
+        self.res1 = ResidualBlock(out_channels)
+        self.res2 = ResidualBlock(out_channels)
+        self.activation = nn.Mish()
+
+    def forward(self, x):
+        x = self.activation(self.conv(x))
+        x = self.pool(x)
+        x = self.res1(x)
+        x = self.res2(x)
+        return x
+
+
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
@@ -153,16 +186,23 @@ class FeatureExtractor(nn.Module):
 
         if self.is_image:
             # CNN feature extractor
-            num_channels = 8
+            #num_channels = 8
+            #layers = [
+            #    PixelPreprocess(),
+            #    nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
+            #    nn.Mish(inplace=False),
+            #    nn.Conv2d(num_channels, num_channels, 5, stride=2),
+            #    nn.Mish(inplace=False),
+            #    nn.Conv2d(num_channels, num_channels, 3, stride=2),
+            #    nn.Mish(inplace=False),
+            #    nn.Conv2d(num_channels, num_channels, 3, stride=1),
+            #    nn.Flatten(),
+            #]
             layers = [
                 PixelPreprocess(),
-                nn.Conv2d(obs_shape[0], num_channels, 7, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 5, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=2),
-                nn.Mish(inplace=False),
-                nn.Conv2d(num_channels, num_channels, 3, stride=1),
+                ImpalaBlock(obs_shape[0], 16),
+                ImpalaBlock(16, 32),
+                ImpalaBlock(32, 32),
                 nn.Flatten(),
             ]
             self.feature_extractor = nn.Sequential(*layers)
@@ -281,7 +321,7 @@ class Actor(nn.Module):
 def run(
         s_settingxml="config/PhysiCell_settings.xml",
         r_max_time_episode=1440.0,  # xpath
-        i_thread=8,  # xpath
+        i_thread=16,  # xpath
         i_seed=None,
         s_observation_mode="scalars",
         s_render_mode=None,
@@ -305,7 +345,7 @@ def run(
         # random seed
         "seed" : i_seed,   # int or none: seed of the experiment
         # steps
-        "total_timesteps" : i_total_step_learn,    # int: the total number of steps
+        "total_timesteps" : i_total_step_learn,    # int: the learning rate of the optimizer
     }
 
     # wandb
@@ -321,7 +361,7 @@ def run(
     d_arg_physigym_model = {
         "id" : "physigym/ModelPhysiCellEnv-v0",   # str: the id of the gymnasium environmenit
         "settingxml" : s_settingxml,
-        "cell_type_cmap" : {"tumor" : "yellow", "cell_1" : "green", "cell_2" : "navy"},  # viridis
+        "cell_type_cmap" : {"cell_1" : "navy", "cell_2" : "green", "tumor" : "yellow"},  # viridis
         "figsize": (6, 6),
         "observation_mode" : s_observation_mode,   # str: scalars , img_rgb , img_mc
         "render_mode" : s_render_mode,  # human, rgb_array
@@ -330,7 +370,7 @@ def run(
         "img_rgb_grid_size_y" : 64,  # pixel size
         "img_mc_grid_size_x" : 64,  # pixel size
         "img_mc_grid_size_y" : 64,  # pixel size
-        "normalization_factor" : 512, # normalization factor
+        "normalization_factor" : 512,
     }
     d_arg_physigym_wrapper = {
         "ls_action" : ["drug_1"],  # list of str: of action varaible names
@@ -340,18 +380,18 @@ def run(
     # rl algorithm
     d_arg_rl = {
         # algoritm neural network I
-        "buffer_size" : int(1e4),    # int: the replay memory buffer size
+        "buffer_size" : 2**13,  # int: the replay memory buffer size
         "batch_size" : 256,   # int: the batch size of sample from the reply memory
         "learning_starts" : 10e3,   # float: timestep to start learning
         "policy_frequency" : 2,    # int: the frequency of training policy (delayed)
         "target_network_frequency" : 1,   # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
         # algorithm neural network II
-        "autotune" : True,   # bool: automatic tuning the the entropy coefficient.
-        "alpha" : 0.2,   # float: set manuall entropy regularization coefficient.
+        "autotune" : True,   # bool: automatic tuning the the entropy coefficient
+        "alpha" : 0.2,   # float: set manuall entropy regularization coefficient
         "tau" : 0.005,    # float: target smoothing coefficient (default" : 0.005)
         "q_lr" : 3e-4,    # float: the learning rate of the Q network network optimizer
         "policy_lr" : 3e-4,    # float: the learning rate of the policy network optimizer
-        # algorithm neural network III
+        # algorithm neural network III: discounted cummulative reward calculation
         "gamma" : 0.99,    # float: the discount factor gamma (how much learning)
     }
 
@@ -388,7 +428,27 @@ def run(
     )
 
     # initialize csv recording
-    ld_data = []
+    s_dir_pcoutput = "output"
+    os.makedirs(s_dir_pcoutput, exist_ok=True)
+
+    ls_columns = [
+        "episode","step_episode","step_env","time_env",
+        "cumulative_return","discounted_cumulative_return",
+        "reward","reward_tumor","reward_drug",
+        "terminated","truncated","over",
+        "tumor","cell_1","cell_2",  # count
+        "drug_added",
+        "drug_max","anti_inflammatory_factor_max","pro_inflammatory_max","debris_max",
+        "drug_median","anti_inflammatory_median","pro_inflammatory_median","debris_median",
+        "drug_mean","anti_inflammatory_mean","pro_inflammatory_mean","debris_mean",
+        "drug_std","anti_inflammatory_std","pro_inflammatory_std","debris_std",
+        "drug_min","anti_inflammatory_min","pro_inflammatory_min","debris_min",
+        "\n"
+    ]
+    s_csv_record = os.path.join(s_dir_pcoutput, "record.csv")
+    f = open(s_csv_record, "w")
+    f.writelines(ls_columns)
+    f.close()
 
     # set random seed
     random.seed(d_arg["seed"])
@@ -415,6 +475,8 @@ def run(
     qf2 = QNetwork(env, cfg).to(o_device)
     qf1_target = QNetwork(env, cfg).to(o_device)
     qf2_target = QNetwork(env, cfg).to(o_device)
+    target_actor = Actor(env, cfg).to(o_device)  # bue: where is target_actor used?
+    target_actor.load_state_dict(actor.state_dict())
     qf1_target.load_state_dict(qf1.state_dict())
     qf2_target.load_state_dict(qf2.state_dict())
     q_optimizer = optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["q_lr"])
@@ -441,9 +503,15 @@ def run(
     # do reinforcement
     while env.unwrapped.step_env < d_arg["total_timesteps"]:
 
-        # manipulate setting xml before reset
-        # bue can be used for track or not track stuff, e.g. every 1024 episode
-        #env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
+        # manipulate setting xml before reset to record full physicell run every 1024 episode.
+        if env.unwrapped.episode % 1024 == 0:
+            env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = os.path.join(s_dir_pcoutput, f"episode{str(env.unwrapped.episode).zfill(8)}")
+            env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[0].text = "true"
+            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
+        else:
+            env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = os.path.join(s_dir_pcoutput, "devnull")
+            env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[0].text = "false"
+            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
 
         # reset gymnasium env
         r_cumulative_return = 0
@@ -568,33 +636,40 @@ def run(
             writer.add_scalar("env/number_cell_2", d_info["number_cell_2"], env.unwrapped.episode)
             writer.add_scalar("env/reward", r_reward, env.unwrapped.episode)
             writer.add_scalar("env/reward_tumor", d_info["reward_tumor"], env.unwrapped.episode)
-            writer.add_scalar("env/reward_drugs", d_info["reward_drugs"], env.unwrapped.episode)
+            writer.add_scalar("env/reward_drug", d_info["reward_drug"], env.unwrapped.episode)
 
             # record step to csv
-            d_data = {
-                "step": env.unwrapped.step_episode,
-                "reward": r_reward,
-                "cumulative_return": r_cumulative_return,
-                "discounted_cumulative_return": r_discounted_cumulative_return,
-                "drug_1": a_action[0],
-                "number_tumor": d_info["number_tumor"],
-                "number_cell_1": d_info["number_cell_1"],
-                "number_cell_2": d_info["number_cell_2"],
-            }
-            ld_data.append(d_data)
+            se_subs_max = d_info["df_subs"].max()
+            se_subs_median = d_info["df_subs"].median()
+            se_subs_mean = d_info["df_subs"].mean()
+            se_subs_std = d_info["df_subs"].std()
+            se_subs_min = d_info["df_subs"].min()
+            l_data = [
+                str(env.unwrapped.episode), str(env.unwrapped.step_episode), str(env.unwrapped.step_env), str(env.unwrapped.time_simulation),
+                str(r_cumulative_return), str(r_discounted_cumulative_return),
+                str(r_reward), str(d_info["reward_tumor"]), str(d_info["reward_drug"]),
+                str(b_terminated), str(b_truncated), str(b_episode_over),
+                str(d_info["number_tumor"]), str(d_info["number_cell_1"]), str(d_info["number_cell_2"]),
+                str(d_info["action"]["drug_1"][0]),
+                str(se_subs_max["drug_1"]), str(se_subs_max["anti-inflammatory factor"]), str(se_subs_max["pro-inflammatory factor"]), str(se_subs_max["debris"]),
+                str(se_subs_median["drug_1"]), str(se_subs_median["anti-inflammatory factor"]), str(se_subs_median["pro-inflammatory factor"]), str(se_subs_median["debris"]),
+                str(se_subs_mean["drug_1"]), str(se_subs_mean["anti-inflammatory factor"]), str(se_subs_mean["pro-inflammatory factor"]), str(se_subs_mean["debris"]),
+                str(se_subs_std["drug_1"]), str(se_subs_std["anti-inflammatory factor"]), str(se_subs_std["pro-inflammatory factor"]), str(se_subs_std["debris"]),
+                str(se_subs_min["drug_1"]), str(se_subs_min["anti-inflammatory factor"]), str(se_subs_min["pro-inflammatory factor"]), str(se_subs_min["debris"]),
+                "\n",
+            ]
+            f = open(s_csv_record, "a")
+            f.writelines(l_data)
+            f.close()
 
         # recording episode to tensorbord
-        writer.add_scalar("charts/episodic_cumulative_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
         writer.add_scalar("charts/cumulative_return", r_cumulative_return, env.unwrapped.episode)
+        writer.add_scalar("charts/episodic_cumulative_return", r_cumulative_return / env.unwrapped.step_episode, env.unwrapped.episode)
         writer.add_scalar("charts/episodic_length", env.unwrapped.step_episode, env.unwrapped.episode)
         writer.add_scalar("charts/discounted_cumulative_return", r_discounted_cumulative_return, env.unwrapped.episode)
 
         # recording episode to csv
-        df = pd.DataFrame(ld_data)
-        s_dir_data_episode = os.path.join(s_dir_data, str(env.unwrapped.episode))
-        os.makedirs(s_dir_data_episode, exist_ok=True)
-        df.to_csv(os.path.join(s_dir_data_episode, "data.csv"), index=False)
-        ld_data = []
+        # pass
 
     # finish
     env.close()
@@ -626,7 +701,7 @@ if __name__ == "__main__":
         "--max_time_episode",
         type = float,
         nargs = "?",
-        default = 1440.0,
+        default = 10080.0,
         help = "set overall max_time in min in the settings.xml file."
     )
     # thread
@@ -634,7 +709,7 @@ if __name__ == "__main__":
         "--thread",
         type = int,
         nargs = "?",
-        default = 8,
+        default = 16,
         help = "set parallel omp_num_threads in the settings.xml file."
     )
     # seed
@@ -682,7 +757,7 @@ if __name__ == "__main__":
         "--total_step_learn",
         type = int,
         nargs = "?",
-        default = int(1e6),
+        default = int(1e5),
         help = "set total time steps for the learing process to take."
     )
 

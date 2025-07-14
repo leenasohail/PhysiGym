@@ -97,7 +97,7 @@ To be BibTeX.
 
 # Release Notes:
 
-+ 1.0.0 (2025-07-14): first public release.
++ 1.0.0 (2025-07-14): public beta release.
 + 0.4.1 (2025-06-21): bue ok release.
 + 0.4.0 (2025-02-28): models, rl, os portability, unit tests, and documentation complete.
 + 0.3.1 (2025-02-05): custom\_modules/embedding to custom\_module/extending change.
