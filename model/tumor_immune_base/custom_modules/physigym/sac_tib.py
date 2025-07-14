@@ -472,7 +472,7 @@ def run(
     }
     d_arg_physigym_wrapper = {
         "list_variable_name": ["drug_1"],  # list of str: of action varaible names
-        "weight": 0.5,  # float: weight for the reduction of tumor
+        "weight": 0.8,  # float: weight for the reduction of tumor
     }
 
     # rl algorithm
