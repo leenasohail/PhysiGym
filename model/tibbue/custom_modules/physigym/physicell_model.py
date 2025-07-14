@@ -208,6 +208,18 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         """
         # model dependent observation processing logic goes here!
 
+        # get substrate data frame
+        self.df_subs = None
+        for s_subs in self.substrate_unique:
+            df_subs = pd.DataFrame(
+                physicell.get_microenv(s_subs),
+                columns=["x", "y", "z", s_subs]
+            )
+            if self.df_subs is None:
+                self.df_subs = df_subs
+            else:
+                self.df_subs = pd.merge(self.df_subs, df_subs, on=["x","y","z"])
+
         # get cell data frame
         self.df_cell = pd.DataFrame(
             physicell.get_cell(),
@@ -220,7 +232,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.c_t = df_alive.loc[(df_alive.type == "tumor"), :].shape[0]
         if self.c_prev is None:
             self.c_prev = self.c_t
-        self.nb_tumor = self.c_t
 
         # update cell_1 cell count
         self.nb_cell_1 = df_alive.loc[(df_alive.type == "cell_1"), :].shape[0]
@@ -315,7 +326,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # model dependent info processing logic goes here!
         info = {
             "df_cell": self.df_cell,
-            "number_tumor": self.nb_tumor,
+            "df_subs": self.df_subs,
+            "number_tumor": self.c_t,
             "number_cell_1": self.nb_cell_1,
             "number_cell_2": self.nb_cell_2,
         }
@@ -379,8 +391,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        return (self.c_prev - self.c_t) / np.log(self.kwargs["normalization_factor"])
-
+        if (self.c_prev > 0):
+            r_reward_tumor = (self.c_prev - self.c_t) / (self.c_prev * np.e**(physicell.get_parameter("growth_rate") * physicell.get_parameter("dt_gym")) - self.c_prev)
+            r_reward_tumor = np.clip(r_reward_tumor, -1, 1)
+        else:
+            r_reward_tumor = None
+        return r_reward_tumor
 
     def get_img(self):
         """
@@ -412,8 +428,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         ##################
 
         # debris
-        df_conc = pd.DataFrame(physicell.get_microenv("debris"), columns=["x","y","z","debris"])
-        df_conc = df_conc.loc[df_conc.z == 0.0, :]
+        df_conc = self.df_subs.loc[self.df_subs.z == 0.0, ["x","y","z","debris"]]
         df_mesh = df_conc.pivot(index="y", columns="x", values="debris")
         ax.contourf(
             df_mesh.columns, df_mesh.index, df_mesh.values,
@@ -421,23 +436,21 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             alpha=1/3,
         )
 
-        # pro-tumoral factor
-        df_conc = pd.DataFrame(physicell.get_microenv("pro-tumoral factor"), columns=["x","y","z","pro-tumoral factor"])
-        df_conc = df_conc.loc[df_conc.z == 0.0, :]
-        df_mesh = df_conc.pivot(index="y", columns="x", values="pro-tumoral factor")
-        ax.contourf(
-            df_mesh.columns, df_mesh.index, df_mesh.values,
-            vmin=0.0, vmax=1.0, cmap="Blues",
-            alpha=1/3,
-        )
-
-        # anti-tumoral factor
-        df_conc = pd.DataFrame(physicell.get_microenv("anti-tumoral factor"), columns=["x","y","z","anti-tumoral factor"])
-        df_conc = df_conc.loc[df_conc.z == 0.0, :]
-        df_mesh = df_conc.pivot(index="y", columns="x", values="anti-tumoral factor")
+        # pro-inflammatory factor
+        df_conc = self.df_subs.loc[self.df_subs.z == 0.0, ["x","y","z","pro-inflammatory factor"]]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="pro-inflammatory factor")
         ax.contourf(
             df_mesh.columns, df_mesh.index, df_mesh.values,
             vmin=0.0, vmax=1.0, cmap="Greens",
+            alpha=1/3,
+        )
+
+        # anti-inflammatory factor
+        df_conc = self.df_subs.loc[self.df_subs.z == 0.0, ["x","y","z","anti-inflammatory factor"]]
+        df_mesh = df_conc.pivot(index="y", columns="x", values="anti-inflammatory factor")
+        ax.contourf(
+            df_mesh.columns, df_mesh.index, df_mesh.values,
+            vmin=0.0, vmax=1.0, cmap="Blues",
             alpha=1/3,
         )
 
