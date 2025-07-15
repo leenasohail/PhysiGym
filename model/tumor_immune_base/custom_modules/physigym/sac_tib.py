@@ -479,8 +479,8 @@ def run(
     d_arg_rl = {
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
-        "batch_size": 64,  # int: the batch size of sample from the reply memory
-        "learning_starts": 10e3,  # float: timestep to start learning
+        "batch_size": 128,  # int: the batch size of sample from the replay memory
+        "learning_starts": 25e3,  # float: timestep to start learning
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
         # algorithm neural network II
@@ -530,8 +530,6 @@ def run(
     ld_data = []
 
     # set random seed
-    print("SEEEED")
-    print(d_arg["seed"])
     random.seed(d_arg["seed"])
     np.random.seed(d_arg["seed"])
     if d_arg["seed"] is None:
@@ -710,7 +708,7 @@ def run(
                 ):  # TD 3 Delayed update support
                     # compensate for the delay by doing "actor_update_interval" instead of 1
                     for _ in range(d_arg["policy_frequency"]):
-                        pi, log_pi, _ = actor.get_action(data["observation"])
+                        pi, log_pi, _ = actor.get_action(data["state"])
 
                         qf1_pi = qf1(data["state"], pi)
                         qf2_pi = qf2(data["state"], pi)
@@ -835,7 +833,7 @@ if __name__ == "__main__":
         "--max_time_episode",
         type=float,
         nargs="?",
-        default=10000.0,
+        default=11580.0,
         help="set overall max_time in min in the settings.xml file.",
     )
     # thread
@@ -891,7 +889,7 @@ if __name__ == "__main__":
         "--total_step_learn",
         type=int,
         nargs="?",
-        default=int(3e5),
+        default=int(2e5),
         help="set total time steps for the learing process to take.",
     )
 
@@ -904,8 +902,8 @@ if __name__ == "__main__":
         s_settingxml=args.settingxml,
         r_max_time_episode=float(args.max_time_episode),
         i_thread=args.thread,
-        i_seed=1,
-        s_observation_mode="img_mc_substrates",
+        i_seed=args.seed,
+        s_observation_mode=args.observation_mode,
         s_render_mode=None if args.render_mode.lower() == "none" else args.render_mode,
         s_name=args.name,
         b_wandb="true" if args.wandb.lower() == "true" else False,
