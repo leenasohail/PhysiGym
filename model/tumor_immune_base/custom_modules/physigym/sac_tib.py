@@ -602,7 +602,7 @@ def run(
             env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
                 0
             ].text = "true"
-            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
+            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "true"
         else:
             env.get_wrapper_attr("x_root").xpath("//save/folder")[
                 0
@@ -879,9 +879,9 @@ if __name__ == "__main__":
     # wandb tracking
     parser.add_argument(
         "--wandb",
-        # type = bool,
+        type=bool,
         nargs="?",
-        default="true",
+        default=True,
         help="tracking online with wandb? false with track locally with tensorboard.",
     )
     # total timesteps
@@ -906,6 +906,6 @@ if __name__ == "__main__":
         s_observation_mode=args.observation_mode,
         s_render_mode=None if args.render_mode.lower() == "none" else args.render_mode,
         s_name=args.name,
-        b_wandb="true" if args.wandb.lower() == "true" else False,
+        b_wandb=args.wandb,
         i_total_step_learn=int(args.total_step_learn),
     )
