@@ -81,7 +81,7 @@
         </variable>
         <variable name="drug_1" units="dimensionless" ID="1">
             <physical_parameter_set>
-                <diffusion_coefficient units="micron^2/min">5000.0</diffusion_coefficient>
+                <diffusion_coefficient units="micron^2/min">20000.0</diffusion_coefficient>
                 <decay_rate units="1/min">0.0005</decay_rate>
             </physical_parameter_set>
             <initial_condition units="dimensionless">0.0</initial_condition>
@@ -155,9 +155,9 @@
                 <death>
                     <model code="100" name="apoptosis">
                         <death_rate units="1/min">5.31667e-05</death_rate>
-                        <phase_durations units="min">
-                            <duration index="0" fixed_duration="false">516</duration>
-                        </phase_durations>
+                        <phase_transition_rates units="1/min">
+                            <rate start_index="0" end_index="1" fixed_duration="false">0.001938</rate>
+                        </phase_transition_rates>
                         <parameters>
                             <unlysed_fluid_change_rate units="1/min">0.05</unlysed_fluid_change_rate>
                             <lysed_fluid_change_rate units="1/min">0.0</lysed_fluid_change_rate>
@@ -169,10 +169,10 @@
                     </model>
                     <model code="101" name="necrosis">
                         <death_rate units="1/min">0.0</death_rate>
-                        <phase_durations units="min">
-                            <duration index="0" fixed_duration="false">1.11111e-10</duration>
-                            <duration index="1" fixed_duration="true">86399.80646</duration>
-                        </phase_durations>
+                        <phase_transition_rates units="1/min">
+                            <rate start_index="0" end_index="1" fixed_duration="false">9000000000.0</rate>
+                            <rate start_index="1" end_index="2" fixed_duration="true">1.2e-05</rate>
+                        </phase_transition_rates>
                         <parameters>
                             <unlysed_fluid_change_rate units="1/min">1.11667e-02</unlysed_fluid_change_rate>
                             <lysed_fluid_change_rate units="1/min">8.33333e-4</lysed_fluid_change_rate>
@@ -239,7 +239,7 @@
                 </motility>
                 <secretion>
                     <substrate name="debris">
-                        <secretion_rate units="1/min">0.0</secretion_rate>
+                        <secretion_rate units="1/min">0.1</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
@@ -253,13 +253,13 @@
                     <substrate name="anti-inflammatory factor">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
-                        <uptake_rate units="1/min">1.0</uptake_rate>
+                        <uptake_rate units="1/min">0.1</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="pro-inflammatory factor">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
-                        <uptake_rate units="1/min">1.0</uptake_rate>
+                        <uptake_rate units="1/min">0.1</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                 </secretion>
@@ -403,7 +403,7 @@
                     <substrate name="debris">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
-                        <uptake_rate units="1/min">1.0</uptake_rate>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="drug_1">
@@ -413,7 +413,7 @@
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="anti-inflammatory factor">
-                        <secretion_rate units="1/min">10.0</secretion_rate>
+                        <secretion_rate units="1/min">0.2</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
@@ -421,7 +421,7 @@
                     <substrate name="pro-inflammatory factor">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
-                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <uptake_rate units="1/min">0.1</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                 </secretion>
@@ -467,13 +467,13 @@
         <cell_definition name="cell_2" ID="2">
             <phenotype>
                 <cycle code="5" name="live">
-                    <phase_durations units="min">
-                        <duration index="0" fixed_duration="false">7200.0</duration>
-                    </phase_durations>
-                    <standard_asymmetric_division enabled="True">
+                    <phase_transition_rates units="1/min">
+                        <rate start_index="0" end_index="0" fixed_duration="false">0.0</rate>
+                    </phase_transition_rates>
+                    <standard_asymmetric_division enabled="False">
                         <asymmetric_division_probability name="tumor" units="dimensionless">0</asymmetric_division_probability>
-                        <asymmetric_division_probability name="cell_1" units="dimensionless">0.2</asymmetric_division_probability>
-                        <asymmetric_division_probability name="cell_2" units="dimensionless">0.8</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_1" units="dimensionless">0.0</asymmetric_division_probability>
+                        <asymmetric_division_probability name="cell_2" units="dimensionless">1.0</asymmetric_division_probability>
                     </standard_asymmetric_division>
                 </cycle>
                 <death>
@@ -565,13 +565,13 @@
                     <substrate name="debris">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
-                        <uptake_rate units="1/min">1.0</uptake_rate>
+                        <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="drug_1">
                         <secretion_rate units="1/min">0.0</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
-                        <uptake_rate units="1/min">0.0</uptake_rate>
+                        <uptake_rate units="1/min">0.1</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="anti-inflammatory factor">
@@ -581,7 +581,7 @@
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
                     </substrate>
                     <substrate name="pro-inflammatory factor">
-                        <secretion_rate units="1/min">10.0</secretion_rate>
+                        <secretion_rate units="1/min">0.1</secretion_rate>
                         <secretion_target units="substrate density">1.0</secretion_target>
                         <uptake_rate units="1/min">0.0</uptake_rate>
                         <net_export_rate units="total substrate/min">0.0</net_export_rate>
@@ -639,7 +639,7 @@
         <number_of_cells type="int" units="none" description="initial number of cells (for each cell type)">0</number_of_cells>
         <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">480</dt_gym>
         <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
-        <drug_1 type="double" units="[0..1)" description="drug amount added right in the beginning of the time step">0.0</drug_1>
+        <drug_1 type="double" units="[0..1]" description="drug amount added right in the beginning of the time step">0.0</drug_1>
         <growth_rate type="double" units="1/min" description="netto growth rate tumor ">0.000641</growth_rate>
     </user_parameters>
 </PhysiCell_settings>
