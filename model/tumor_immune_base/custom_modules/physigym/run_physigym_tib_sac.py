@@ -1,5 +1,5 @@
 #####
-# title: model/tumor_immune_base/custom_modules/physigym/sac_tib.py
+# title: model/tumor_immune_base/custom_modules/physigym/run_physigym_tib_sac.py
 #
 # language: python3
 # main libraries: gymnasium, physigym, torch
