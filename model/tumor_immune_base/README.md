@@ -18,7 +18,7 @@
     modified work 2024-2025, Elmar Bucher, physicell extending. \
     modified work 2024-2025, Alexandre Bertin, Elmar Bucher, physigym. \
     modified work 2024-2025, Alexandre Bertin, Owen Griere tumor_immune_base model. \
-    modified work 2024-2025, Alexandre Bertin sac_tib.py.
+    modified work 2024-2025, Alexandre Bertin, Elmar Bucher run_physigym_tib_sac.py.
 
 + description: \
     simple but complex enough model for non-trivial reinforcement learning.
