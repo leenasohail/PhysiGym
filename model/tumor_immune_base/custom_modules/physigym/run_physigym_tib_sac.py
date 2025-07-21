@@ -44,6 +44,7 @@ import pandas as pd
 
 import matplotlib.pyplot as plt
 
+import random
 
 ################################
 # Class PhysiCellModel Wrapper #
@@ -411,6 +412,142 @@ class ReplayBuffer(object):
         return sample
 
 
+##################
+# Initial States #
+##################
+
+
+def generate_cells_2d_ellipse(n, r1, r2, center, jitter=10.0):
+    """Generate random 2D points within an ellipse centered at `center` with semi-axes r1 (x), r2 (y)."""
+    angles = np.random.uniform(0, 2 * np.pi, n)
+    radii = np.sqrt(np.random.uniform(0, 1, n))  # uniform distribution in area
+    x = center[0] + radii * r1 * np.cos(angles) + np.random.normal(0, jitter, n)
+    y = center[1] + radii * r2 * np.sin(angles) + np.random.normal(0, jitter, n)
+    return x, y
+
+
+def generate_ellipse_ring(n, r1, r2, center, jitter=5.0):
+    """Generate points along an elliptical ring with semi-axes r1 and r2."""
+    angles = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    x = center[0] + r1 * np.cos(angles) + np.random.normal(0, jitter, n)
+    y = center[1] + r2 * np.sin(angles) + np.random.normal(0, jitter, n)
+    return x, y
+
+
+def generate_population(
+    n_tumor,
+    n_cell_1,
+    x_min,
+    x_max,
+    y_min,
+    y_max,
+    tumor_scale=(0.4, 0.4),
+    cell1_scale=(0.8, 0.8),
+    jitter_tumor=15.0,
+    jitter_cell_1=10.0,
+):
+    """
+    Generate tumor and cell_1 cells in ellipses within (x_min, x_max, y_min, y_max).
+
+    `tumor_scale` and `cell1_scale` are fractional sizes (relative to width/height).
+    """
+    center_x = (x_min + x_max) / 2
+    center_y = (y_min + y_max) / 2
+    half_width = (x_max - x_min) / 2
+    half_height = (y_max - y_min) / 2
+
+    # Compute ellipse radii for tumor and cell_1 regions
+    r1_tumor = tumor_scale[0] * half_width
+    r2_tumor = tumor_scale[1] * half_height
+
+    r1_cell1 = cell1_scale[0] * half_width
+    r2_cell1 = cell1_scale[1] * half_height
+
+    # Tumor cells inside ellipse
+    tumor_x, tumor_y = generate_cells_2d_ellipse(
+        n_tumor, r1_tumor, r2_tumor, center=(center_x, center_y), jitter=jitter_tumor
+    )
+    tumor_df = pd.DataFrame(
+        {
+            "x": tumor_x,
+            "y": tumor_y,
+            "z": 0.0,
+            "type": "tumor",
+            "volume": "",
+            "cycle entry": "",
+            "custom:GFP": "",
+            "custom:sample": "",
+        }
+    )
+
+    # Surrounding cells in elliptical ring
+    cell1_x, cell1_y = generate_ellipse_ring(
+        n_cell_1, r1_cell1, r2_cell1, center=(center_x, center_y), jitter=jitter_cell_1
+    )
+    cell1_df = pd.DataFrame(
+        {
+            "x": cell1_x,
+            "y": cell1_y,
+            "z": 0.0,
+            "type": "cell_1",
+            "volume": "",
+            "cycle entry": "",
+            "custom:GFP": "",
+            "custom:sample": "",
+        }
+    )
+
+    return pd.concat([tumor_df, cell1_df], ignore_index=True)
+
+
+def create_csv(
+    x_min: int,
+    x_max: int,
+    y_min: int,
+    y_max: int,
+    n_tumor: int,
+    n_cell_1: int,
+    range_jitter_tumor: list,
+    range_cell_1: list,
+    range_r2_frac_tumor: list,
+    range_frac_cell_1: list,
+    range_r1: list,
+    range_cell_dist: list,
+    csv_path: str,
+    **kwargs,
+):
+    jitter_tumor = random.randint(*range_jitter_tumor)
+    jitter_cell_1 = random.randint(*range_cell_1)
+    r2_frac_tumor = random.uniform(*range_r2_frac_tumor)
+    r2_frac_cell_1 = random.uniform(*range_frac_cell_1)
+    r1 = random.uniform(*range_r1)
+    cell_dist = random.uniform(*range_cell_dist)
+    r1_cell1 = r1 * random.uniform(1.5, 1 / r1 - 0.2)
+    df = generate_population(
+        n_tumor=n_tumor,
+        n_cell_1=n_cell_1,
+        x_min=x_min,
+        x_max=x_max,
+        y_min=y_min,
+        y_max=y_max,
+        tumor_scale=(r1, r2_frac_tumor),
+        cell1_scale=(
+            r1_cell1,
+            r2_frac_cell_1 * cell_dist,
+        ),
+        jitter_tumor=jitter_tumor,
+        jitter_cell_1=jitter_cell_1,
+    )
+
+    # Drop trailing all-empty columns
+    while df.iloc[:, -1].isna().all() or (df.iloc[:, -1] == "").all():
+        df = df.iloc[:, :-1]
+    # fname = f"ellipse_r1_{r1:.2f}_r2_frac_cell_1_{r2_frac_cell_1:.2f}_r2_frac_tumor_{r2_frac_tumor:.2f}_cell_dist_{cell_dist:.2f}_jitter_tumor_{jitter_tumor:.2f}_jitter_cell_1_{jitter_cell_1:.2f}"
+    # csv_path = f"./config/{fname}.csv"
+    # Save without trailing empty fields
+    df.to_csv(csv_path, index=False, float_format="%.6f")
+
+
 #### Algorithm Logic ####
 #
 # description:
@@ -549,7 +686,49 @@ def run(
     env.get_wrapper_attr("x_root").xpath("//parallel/omp_num_threads")[0].text = str(
         i_thread
     )
-
+    # d_arg_generation control the generation of initial states, you should not modify it, at your own risk
+    # but you may change the number of tumor cells (n_tumor) and you may also change (n_cell_1)
+    d_arg_generation = {
+        "x_min": env.unwrapped.x_min,
+        "x_max": env.unwrapped.x_max,
+        "y_min": env.unwrapped.y_min,
+        "y_max": env.unwrapped.y_max,
+        "n_tumor": 512,  # number of tumor cells for the initial state
+        "n_cell_1": 128,  # number of cell 1 for the initial state
+        "range_jitter_tumor": (
+            5,
+            15,
+        ),  # range of std for the Gaussian noise jitter applied to tumor cells' positions inside ellipse
+        "range_cell_1": (
+            5,
+            10,
+        ),  # range  of std for the Gaussian noise jitter applied to surrounding cell_1 positions
+        "range_r2_frac_tumor": (
+            0.1,
+            0.4,
+        ),  # range for the fractional size of the semi-minor axis (y-axis radius) of the tumor ellipse relative to bounding box
+        "range_frac_cell_1": (
+            0.1,
+            0.4,
+        ),  # range for fractional size of semi-minor axis of the surrounding cells' ellipse (cell_1)
+        "range_r1": (
+            0.1,
+            0.4,
+        ),  # range for fractional size of the semi-major axis (x-axis radius) of the tumor ellipse
+        "range_cell_dist": (
+            1.5,
+            2.0,
+        ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
+        "csv_path": os.path.join(
+            env.get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/folder")[0]
+            .text,
+            env.get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/filename")[0]
+            .text,
+        ),
+    }
+    d_arg.update(d_arg_generation)
     # initialize neural networks
     o_device = torch.device(
         "cuda" if torch.cuda.is_available() and d_arg["cuda"] else "cpu"
@@ -881,7 +1060,7 @@ if __name__ == "__main__":
         "--wandb",
         type=bool,
         nargs="?",
-        default=True,
+        default=False,
         help="tracking online with wandb? false with track locally with tensorboard.",
     )
     # total timesteps
