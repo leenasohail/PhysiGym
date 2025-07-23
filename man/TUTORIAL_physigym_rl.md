@@ -15,7 +15,7 @@ Additionally, cell types **cell_1** and **cell_2** cells are attracted to debris
 
 For a detailed description of the rules governing cell behavior, see the [cell_rules.csv](https://github.com/Dante-Berth/PhysiGym/blob/main/model/tumor_immune_base/config/cell_rules.csv) file.
 
-![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tumor_immune_base.png)
+![Tumor Immune Model](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/tutorial/model_tumor_immune_base.png)
 
 Before speaking reinforcement learning, let's install the model.
 
@@ -125,24 +125,24 @@ By adjusting $\alpha$, you can simulate different treatment strategies:
   - **Balanced**: $\alpha \in (0, 1)$ → Trade-off between treatment effectiveness and side effects.
 In this tutorial, we take $\alpha=0.8$.
 
-The first **state space** in this model is **img_mc** a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality. For instance for a grid size of $64$ and for our three cell types we can represent the data by: [image cell types representation](img/img_mc.png). We reduce the shape of the original size given by the **PhysiCell_settings.xml** file by discretizing the continuous environment into a uniform grid. We also compute $r_{x}=\lfloor \frac{width}{gridsize_{x}}\rfloor$ and $r_{y}=\lfloor\frac{height}{gridsize_{y}}\rfloor$. In our environment, $r_{x}=r_{y}$ because $width = height$ and $gridsize_{x}=gridsize_{y}=gridsize=64$
+The first **state space** in this model is **img_mc** a multi-channel image where each channel corresponds to a specific cell type. For one of the channels, we also reduce the dimensionality. For instance for a grid size of $64$ and for our three cell types we can represent the data by: [image cell types representation](https://github.com/Dante-Berth/PhysiGym/tree/main/img/tutorial/img_mc.png). We reduce the shape of the original size given by the **PhysiCell_settings.xml** file by discretizing the continuous environment into a uniform grid. We also compute $r_{x}=\lfloor \frac{width}{gridsize_{x}}\rfloor$ and $r_{y}=\lfloor\frac{height}{gridsize_{y}}\rfloor$. In our environment, $r_{x}=r_{y}$ because $width = height$ and $gridsize_{x}=gridsize_{y}=gridsize=64$
 
 The size of the bins is calculated by mapping the continuous coordinates into discrete indices. Specifically:
 
 ```math
-x_{\text{bin}} = \left\lfloor 
+x_{\text{bin}} = \left\lfloor
 \frac{(x - x_{\min})}{(x_{\max} - x_{\min})}
 \times (gridsize_{x} - 1)
 \right\rfloor,
 \\
-y_{\text{bin}} = \left\lfloor 
+y_{\text{bin}} = \left\lfloor
 \frac{(y - y_{\min})}{(y_{\max} - y_{\min})}
 \times (gridsize_{y} - 1)
 \right\rfloor.
 ```
-This ensures that the continuous spatial domain is discretized into a grid of size 
+This ensures that the continuous spatial domain is discretized into a grid of size
 \(gridsize \times gridsize\).
-If one or more cells are present in a bin, we increment the count in the channel associated with their cell type. 
+If one or more cells are present in a bin, we increment the count in the channel associated with their cell type.
 
 Formally, for each cell:
 
@@ -155,14 +155,14 @@ Formally, for each cell:
 ```
 By dividing by $r_{x}r_{y}$, we normalize the count so that the value in each bin represents an **area contribution**, ensuring that our image values stay approximately in the range $[0,1]$.
 This produces an image tensor of shape $(\text{num cell types}, gridsize, gridsize)$,
-where each channel counts the number of cells of a given type in each spatial bin![image cell types](img/img_mc.png).
+where each channel counts the number of cells of a given type in each spatial bin![image cell types](https://github.com/Dante-Berth/PhysiGym/tree/main/img/tutorial/img_mc.png).
 
 The second state space is **scalars** a mathematical function that computes the **cell count for each cell type**.
 
 The **action space** consists of a single continuous variable:
 - **drug_1**$\in[0, 1]$, representing the intensity or dosage of a drug intervention applied at each step.
 
-Deep reinforcement learning is used because our policy is a neural network. Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them. While for scalars, we only use multi layer perceptrons. 
+Deep reinforcement learning is used because our policy is a neural network. Since we are dealing with images, neural networks—particularly convolutional neural networks (CNNs)—are highly effective in processing them. While for scalars, we only use multi layer perceptrons.
 
 Therefore, we will use Deep Reinforcement Learning.
 For neural network implementation, we use [PyTorch](https://pytorch.org/), a widely known and used deep learning library.
@@ -280,8 +280,8 @@ The visualization will update automatically.
 + https://wandb.ai
 
 ## Results
-You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/model_tummor_immune_base_results_dcr.png)
- that the learning agent has maximized the expected discounted return: 
+You can observe in this figure ![Results](https://github.com/Dante-Berth/PhysiGym/blob/main/man/img/tutorial/model_tummor_immune_base_results_dcr.png)
+ that the learning agent has maximized the expected discounted return:
 ```math
 \mathbb{E} \left[ \sum_{t=0}^{T} \gamma^t r_t \mid s_0 = s, \pi \right].
 ```
@@ -290,7 +290,7 @@ The **y-axis** represents the expected return, while the **x-axis** represents t
 
 The figure shows two different learning curves corresponding to different state space representations. In our environment, the **scalars** and **multi_channels** state spaces achieve the same discounted cumulative return.
 
-You may also see the ![different dynamic treatment regimes](img/final_plot.jpg).
+You may also see the ![different dynamic treatment regimes](https://github.com/Dante-Berth/PhysiGym/tree/main/img/tutorial/final_plot.jpg).
 - 🟢 **Default**
   - No treatment: $d_t = 0$ for all $t$.
 - 🟠 **Random**
@@ -332,19 +332,19 @@ $$
 ---
 The SAC-learned policy is significantly more effective at controlling tumor growth while balancing drug use, achieving higher discounted returns compared to random or no treatment.
 
-A video of the dynamic treatment regime proposed by the learning agent using **multi_channels** as the state space: [800 episode with image](img/tumor_immune_base_ep_800.mp4), you can observe phases of the dynamic treatment regime:
+A video of the dynamic treatment regime proposed by the learning agent using **multi_channels** as the state space: [800 episode with image](https://github.com/Dante-Berth/PhysiGym/tree/main/img/tutorial/tumor_immune_base_ep_800.mp4), you can observe phases of the dynamic treatment regime:
 
-1. **Initial phase:**  
+1. **Initial phase:**
    The agent administers almost no drugs. During this period, when **cell_1** come into contact with **tumor_cells**, they can transform into **cell_2** due to increased pressure.
 
-2. **Intermediate phase:**  
-   The agent starts applying a high amount of drugs to reduce the tumor burden.  
-   During this phase, **cell_1** and **cell_2** are heavily mixed into the tumor. This increases the probability that **cell_1** will become **cell_2**.  
+2. **Intermediate phase:**
+   The agent starts applying a high amount of drugs to reduce the tumor burden.
+   During this phase, **cell_1** and **cell_2** are heavily mixed into the tumor. This increases the probability that **cell_1** will become **cell_2**.
    According to the environment rules, **cell_2** negatively impacts **cell_1** because **cell_1** experiences a reduction in its anti-tumoral effect due to the intake of pro-tumoral factors produced by **cell_2**.
 
-3. **Final phase:**  
-   This regime continues until the killing rate of **cell_1** becomes higher than the division rate of **tumor_cells**.  
-   Additionally, based on the environment rules, there is now enough **cell_1** to kill the remaining tumor even if some **cell_1** still convert into **cell_2**.  
+3. **Final phase:**
+   This regime continues until the killing rate of **cell_1** becomes higher than the division rate of **tumor_cells**.
+   Additionally, based on the environment rules, there is now enough **cell_1** to kill the remaining tumor even if some **cell_1** still convert into **cell_2**.
    This is explained by the fact that the **total killing effect over time** is much higher than:
    - the pro-tumoral factor from **cell_2**,
    - the pressure causing **cell_1** to become **cell_2**, and
@@ -356,11 +356,11 @@ This showcases how the agent adapts its treatment strategy over time, balancing 
 
 ## Conclusion
 
-In this tutorial, you learned how to integrate a PhysiCell-based agent-based model — the tumor immune base (TIB) model — with reinforcement learning using Gymnasium.  
+In this tutorial, you learned how to integrate a PhysiCell-based agent-based model — the tumor immune base (TIB) model — with reinforcement learning using Gymnasium.
 We explored how to define the state and action spaces, set up the reward function, and apply a deep reinforcement learning algorithm to learn an optimal drug administration policy that balances treatment effectiveness against toxicity.
 
-By following these steps, you can now adapt the framework to other agent-based models or explore different RL algorithms, reward structures, and state representations.  
+By following these steps, you can now adapt the framework to other agent-based models or explore different RL algorithms, reward structures, and state representations.
 This approach opens new possibilities for automating complex decision-making in biological systems and testing novel therapeutic strategies **in silico** before moving to costly wet-lab experiments.
 
-Feel free to experiment with the parameters, the $\alpha$ trade-off, or even your own models to discover new insights.  
+Feel free to experiment with the parameters, the $\alpha$ trade-off, or even your own models to discover new insights.
 Happy experimenting :blush:, and may your simulations lead to impactful discoveries!
