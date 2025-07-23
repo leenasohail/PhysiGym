@@ -513,6 +513,7 @@ def create_csv(
     range_frac_cell_1: list,
     range_r1: list,
     range_cell_dist: list,
+    list_proportions: list,
     csv_path: str,
     **kwargs,
 ):
@@ -523,6 +524,7 @@ def create_csv(
     r1 = random.uniform(*range_r1)
     cell_dist = random.uniform(*range_cell_dist)
     r1_cell1 = r1 * random.uniform(1.5, 1 / r1 - 0.2)
+    proportion = np.random.choice(list_proportions)
     df = generate_population(
         n_tumor=n_tumor,
         n_cell_1=n_cell_1,
@@ -538,7 +540,16 @@ def create_csv(
         jitter_tumor=jitter_tumor,
         jitter_cell_1=jitter_cell_1,
     )
+    mask = df["type"] == "cell_1"
+    # Get indices of those rows
+    cell1_indices = df[mask].index
 
+    # Randomly select 50% of them
+    n_to_change = int(proportion * len(cell1_indices))
+    indices_to_change = np.random.choice(cell1_indices, n_to_change, replace=False)
+
+    # Change type to "cell_2"
+    df.loc[indices_to_change, "type"] = "cell_2"
     # Drop trailing all-empty columns
     while df.iloc[:, -1].isna().all() or (df.iloc[:, -1] == "").all():
         df = df.iloc[:, :-1]
@@ -719,6 +730,7 @@ def run(
             1.5,
             2.0,
         ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
+        "list_proportions": [0, 0.25, 0.33, 0.5, 0.66, 0.75, 1],
         "csv_path": os.path.join(
             env.get_wrapper_attr("x_root")
             .xpath("//initial_conditions/cell_positions/folder")[0]
