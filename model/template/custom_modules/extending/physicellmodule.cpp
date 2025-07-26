@@ -719,6 +719,43 @@ static PyObject* physicell_get_microenv(PyObject *self, PyObject *args) {
     return pLlist;
 }
 
+// extended python c++ function get_graph
+static PyObject* physicell_get_graph(PyObject *self, PyObject *args) {
+    // extract variable label
+    const char *graph;
+    if (! PyArg_ParseTuple(args, "s", &graph)) {
+        return NULL;
+    }
+
+    // edge count
+    int i_edge = (*all_cells).size();
+    for (int i=0 ; i < (*all_cells).size(); i++) {
+         i_edge += (*all_cells)[i]->state.neighbors.size();
+    }
+    PyObject *pLlist = PyList_New(i_edge);
+
+    // extract graph
+    int n = 0;
+    for (int i=0 ; i < (*all_cells).size(); ++i) {
+        int id_i = (*all_cells)[i]->ID;
+        PyObject *pList = PyList_New(2);
+        PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
+        PyList_SetItem(pList, 1, PyLong_FromLong(id_i));
+        PyList_SetItem(pLlist, n, pList);
+        ++n;
+        int size_i = (*all_cells)[i]->state.neighbors.size();
+        for (int j=0 ; j < size_i; ++j) {
+            int id_j = (*all_cells)[i]->state.neighbors[j]->ID;
+            PyObject *pList = PyList_New(2);
+            PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
+            PyList_SetItem(pList, 1, PyLong_FromLong(id_j));
+            PyList_SetItem(pLlist, n, pList);
+            ++n;
+        }
+    }
+    // going home
+    return pLlist;
+}
 
 // extended Python C++ function system
 static PyObject* physicell_system(PyObject *self, PyObject *args) {
@@ -771,6 +808,9 @@ static struct PyMethodDef ExtendpyMethods[] = {
     },
     {"get_microenv", physicell_get_microenv, METH_VARARGS,
      "input:\n    substrate name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_microenv('my_substrate')\n\ndescription:\n    function to recall a voxel center coordinates and substrate concentration."
+    },
+    {"get_graph", physicell_get_graph, METH_VARARGS,
+     "input:\n    graph type name (string)\n\noutput:\n    values (list of list of int).\n\nrun:\n    from extending import physicell\n    physicell.get_graph('graph_type')\n\ndescription:\n    function to recall the graph for the specified graph type for the current time step."
     },
     {"system", physicell_system, METH_VARARGS, "execute a shell command."},
     /*{NULL, NULL, 0, NULL}  // Sentinel */
