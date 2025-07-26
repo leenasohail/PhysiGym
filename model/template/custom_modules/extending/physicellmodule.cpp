@@ -727,34 +727,108 @@ static PyObject* physicell_get_graph(PyObject *self, PyObject *args) {
         return NULL;
     }
 
-    // edge count
-    int i_edge = (*all_cells).size();
-    for (int i=0 ; i < (*all_cells).size(); i++) {
-         i_edge += (*all_cells)[i]->state.neighbors.size();
-    }
-    PyObject *pLlist = PyList_New(i_edge);
+    // recall from C++ into Python variable
 
-    // extract graph
-    int n = 0;
-    for (int i=0 ; i < (*all_cells).size(); ++i) {
-        int id_i = (*all_cells)[i]->ID;
-        PyObject *pList = PyList_New(2);
-        PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
-        PyList_SetItem(pList, 1, PyLong_FromLong(id_i));
-        PyList_SetItem(pLlist, n, pList);
-        ++n;
-        int size_i = (*all_cells)[i]->state.neighbors.size();
-        for (int j=0 ; j < size_i; ++j) {
-            int id_j = (*all_cells)[i]->state.neighbors[j]->ID;
+    // graph neighbor
+    if (strcmp(graph, "neighbor") == 0) {
+        // edge count
+        int i_edge = (*all_cells).size();
+        for (int i=0 ; i < (*all_cells).size(); i++) {
+            i_edge += (*all_cells)[i]->state.neighbors.size();
+        }
+        PyObject *pLlist = PyList_New(i_edge);
+        // extract graph
+        int n = 0;
+        for (int i=0 ; i < (*all_cells).size(); ++i) {
+            int id_i = (*all_cells)[i]->ID;
             PyObject *pList = PyList_New(2);
             PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
-            PyList_SetItem(pList, 1, PyLong_FromLong(id_j));
+            PyList_SetItem(pList, 1, PyLong_FromLong(id_i));
             PyList_SetItem(pLlist, n, pList);
             ++n;
+            int size_i = (*all_cells)[i]->state.neighbors.size();
+            for (int j=0 ; j < size_i; ++j) {
+                int id_j = (*all_cells)[i]->state.neighbors[j]->ID;
+                PyObject *pList = PyList_New(2);
+                PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
+                PyList_SetItem(pList, 1, PyLong_FromLong(id_j));
+                PyList_SetItem(pLlist, n, pList);
+                ++n;
+            }
         }
+        // going home
+        return pLlist;
     }
-    // going home
-    return pLlist;
+
+    // graph attached
+    else if (strcmp(graph, "attached") == 0) {
+        // edge count
+        int i_edge = (*all_cells).size();
+        for (int i=0 ; i < (*all_cells).size(); i++) {
+            i_edge += (*all_cells)[i]->state.attached_cells.size();
+        }
+        PyObject *pLlist = PyList_New(i_edge);
+        // extract graph
+        int n = 0;
+        for (int i=0 ; i < (*all_cells).size(); ++i) {
+            int id_i = (*all_cells)[i]->ID;
+            PyObject *pList = PyList_New(2);
+            PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
+            PyList_SetItem(pList, 1, PyLong_FromLong(id_i));
+            PyList_SetItem(pLlist, n, pList);
+            ++n;
+            int size_i = (*all_cells)[i]->state.attached_cells.size();
+            for (int j=0 ; j < size_i; ++j) {
+                int id_j = (*all_cells)[i]->state.attached_cells[j]->ID;
+                PyObject *pList = PyList_New(2);
+                PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
+                PyList_SetItem(pList, 1, PyLong_FromLong(id_j));
+                PyList_SetItem(pLlist, n, pList);
+                ++n;
+            }
+        }
+        // going home
+        return pLlist;
+    }
+
+    // graph spring attached
+    else if (strcmp(graph, "spring") == 0) {
+        // edge count
+        int i_edge = (*all_cells).size();
+        for (int i=0 ; i < (*all_cells).size(); i++) {
+            i_edge += (*all_cells)[i]->state.spring_attachments.size();
+        }
+        PyObject *pLlist = PyList_New(i_edge);
+        // extract graph
+        int n = 0;
+        for (int i=0 ; i < (*all_cells).size(); ++i) {
+            int id_i = (*all_cells)[i]->ID;
+            PyObject *pList = PyList_New(2);
+            PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
+            PyList_SetItem(pList, 1, PyLong_FromLong(id_i));
+            PyList_SetItem(pLlist, n, pList);
+            ++n;
+            int size_i = (*all_cells)[i]->state.spring_attachments.size();
+            for (int j=0 ; j < size_i; ++j) {
+                int id_j = (*all_cells)[i]->state.spring_attachments[j]->ID;
+                PyObject *pList = PyList_New(2);
+                PyList_SetItem(pList, 0, PyLong_FromLong(id_i));
+                PyList_SetItem(pList, 1, PyLong_FromLong(id_j));
+                PyList_SetItem(pLlist, n, pList);
+                ++n;
+            }
+        }
+        // going home
+        return pLlist;
+    }
+
+    // error handling
+    else {
+        char error[1024];
+        snprintf(error, sizeof(error), "Error: unknown graph type (knowen are neighbor, attached, spring)! %s", graph);
+        PyErr_SetString(PyExc_KeyError, error);
+        return NULL;
+    }
 }
 
 // extended Python C++ function system
@@ -810,7 +884,7 @@ static struct PyMethodDef ExtendpyMethods[] = {
      "input:\n    substrate name (string)\n\noutput:\n    values (list of list of floats).\n\nrun:\n    from extending import physicell\n    physicell.get_microenv('my_substrate')\n\ndescription:\n    function to recall a voxel center coordinates and substrate concentration."
     },
     {"get_graph", physicell_get_graph, METH_VARARGS,
-     "input:\n    graph type name (string)\n\noutput:\n    values (list of list of int).\n\nrun:\n    from extending import physicell\n    physicell.get_graph('graph_type')\n\ndescription:\n    function to recall the graph for the specified graph type for the current time step."
+     "input:\n    graph type name (string)\n\noutput:\n    values (list of list of int).\n\nrun:\n    from extending import physicell\n    physicell.get_graph('graph_type')\n\ndescription:\n    function to recall the graph for the specified graph type (neighbor, attached, spring) for the current time step."
     },
     {"system", physicell_system, METH_VARARGS, "execute a shell command."},
     /*{NULL, NULL, 0, NULL}  // Sentinel */
