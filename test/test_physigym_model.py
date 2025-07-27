@@ -50,7 +50,7 @@ class TestPhysigymTemplate(object):
         o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         o_result = subprocess.run(['./project'], check=False, capture_output=True)
-        #print("\n",o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000024.xml")) and \
               (os.path.exists("output/episode00000001/output00000024.xml")) and \
@@ -72,7 +72,7 @@ class TestPhysigymTemplate(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_template'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_template_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000023.xml")) and \
               (os.path.exists("output/episode00000001/output00000023.xml")) and \
@@ -99,7 +99,7 @@ class TestPhysigymTutorial(object):
         o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         o_result = subprocess.run(['./project'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000024.xml")) and \
               (os.path.exists("output/episode00000001/output00000024.xml")) and \
@@ -121,7 +121,7 @@ class TestPhysigymTutorial(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tutorial'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tutorial_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000023.xml")) and \
               (os.path.exists("output/episode00000001/output00000023.xml")) and \
@@ -148,7 +148,7 @@ class TestPhysigymEpisode(object):
         o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         o_result = subprocess.run(['./project'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000024.xml")) and \
               (os.path.exists("output/episode00000001/output00000024.xml")) and \
@@ -170,7 +170,7 @@ class TestPhysigymEpisode(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_episode'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_episode_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000023.xml")) and \
               (os.path.exists("output/episode00000001/output00000023.xml")) and \
@@ -197,7 +197,7 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['sed', '-ie ', r's/<random_seed>.*<\/random_seed>/<random_seed>system_clock<\/random_seed>/g', 'config/PhysiCell_settings.xml'], check=False, capture_output=True)
         o_result = subprocess.run(['make', 'classic','-j4'], check=False, capture_output=True)
         o_result = subprocess.run([f'{s_path_physicell}/project'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000024.xml")) and \
               (os.path.exists("output/episode00000001/output00000024.xml")) and \
@@ -220,7 +220,7 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_episodes.py', '--max_time', '1440.0', '--thread', '4', '--seed', 'None'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/episode00000000/output00000023.xml")) and \
               (os.path.exists("output/episode00000001/output00000023.xml")) and \
@@ -247,7 +247,7 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'scalars', '--render_mode', 'None', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/output00000023.xml")) and \
               (any([s_dir.startswith(s_unittest) for s_dir in os.listdir("tensorboard/")]))
@@ -276,7 +276,7 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'img_rgb', '--render_mode', 'rgb_array', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/output00000023.xml")) and \
               (any([s_dir.startswith(s_unittest) for s_dir in os.listdir("tensorboard/")]))
@@ -305,7 +305,7 @@ class TestPhysigymTib(object):
         o_result = subprocess.run(['make', 'load', 'PROJ=physigym_tibbue'], check=False, capture_output=True)
         o_result = subprocess.run(['make'], check=False, capture_output=True)
         o_result = subprocess.run(['python3','custom_modules/physigym/physigym/envs/run_physigym_tibbue_sac.py', '--max_time_episode', '1440.0', '--thread', '4', '--seed', 'None', '--observation_mode', 'img_mc', '--render_mode', 'None', '--name', s_unittest, '--wandb', 'False', '--total_step_learn', '72'], check=False, capture_output=True)
-        #print("\n", o_result)
+        print("\n", o_result)
         # test for output
         assert(os.path.exists("output/output00000023.xml")) and \
               (any([s_dir.startswith(s_unittest) for s_dir in os.listdir("tensorboard/")]))
