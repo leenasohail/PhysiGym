@@ -21,6 +21,7 @@
 # library
 from extending import physicell
 from gymnasium import spaces
+from gymnasium.spaces.graph import GraphInstance
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib import colors
@@ -29,6 +30,7 @@ import os
 import pandas as pd
 from physigym.envs.physicell_core import CorePhysiCellEnv
 import skimage as ski
+from tysserand import tysserand as ty
 
 
 # function
@@ -83,6 +85,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "img_mc_substrates",
             "substrates",
             "scalars_substrates",
+            "delaunay_graph",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
         # check redner mode
@@ -214,6 +217,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     ),
                     dtype=np.uint8,
                 )
+        elif self.kwargs["observation_mode"] == "delaunay_graph":
+            node_space = spaces.Box(low=0, high=256, shape=(1,), dtype=np.float32)
+            edge_space = spaces.Box(low=0, high=256, shape=(1,), dtype=np.float32)
+            o_observation_space = spaces.Graph(
+                node_space=node_space, edge_space=edge_space
+            )
 
         else:
             raise ValueError(
@@ -414,7 +423,18 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 o_observation = np.concatenate(
                     [o_observation, (image * 255).astype(np.uint8)]
                 )
-
+        elif self.kwargs["observation_mode"] == "delaunay_graph":
+            df_alive.set_index("ID", inplace=True)
+            coords = df_alive.loc[:, ["x", "y"]].values
+            pairs = ty.build_delaunay(coords)
+            distances = ty.distance_neighbors(coords, pairs)
+            o_observation = GraphInstance(
+                nodes=np.array(
+                    df_alive["type"].map(self.cell_type_to_id), dtype=np.float32
+                )[:, np.newaxis],
+                edge_links=pairs,
+                edges=np.array(distances, dtype=np.float32)[:, np.newaxis],
+            )
         else:
             raise ValueError(
                 f"unknown observation type: {self.kwargs['observation_mode']}"
