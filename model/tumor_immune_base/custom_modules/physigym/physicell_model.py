@@ -81,6 +81,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "img_rgb",
             "img_mc",
             "img_mc_substrates",
+            "substrates",
+            "scalars_substrates",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
         # check redner mode
@@ -160,7 +162,20 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 shape=(self.cell_type_count,),
                 dtype=np.float32,
             )
-
+        elif self.kwargs["observation_mode"] == "scalars_substrates":
+            o_observation_space = spaces.Box(
+                low=-(2**8),
+                high=2**8,
+                shape=(self.cell_type_count + self.substrate_count,),
+                dtype=np.float32,
+            )
+        elif self.kwargs["observation_mode"] == "substrates":
+            o_observation_space = spaces.Box(
+                low=-(2**8),
+                high=2**8,
+                shape=(self.substrate_count),
+                dtype=np.float32,
+            )
         elif self.kwargs["observation_mode"] == "img_rgb":
             # Define the Box space for the rgb alpha image
             o_observation_space = spaces.Box(
@@ -260,6 +275,31 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     - 1
                 )
             o_observation = a_norm_cell_count
+
+        elif self.kwargs["observation_mode"] == "substrates":
+            o_observation = np.zeros((self.substrate_count,), dtype=float)
+            for i, s_subs in enumerate(self.substrate_unique):
+                # assuming last column is substrate value
+                o_observation[i] = pd.DataFrame(
+                    physicell.get_microenv(s_subs), columns=["x", "y", "z", s_subs]
+                )[s_subs].max()
+
+        elif self.kwargs["observation_mode"] == "scalars_substrates":
+            a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=float)
+            for s_cell_type, i_id in self.cell_type_to_id.items():
+                a_norm_cell_count[i_id] = (
+                    df_alive.loc[(df_alive.type == s_cell_type), :].shape[0]
+                    / self.kwargs["normalization_factor"]
+                    - 1
+                )
+
+            max_substrates = np.zeros((self.substrate_count,), dtype=float)
+            for i, s_subs in enumerate(self.substrate_unique):
+                max_substrates[i] = pd.DataFrame(
+                    physicell.get_microenv(s_subs), columns=["x", "y", "z", s_subs]
+                )[s_subs].max()
+
+            o_observation = np.concatenate([a_norm_cell_count, max_substrates])
 
         elif self.kwargs["observation_mode"] == "img_rgb":
             a_img = self.render()
