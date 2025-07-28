@@ -576,7 +576,7 @@ def run(
     s_render_mode=None,
     s_name="sac",
     b_wandb=True,
-    i_total_step_learn=int(4e5),
+    i_total_step_learn=int(2e5),
 ):
     d_arg_run = {
         # basics
@@ -786,7 +786,7 @@ def run(
         # bue can be used for track or not track stuff, e.g. every 1024 episode
         # env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
         # manipulate setting xml before reset to record full physicell run every 1024 episode.
-        if env.unwrapped.episode % 100 == 0:
+        if env.unwrapped.episode % 256 == 0:
             env.get_wrapper_attr("x_root").xpath("//save/folder")[
                 0
             ].text = s_dir_data_episode
