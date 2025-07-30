@@ -700,7 +700,7 @@ def run(
     d_arg_rl = {
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
-        "batch_size": 16,  # int: the batch size of sample from the replay memory
+        "batch_size": 128,  # int: the batch size of sample from the replay memory
         "learning_starts": 25e3,  # float: timestep to start learning
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
