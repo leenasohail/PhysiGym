@@ -34,6 +34,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch_geometric.nn import GATConv, global_mean_pool
+from torch_geometric.data import Data, Batch
+
+
 from torch.utils import tensorboard
 from tensordict import TensorDict
 
@@ -45,6 +49,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import random
+
+import shutil
+
+from collections import deque
 
 ################################
 # Class PhysiCellModel Wrapper #
@@ -176,30 +184,61 @@ class ImpalaBlock(nn.Module):
         return x
 
 
+class GraphFeatureExtractor(nn.Module):
+    def __init__(self, in_channels=-1, out_channels=32, heads=4, **kwargs):
+        super().__init__()
+        self.gat1 = GATConv(in_channels=in_channels, out_channels=4, heads=heads)
+        self.gat2 = GATConv(4 * heads, out_channels, heads=1)
+        self.activation = nn.Mish()
+
+    def forward(self, data):
+        data = Batch.from_data_list(data)
+        # data: PyG Data with x, edge_index, edge_attr
+        print("data.x device:", data.x.device)
+        print("data.edge_index device:", data.edge_index.device)
+        print("data.edge_attr device:", data.edge_attr.device)
+
+        x = self.activation(self.gat1(data.x, data.edge_index, data.edge_attr))
+        x = self.activation(self.gat2(x, data.edge_index, data.edge_attr))
+        return global_mean_pool(x, data.batch)
+
+
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
     def __init__(self, env):
         super().__init__()
 
-        obs_shape = env.observation_space.shape
-        self.is_image = len(obs_shape) == 3  # Check if input is an image (C, H, W)
+        self.is_graph = False
+        self.is_image = False
+        if hasattr(env.unwrapped, "kwargs"):
+            obs_mode = env.unwrapped.kwargs.get("observation_mode", "")
+            self.is_graph = "graph" in str(obs_mode)
+        obs_shape = env.observation_space.shape if not self.is_graph else None
 
-        if self.is_image:
-            # CNN feature extractor
-            layers = [
-                PixelPreprocess(),
-                ImpalaBlock(obs_shape[0], 16),
-                ImpalaBlock(16, 32),
-                ImpalaBlock(32, 32),
-                nn.Flatten(),
-            ]
-            self.feature_extractor = nn.Sequential(*layers)
-            self.feature_size = self._get_feature_size(obs_shape)
+        if self.is_graph:
+            # Assume node features have fixed dimension
+            node_feature_dim = getattr(env.observation_space, "node_feature_dim", 16)
+            self.feature_extractor = GraphFeatureExtractor(
+                node_feature_dim=node_feature_dim
+            )
+            self.feature_size = 128
+
         else:
-            # Directly flatten vector input
-            self.feature_extractor = nn.Identity()
-            self.feature_size = np.prod(obs_shape)
+            self.is_image = len(obs_shape) == 3  # (C, H, W)
+            if self.is_image:
+                layers = [
+                    PixelPreprocess(),
+                    ImpalaBlock(obs_shape[0], 16),
+                    ImpalaBlock(16, 32),
+                    ImpalaBlock(32, 32),
+                    nn.Flatten(),
+                ]
+                self.feature_extractor = nn.Sequential(*layers)
+                self.feature_size = self._get_feature_size(obs_shape)
+            else:
+                self.feature_extractor = nn.Identity()
+                self.feature_size = int(np.prod(obs_shape))
 
     def _get_feature_size(self, obs_shape):
         """Pass a dummy tensor through CNN to compute feature size dynamically."""
@@ -212,6 +251,8 @@ class FeatureExtractor(nn.Module):
         if self.is_image:
             x = self.feature_extractor(x)  # Apply CNN
             x = x.view(x.size(0), -1)  # Flatten
+        elif self.is_graph:
+            x = self.feature_extractor(x)
         return x
 
 
@@ -308,10 +349,10 @@ class Actor(nn.Module):
 ####
 
 
-class ReplayBuffer(object):
+class ReplayBuffer:
     """
-    A replay buffer for storing and sampling experiences in reinforcement learning.
-    Stores states, actions, rewards, next states, and done flags.
+    Replay buffer supporting both array-based states and graph-based states.
+    Graph states must be passed as GraphInstances or PyG Data objects with edge_attr.
     """
 
     def __init__(
@@ -322,94 +363,126 @@ class ReplayBuffer(object):
         buffer_size,
         batch_size,
         state_type=np.float32,
+        is_graph=False,
     ):
-        """
-        Initializes the replay buffer.
-
-        Parameters:
-        - state_dim tuple(int): Dimensionality of the state space.
-        - action_dim tuple(int): Dimensionality of the action space.
-        - device (torch.device): Device where tensors should be stored.
-        - buffer_size (int): Maximum size of the replay buffer.
-        - batch_size (int): Number of samples per batch.
-        - state_type (numpy dtype, optional): Data type of the state representation (default: np.float32).
-        """
         self.device = device
         self.buffer_size = int(buffer_size)
-
-        self.state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
-        self.next_state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
-        self.action = np.empty((self.buffer_size, *action_dim), dtype=np.float32)
-        self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
-        self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
-
-        self.buffer_index = 0
-        self.full = False
         self.batch_size = batch_size
+        self.is_graph = is_graph
+
+        if not is_graph:
+            # Preallocate memory for speed
+            self.state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
+            self.next_state = np.empty((self.buffer_size, *state_dim), dtype=state_type)
+            self.action = np.empty((self.buffer_size, *action_dim), dtype=np.float32)
+            self.reward = np.empty((self.buffer_size, 1), dtype=np.float32)
+            self.done = np.empty((self.buffer_size, 1), dtype=np.uint8)
+
+            self.buffer_index = 0
+            self.full = False
+        else:
+            # For variable-size graphs, use a deque
+            self.buffer = deque(maxlen=self.buffer_size)
 
     def __len__(self):
-        """
-        Returns the current number of stored experiences in the buffer.
-        """
-        return self.buffer_size if self.full else self.buffer_index
+        if self.is_graph:
+            return len(self.buffer)
+        else:
+            return self.buffer_size if self.full else self.buffer_index
 
     def add(self, state, action, reward, next_state, done):
-        """
-        Adds a new experience to the replay buffer.
+        if not self.is_graph:
+            self.state[self.buffer_index] = state
+            self.action[self.buffer_index] = action
+            self.reward[self.buffer_index] = reward
+            self.next_state[self.buffer_index] = next_state
+            self.done[self.buffer_index] = done
 
-        Parameters:
-        - state (np.ndarray): Current state.
-        - action (np.ndarray): Action taken.
-        - reward (float): Reward received.
-        - next_state (np.ndarray): Next state after taking the action.
-        - done (bool): Whether the episode has ended.
-        """
-        self.state[self.buffer_index] = state
-        self.action[self.buffer_index] = action
-        self.reward[self.buffer_index] = reward
-        self.next_state[self.buffer_index] = next_state
-        self.done[self.buffer_index] = done
-
-        self.buffer_index = (self.buffer_index + 1) % self.buffer_size
-        self.full = self.full or self.buffer_index == 0
+            self.buffer_index = (self.buffer_index + 1) % self.buffer_size
+            self.full = self.full or self.buffer_index == 0
+        else:
+            # Graph state and edge attributes handled externally
+            self.buffer.append((state, action, reward, next_state, done))
 
     def sample(self):
-        """
-        Samples a batch of experiences from the replay buffer.
+        if not self.is_graph:
+            sample_index = np.random.randint(
+                0, self.buffer_size if self.full else self.buffer_index, self.batch_size
+            )
 
-        Returns:
-        - TensorDict containing sampled states, actions, rewards, next states, and done flags.
-        """
-        batch_size = self.batch_size
+            state = torch.as_tensor(
+                self.state[sample_index], device=self.device
+            ).float()
+            next_state = torch.as_tensor(
+                self.next_state[sample_index], device=self.device
+            ).float()
+            action = torch.as_tensor(self.action[sample_index], device=self.device)
+            reward = torch.as_tensor(self.reward[sample_index], device=self.device)
+            done = torch.as_tensor(self.done[sample_index], device=self.device)
 
-        # Ensure there are enough samples in the buffer
-        assert self.full or (self.buffer_index > batch_size), (
-            "Buffer does not have enough samples"
-        )
+            return TensorDict(
+                {
+                    "state": state,
+                    "action": action,
+                    "reward": reward,
+                    "next_state": next_state,
+                    "done": done,
+                },
+                batch_size=self.batch_size,
+                device=self.device,
+            )
+        else:
+            batch = random.sample(self.buffer, self.batch_size)
+            _state, action, reward, _next_state, done = zip(*batch)
 
-        sample_index = np.random.randint(
-            0, self.buffer_size if self.full else self.buffer_index, batch_size
-        )
+            action = torch.tensor(action, dtype=torch.float32, device=self.device)
+            reward = torch.tensor(
+                reward, dtype=torch.float32, device=self.device
+            ).unsqueeze(-1)
+            done = torch.tensor(done, dtype=torch.uint8, device=self.device)
+            state = []
+            for stati in _state:
+                state.append(
+                    Data(
+                        x=torch.tensor(
+                            stati.nodes, dtype=torch.float, device=self.device
+                        ),
+                        edge_index=torch.tensor(
+                            stati.edge_links, dtype=torch.long, device=self.device
+                        )
+                        .t()
+                        .contiguous(),
+                        edge_attr=torch.tensor(
+                            stati.edges, dtype=torch.float, device=self.device
+                        ),
+                    )
+                )
+            next_state = []
+            for next_stati in _next_state:
+                next_state.append(
+                    Data(
+                        x=torch.tensor(
+                            next_stati.nodes, dtype=torch.float, device=self.device
+                        ),
+                        edge_index=torch.tensor(
+                            next_stati.edge_links, dtype=torch.long, device=self.device
+                        )
+                        .t()
+                        .contiguous(),
+                        edge_attr=torch.tensor(
+                            next_stati.edges, dtype=torch.float, device=self.device
+                        ),
+                    )
+                )
 
-        state = torch.as_tensor(self.state[sample_index]).float()
-        next_state = torch.as_tensor(self.next_state[sample_index]).float()
-        action = torch.as_tensor(self.action[sample_index])
-        reward = torch.as_tensor(self.reward[sample_index])
-        done = torch.as_tensor(self.done[sample_index])
-
-        # Tensordict sampled experiences
-        sample = TensorDict(
-            {
+            # Graphs remain Python objects (list of GraphInstances)
+            return {
                 "state": state,
                 "action": action,
                 "reward": reward,
-                "next_state": next_state,
                 "done": done,
-            },
-            batch_size=batch_size,
-            device=self.device,
-        )
-        return sample
+                "next_state": next_state,
+            }
 
 
 ##################
@@ -627,7 +700,7 @@ def run(
     d_arg_rl = {
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
-        "batch_size": 128,  # int: the batch size of sample from the replay memory
+        "batch_size": 16,  # int: the batch size of sample from the replay memory
         "learning_starts": 25e3,  # float: timestep to start learning
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
@@ -750,8 +823,6 @@ def run(
     qf2 = QNetwork(env).to(o_device)
     qf1_target = QNetwork(env).to(o_device)
     qf2_target = QNetwork(env).to(o_device)
-    qf1_target.load_state_dict(qf1.state_dict())
-    qf2_target.load_state_dict(qf2.state_dict())
     q_optimizer = optim.Adam(
         list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["q_lr"]
     )
@@ -767,6 +838,10 @@ def run(
     else:
         alpha = d_arg["alpha"]
 
+    is_graph = False
+    if hasattr(env.unwrapped, "kwargs"):
+        obs_mode = env.unwrapped.kwargs.get("observation_mode", "")
+        is_graph = "graph" in str(obs_mode)
     # initilize the reply buffer
     rb = ReplayBuffer(
         state_dim=env.observation_space.shape,
@@ -775,6 +850,7 @@ def run(
         buffer_size=d_arg["buffer_size"],
         batch_size=d_arg["batch_size"],
         state_type=env.observation_space.dtype,
+        is_graph=is_graph,
     )
 
     while env.unwrapped.step_env < d_arg["total_timesteps"]:
@@ -805,6 +881,7 @@ def run(
         # reset gymnasium env
         r_cumulative_return = 0
         r_discounted_cumulative_return = 0
+        create_csv(**d_arg_generation)  # allow to generate new csv file
         o_observation, d_info = env.reset(seed=d_arg["seed"])
 
         # time step loop
@@ -814,7 +891,26 @@ def run(
             if env.unwrapped.step_env <= d_arg["learning_starts"]:
                 a_action = np.array(env.action_space.sample(), dtype=np.float16)
             else:
-                x = torch.Tensor(o_observation).to(o_device).unsqueeze(0)
+                if is_graph:
+                    x = [
+                        Data(
+                            x=torch.tensor(
+                                o_observation.nodes, dtype=torch.float, device=o_device
+                            ),
+                            edge_index=torch.tensor(
+                                o_observation.edge_links,
+                                dtype=torch.long,
+                                device=o_device,
+                            )
+                            .t()
+                            .contiguous(),
+                            edge_attr=torch.tensor(
+                                o_observation.edges, dtype=torch.float, device=o_device
+                            ),
+                        )
+                    ]
+                else:
+                    x = torch.Tensor(o_observation).to(o_device).unsqueeze(0)
                 actions, _, _ = actor.get_action(x)
                 a_action = actions.detach().squeeze(0).cpu().numpy()
 
@@ -838,12 +934,15 @@ def run(
             )
 
             # for debuging the replay buffer
-            if env.unwrapped.step_env == d_arg["batch_size"] * (1.05):
+            if env.unwrapped.step_env == int(d_arg["batch_size"] * (1.05)):
                 data = rb.sample()
                 with torch.no_grad():
                     next_state_actions, _, _ = actor.get_action(data["next_state"])
                     qf1(data["next_state"], next_state_actions)
                     qf2(data["next_state"], next_state_actions)
+                    qf1_target.load_state_dict(qf1.state_dict())
+                    qf2_target.load_state_dict(qf2.state_dict())
+
                     qf1_target(data["next_state"], next_state_actions)
                     qf2_target(data["next_state"], next_state_actions)
                 del data, next_state_actions
@@ -992,6 +1091,10 @@ def run(
         # recording episode to csv
         df = pd.DataFrame(ld_data)
         df.to_csv(os.path.join(s_dir_data_episode, "data.csv"), index=False)
+        dst_path = os.path.join(
+            s_dir_data_episode, os.path.basename(d_arg_generation["csv_path"])
+        )
+        shutil.copy(d_arg_generation["csv_path"], dst_path)
         ld_data = []
 
     # finish
@@ -1048,7 +1151,7 @@ if __name__ == "__main__":
         "--observation_mode",
         # type = str,
         nargs="?",
-        default="img_mc",
+        default="img_substrates",
         help="observation mode scalars, img_rgb, img_mc or img_mc_substrates",
     )
     # render_mode
@@ -1080,7 +1183,7 @@ if __name__ == "__main__":
         "--total_step_learn",
         type=int,
         nargs="?",
-        default=int(2e5),
+        default=int(5e5),
         help="set total time steps for the learing process to take.",
     )
 

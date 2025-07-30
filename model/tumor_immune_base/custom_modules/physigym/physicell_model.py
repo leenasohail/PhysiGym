@@ -234,8 +234,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     dtype=np.uint8,
                 )
         elif self.kwargs["observation_mode"] == "delaunay_graph":
-            node_space = spaces.Box(low=0, high=256, shape=(1,), dtype=np.float32)
-            edge_space = spaces.Box(low=0, high=256, shape=(1,), dtype=np.float32)
+            node_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
+            edge_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             o_observation_space = spaces.Graph(
                 node_space=node_space, edge_space=edge_space
             )
@@ -456,17 +456,24 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     o_observation = img_mc_substrates
                 else:
                     o_observation = np.concatenate([img_mc_cells, img_mc_substrates])
+
         elif self.kwargs["observation_mode"] == "delaunay_graph":
             df_alive.set_index("ID", inplace=True)
             coords = df_alive.loc[:, ["x", "y"]].values
             pairs = ty.build_delaunay(coords)
             distances = ty.distance_neighbors(coords, pairs)
             o_observation = GraphInstance(
-                nodes=np.array(
-                    df_alive["type"].map(self.cell_type_to_id), dtype=np.float32
+                nodes=(
+                    np.array(
+                        df_alive["type"].map(self.cell_type_to_id), dtype=np.float32
+                    )
+                    / (self.cell_type_count)
                 )[:, np.newaxis],
                 edge_links=pairs,
-                edges=np.array(distances, dtype=np.float32)[:, np.newaxis],
+                edges=(
+                    np.array(distances, dtype=np.float32)
+                    / (np.max([self.width, self.height, self.depth]))
+                )[:, np.newaxis],
             )
         else:
             raise ValueError(
