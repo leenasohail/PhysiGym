@@ -193,11 +193,6 @@ class GraphFeatureExtractor(nn.Module):
 
     def forward(self, data):
         data = Batch.from_data_list(data)
-        # data: PyG Data with x, edge_index, edge_attr
-        print("data.x device:", data.x.device)
-        print("data.edge_index device:", data.edge_index.device)
-        print("data.edge_attr device:", data.edge_attr.device)
-
         x = self.activation(self.gat1(data.x, data.edge_index, data.edge_attr))
         x = self.activation(self.gat2(x, data.edge_index, data.edge_attr))
         return global_mean_pool(x, data.batch)
