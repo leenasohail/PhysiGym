@@ -358,13 +358,13 @@
                     <relative_rupture_volume units="dimensionless">2</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.4</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
                     <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="cell_1">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="cell_2">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_1">0.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_2">0.0</cell_adhesion_affinity>
                     </cell_adhesion_affinities>
                     <options>
                         <set_relative_equilibrium_distance enabled="false" units="dimensionless">1.8</set_relative_equilibrium_distance>
@@ -521,13 +521,13 @@
                     <relative_rupture_volume units="dimensionless">2</relative_rupture_volume>
                 </volume>
                 <mechanics>
-                    <cell_cell_adhesion_strength units="micron/min">0</cell_cell_adhesion_strength>
+                    <cell_cell_adhesion_strength units="micron/min">0.4</cell_cell_adhesion_strength>
                     <cell_cell_repulsion_strength units="micron/min">10.0</cell_cell_repulsion_strength>
                     <relative_maximum_adhesion_distance units="dimensionless">1.25</relative_maximum_adhesion_distance>
                     <cell_adhesion_affinities>
                         <cell_adhesion_affinity name="tumor">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="cell_1">1.0</cell_adhesion_affinity>
-                        <cell_adhesion_affinity name="cell_2">1.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_1">0.0</cell_adhesion_affinity>
+                        <cell_adhesion_affinity name="cell_2">0.0</cell_adhesion_affinity>
                     </cell_adhesion_affinities>
                     <options>
                         <set_relative_equilibrium_distance enabled="false" units="dimensionless">1.8</set_relative_equilibrium_distance>
