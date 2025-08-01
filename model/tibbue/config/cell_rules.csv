@@ -5,3 +5,5 @@ cell_1,pressure,increases,transform to cell_2,1,10,4,0
 tumor,pressure,decreases,cycle entry,0.0,10,2,0
 tumor,dead,increases,debris secretion,1.0,0.5,4,1
 cell_1,pro-inflammatory factor,decreases,anti-inflammatory factor secretion,0.0,0.5,2,0
+cell_2,contact with tumor,decreases,migration speed,0.1,0.1,2,0
+cell_1,contact with tumor,decreases,migration speed,0.1,0.1,2,0
