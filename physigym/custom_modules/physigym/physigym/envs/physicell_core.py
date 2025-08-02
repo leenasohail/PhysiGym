@@ -57,28 +57,44 @@ class CorePhysiCellEnv(gymnasium.Env):
     ### begin dummy functions ###
 
     def get_action_space(self):
-        raise NotImplementedError("get_action_space function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_action_space function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_observation_space(self):
-        raise NotImplementedError("get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_observation_space function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_observation(self):
-        raise NotImplementedError("get_observation function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_observation function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_info(self):
-        raise NotImplementedError("get_info function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_info function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_terminated(self):
-        raise NotImplementedError("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_terminated function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_reset_values(self):
-        raise NotImplementedError("get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_reset_values function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_reward(self):
-        raise NotImplementedError("get_terminated function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_terminated function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     def get_img(self):
-        raise NotImplementedError("get_img function to be implemented in physigym.ModelPhysiCellEnv!")
+        raise NotImplementedError(
+            "get_img function to be implemented in physigym.ModelPhysiCellEnv!"
+        )
 
     ### end dummy functions ###
 
@@ -90,15 +106,15 @@ class CorePhysiCellEnv(gymnasium.Env):
 
     # functions
     def __init__(
-            self,
-            settingxml="config/PhysiCell_settings.xml",
-            cell_type_cmap="turbo",
-            figsize=(8, 6),
-            render_mode=None,
-            render_fps=10,
-            verbose=True,
-            **kwargs,
-        ):
+        self,
+        settingxml="config/PhysiCell_settings.xml",
+        cell_type_cmap="turbo",
+        figsize=(8, 6),
+        render_mode=None,
+        render_fps=10,
+        verbose=True,
+        **kwargs,
+    ):
         """
         input:
             settingxml: string; default is "config/PhysiCell_settings.xml"
@@ -163,7 +179,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         # check global physigym environment flag
         if physicell.flag_envphysigym:
-            raise RuntimeWarning(f"per runtime, only one PhysiCellEnv gymnasium environment can be loaded. instance generation cancelled!")
+            raise RuntimeWarning(
+                f"per runtime, only one PhysiCellEnv gymnasium environment can be loaded. instance generation cancelled!"
+            )
 
         # handle verbose
         self.verbose = verbose
@@ -218,15 +236,15 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle domain
         if self.verbose:
             print(f"physigym: extract domain settings.")
-        self.x_min = int(self.x_root.xpath("//domain/x_min")[0].text)
-        self.x_max = int(self.x_root.xpath("//domain/x_max")[0].text)
-        self.y_min = int(self.x_root.xpath("//domain/y_min")[0].text)
-        self.y_max = int(self.x_root.xpath("//domain/y_max")[0].text)
-        self.z_min = int(self.x_root.xpath("//domain/z_min")[0].text)
-        self.z_max = int(self.x_root.xpath("//domain/z_max")[0].text)
-        self.dx = int(self.x_root.xpath("//domain/dx")[0].text)
-        self.dy = int(self.x_root.xpath("//domain/dy")[0].text)
-        self.dz = int(self.x_root.xpath("//domain/dz")[0].text)
+        self.x_min = int(float(self.x_root.xpath("//domain/x_min")[0].text))
+        self.x_max = int(float(self.x_root.xpath("//domain/x_max")[0].text))
+        self.y_min = int(float(self.x_root.xpath("//domain/y_min")[0].text))
+        self.y_max = int(float(self.x_root.xpath("//domain/y_max")[0].text))
+        self.z_min = int(float(self.x_root.xpath("//domain/z_min")[0].text))
+        self.z_max = int(float(self.x_root.xpath("//domain/z_max")[0].text))
+        self.dx = int(float(self.x_root.xpath("//domain/dx")[0].text))
+        self.dy = int(float(self.x_root.xpath("//domain/dy")[0].text))
+        self.dz = int(float(self.x_root.xpath("//domain/dz")[0].text))
         self.width = self.x_max - self.x_min + self.dx
         self.height = self.y_max - self.y_min + self.dy
         self.depth = self.z_max - self.z_min + self.dz
@@ -247,11 +265,20 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle substrate mapping
         if self.verbose:
             print(f"physigym: extract substrate settings.")
-        self.substrate_to_id = dict(zip(
-            self.x_root.xpath("//microenvironment_setup/variable/@name"),
-            [int(s_id) for s_id in self.x_root.xpath("//microenvironment_setup/variable/@ID")]
-        ))
-        self.substrate_unique = sorted(self.substrate_to_id.keys(), key=self.substrate_to_id.get)
+        self.substrate_to_id = dict(
+            zip(
+                self.x_root.xpath("//microenvironment_setup/variable/@name"),
+                [
+                    int(s_id)
+                    for s_id in self.x_root.xpath(
+                        "//microenvironment_setup/variable/@ID"
+                    )
+                ],
+            )
+        )
+        self.substrate_unique = sorted(
+            self.substrate_to_id.keys(), key=self.substrate_to_id.get
+        )
         self.substrate_count = len(self.substrate_unique)
         if self.verbose:
             print("physigym: self.substrate_to_id", sorted(self.substrate_to_id))
@@ -261,24 +288,41 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle cell_type mapping
         if self.verbose:
             print(f"physigym: extract cell_type settings.")
-        self.cell_type_to_id = dict(zip(
-            self.x_root.xpath("//cell_definitions/cell_definition/@name"),
-            [int(s_id) for s_id in self.x_root.xpath("//cell_definitions/cell_definition/@ID")]
-        ))
-        self.cell_type_unique = sorted(self.cell_type_to_id.keys(), key=self.cell_type_to_id.get)
+        self.cell_type_to_id = dict(
+            zip(
+                self.x_root.xpath("//cell_definitions/cell_definition/@name"),
+                [
+                    int(s_id)
+                    for s_id in self.x_root.xpath(
+                        "//cell_definitions/cell_definition/@ID"
+                    )
+                ],
+            )
+        )
+        self.cell_type_unique = sorted(
+            self.cell_type_to_id.keys(), key=self.cell_type_to_id.get
+        )
         self.cell_type_count = len(self.cell_type_unique)
         self.cell_type_to_color = {}
         if type(cell_type_cmap) is dict:
             for s_cell_type in self.cell_type_unique:
                 try:
-                    self.cell_type_to_color.update({s_cell_type : cell_type_cmap[s_cell_type]})
+                    self.cell_type_to_color.update(
+                        {s_cell_type: cell_type_cmap[s_cell_type]}
+                    )
                 except KeyError:
-                    self.cell_type_to_color.update({s_cell_type : "gray"})
+                    self.cell_type_to_color.update({s_cell_type: "gray"})
         elif type(cell_type_cmap) is str:
-            for i, ar_color in enumerate(plt.get_cmap(cell_type_cmap, self.cell_type_count).colors):
-                self.cell_type_to_color.update({self.cell_type_unique[i] : colors.to_hex(ar_color)})
+            for i, ar_color in enumerate(
+                plt.get_cmap(cell_type_cmap, self.cell_type_count).colors
+            ):
+                self.cell_type_to_color.update(
+                    {self.cell_type_unique[i]: colors.to_hex(ar_color)}
+                )
         else:
-            raise ValueError(f"cell_type_cmap {cell_type_cmap} have to be a dictionary of string or a string.")
+            raise ValueError(
+                f"cell_type_cmap {cell_type_cmap} have to be a dictionary of string or a string."
+            )
         if self.verbose:
             print("physigym: self.cell_type_to_id", sorted(self.cell_type_to_id))
             print("physigym: self.cell_type_unique", self.cell_type_unique)
@@ -297,7 +341,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output
         if self.verbose:
             print(f"physigym: ok!")
-
 
     def render(self, **kwargs):
         """
@@ -348,7 +391,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"ok!")
         return a_img
-
 
     def reset(self, seed=None, options={}, **kwargs):
         """
@@ -462,10 +504,11 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         if self.verbose:
-            print(f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\nto run another env, it will be necessary to fork or spawn the runtime!")
+            print(
+                f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\nto run another env, it will be necessary to fork or spawn the runtime!"
+            )
             print(f"physigym: ok!")
         return o_observation, d_info
-
 
     def get_truncated(self):
         """
@@ -493,7 +536,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         return b_truncated
-
 
     def step(self, action, **kwargs):
         """
@@ -585,7 +627,9 @@ class CorePhysiCellEnv(gymnasium.Env):
                         physicell.set_parameter(s_action, o_value)
                     # error
                     except KeyError:
-                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium discrete action space value detected! {s_action} {o_value} {type(o_value)}.")
+                        sys.exit(
+                            f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium discrete action space value detected! {s_action} {o_value} {type(o_value)}."
+                        )
 
             # gymnasium action space text (string)
             # python/physicell api parameter, variable
@@ -599,7 +643,9 @@ class CorePhysiCellEnv(gymnasium.Env):
                         physicell.set_parameter(s_action, o_value)
                     # error
                     except KeyError:
-                        sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium text action space value detected! {s_action} {o_value} {type(o_value)}.")
+                        sys.exit(
+                            f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium text action space value detected! {s_action} {o_value} {type(o_value)}."
+                        )
 
             # gymnasium action space box (bool, int, float in a numpy array)
             # gymnasium action space multi binary (boolean in a numpy array)
@@ -621,11 +667,15 @@ class CorePhysiCellEnv(gymnasium.Env):
                             physicell.set_parameter(s_action, o_value)
                         # error
                         except KeyError:
-                            sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium box action space value detected! {s_action} {o_value} {type(o_value)}.")
+                            sys.exit(
+                                f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium box action space value detected! {s_action} {o_value} {type(o_value)}."
+                            )
 
             # error
             else:
-                sys.exit(f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium action space value detected! {s_action} {o_value} {type(o_value)}.")
+                sys.exit(
+                    f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium action space value detected! {s_action} {o_value} {type(o_value)}."
+                )
 
         # do dt_gym time step
         if self.verbose:
@@ -654,20 +704,23 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: render {self.render_mode} frame.")
         if not (self.render_mode is None):  # human or rgb_array
             self.get_img()
-            if (self.render_mode == "human") and not (self.metadata["render_fps"] is None):
+            if (self.render_mode == "human") and not (
+                self.metadata["render_fps"] is None
+            ):
                 plt.pause(1 / self.metadata["render_fps"])
 
         # check if episode finish
         if b_terminated or b_truncated:
             if self.verbose:
-                print(f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated}).")
+                print(
+                    f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
+                )
             physicell.stop()
 
         # output
         if self.verbose:
             print(f"physigym: ok!")
         return o_observation, r_reward, b_terminated, b_truncated, d_info
-
 
     def close(self, **kwargs):
         """
@@ -705,9 +758,10 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         if self.verbose:
-            print(f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\nto run another env, it will be necessary to fork or spawn the runtime!")
+            print(
+                f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\nto run another env, it will be necessary to fork or spawn the runtime!"
+            )
             print(f"physigym: ok!")
-
 
     def verbose_true(self):
         """
@@ -732,7 +786,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         print(f"physigym: set env.verbose = True.")
         self.verbose = True
-
 
     def verbose_false(self):
         """
