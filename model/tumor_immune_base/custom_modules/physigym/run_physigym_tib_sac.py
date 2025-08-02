@@ -645,6 +645,7 @@ def run(
     s_name="sac",
     b_wandb=True,
     i_total_step_learn=int(2e5),
+    frozen_initial_state=True,
 ):
     d_arg_run = {
         # basics
@@ -657,6 +658,7 @@ def run(
         "seed": i_seed,  # int or none: seed of the experiment
         # steps
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
+        "frozen_initial_state": frozen_initial_state,  # bool: if the initial state is frozen
     }
     # wandb
     d_arg_wandb = {
@@ -876,7 +878,10 @@ def run(
         # reset gymnasium env
         r_cumulative_return = 0
         r_discounted_cumulative_return = 0
-        create_csv(**d_arg_generation)  # allow to generate new csv file
+        if d_arg["frozen_initial_state"]:
+            create_csv(**d_arg_generation)  # allow to generate new csv file
+        else:
+            pass
         o_observation, d_info = env.reset(seed=d_arg["seed"])
 
         # time step loop
@@ -1182,6 +1187,13 @@ if __name__ == "__main__":
         help="set total time steps for the learing process to take.",
     )
 
+    parser.add_argument(
+        "--frozen_initial_state",
+        type=bool,
+        nargs="?",
+        default=True,
+        help="set if the initial state is frozen.",
+    )
     # parse arguments
     args = parser.parse_args()
     print(args)
@@ -1197,4 +1209,5 @@ if __name__ == "__main__":
         s_name=args.name,
         b_wandb=args.wandb,
         i_total_step_learn=int(args.total_step_learn),
+        frozen_initial_state=args.frozen_initial_state,
     )
