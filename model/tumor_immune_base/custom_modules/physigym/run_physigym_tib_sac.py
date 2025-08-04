@@ -96,7 +96,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
                 for variable_name in list_variable_name
             ]
         )
-        self._action_space = Box(low=low, high=high, dtype=np.float64)
+        self._action_space = Box(low=low, high=high, dtype=np.float32)
 
         self.weight = weight
 
@@ -193,6 +193,11 @@ class GraphFeatureExtractor(nn.Module):
 
     def forward(self, data):
         data = Batch.from_data_list(data)
+        # data: PyG Data with x, edge_index, edge_attr
+        print("data.x device:", data.x.device)
+        print("data.edge_index device:", data.edge_index.device)
+        print("data.edge_attr device:", data.edge_attr.device)
+
         x = self.activation(self.gat1(data.x, data.edge_index, data.edge_attr))
         x = self.activation(self.gat2(x, data.edge_index, data.edge_attr))
         return global_mean_pool(x, data.batch)
@@ -645,7 +650,6 @@ def run(
     s_name="sac",
     b_wandb=True,
     i_total_step_learn=int(2e5),
-    frozen_initial_state=True,
 ):
     d_arg_run = {
         # basics
@@ -658,7 +662,6 @@ def run(
         "seed": i_seed,  # int or none: seed of the experiment
         # steps
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
-        "frozen_initial_state": frozen_initial_state,  # bool: if the initial state is frozen
     }
     # wandb
     d_arg_wandb = {
@@ -697,7 +700,7 @@ def run(
     d_arg_rl = {
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
-        "batch_size": 128,  # int: the batch size of sample from the replay memory
+        "batch_size": 16,  # int: the batch size of sample from the replay memory
         "learning_starts": 25e3,  # float: timestep to start learning
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
@@ -878,10 +881,7 @@ def run(
         # reset gymnasium env
         r_cumulative_return = 0
         r_discounted_cumulative_return = 0
-        if d_arg["frozen_initial_state"]:
-            create_csv(**d_arg_generation)  # allow to generate new csv file
-        else:
-            pass
+        create_csv(**d_arg_generation)  # allow to generate new csv file
         o_observation, d_info = env.reset(seed=d_arg["seed"])
 
         # time step loop
@@ -889,7 +889,7 @@ def run(
         while not b_episode_over:
             # sample the action space or learn
             if env.unwrapped.step_env <= d_arg["learning_starts"]:
-                a_action = np.array(env.action_space.sample(), dtype=np.float16)
+                a_action = np.array(env.action_space.sample(), dtype=np.float32)
             else:
                 if is_graph:
                     x = [
@@ -1127,7 +1127,7 @@ if __name__ == "__main__":
         "--max_time_episode",
         type=float,
         nargs="?",
-        default=11580.0,
+        default=1440.0,
         help="set overall max_time in min in the settings.xml file.",
     )
     # thread
@@ -1143,7 +1143,7 @@ if __name__ == "__main__":
         "--seed",
         type=int,
         nargs="?",
-        default=1,
+        default=None,
         help="set options random_seed in the settings.xml file and python.",
     )
     # observation_mode
@@ -1151,7 +1151,7 @@ if __name__ == "__main__":
         "--observation_mode",
         # type = str,
         nargs="?",
-        default="img_substrates",
+        default="img_rgb",
         help="observation mode scalars, img_rgb, img_mc or img_mc_substrates",
     )
     # render_mode
@@ -1159,7 +1159,7 @@ if __name__ == "__main__":
         "--render_mode",
         # type = str,
         nargs="?",
-        default="none",
+        default="rgb_array",
         help="render mode None, rgb_array, or human. observation mode scalars needs either render mode rgb_array or human.",
     )
     # name
@@ -1167,7 +1167,7 @@ if __name__ == "__main__":
         "--name",
         # type = str,
         nargs="?",
-        default="sac",
+        default="sac_big_red",
         help="experiment name.",
     )
     # wandb tracking
@@ -1183,17 +1183,10 @@ if __name__ == "__main__":
         "--total_step_learn",
         type=int,
         nargs="?",
-        default=int(5e5),
+        default=5,
         help="set total time steps for the learing process to take.",
     )
 
-    parser.add_argument(
-        "--frozen_initial_state",
-        type=bool,
-        nargs="?",
-        default=True,
-        help="set if the initial state is frozen.",
-    )
     # parse arguments
     args = parser.parse_args()
     print(args)
@@ -1209,5 +1202,4 @@ if __name__ == "__main__":
         s_name=args.name,
         b_wandb=args.wandb,
         i_total_step_learn=int(args.total_step_learn),
-        frozen_initial_state=args.frozen_initial_state,
     )
