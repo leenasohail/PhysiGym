@@ -87,6 +87,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "scalars_substrates",
             "delaunay_graph",
             "img_substrates",
+            "neighbor_graph",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
         # check redner mode
@@ -234,6 +235,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     dtype=np.uint8,
                 )
         elif self.kwargs["observation_mode"] == "delaunay_graph":
+            node_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
+            edge_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
+            o_observation_space = spaces.Graph(
+                node_space=node_space, edge_space=edge_space
+            )
+
+        elif self.kwargs["observation_mode"] == "neighbor_graph":
             node_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             edge_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             o_observation_space = spaces.Graph(
@@ -471,6 +479,40 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     / (np.max([self.width, self.height, self.depth]))
                 )[:, np.newaxis],
             )
+        elif self.kwargs["observation_mode"] == "neighbor_graph":
+            df_alive.set_index("ID", inplace=True)
+            coords = df_alive.loc[:, ["x", "y"]].values
+            edge_links = np.array(physicell.get_graph("neighbor"))
+            id_to_pos = {id_: pos for pos, id_ in enumerate(df_alive.index)}
+
+            mask = np.isin(edge_links[:, 0], df_alive.index) & np.isin(
+                edge_links[:, 1], df_alive.index
+            )
+            edge_links = edge_links[mask]
+            # Convert IDs in edge_links to positional indices
+            edge_idx = np.vectorize(id_to_pos.get)(edge_links)
+
+            # Get coordinates for both ends of each edge
+            p1 = coords[edge_idx[:, 0]]
+            p2 = coords[edge_idx[:, 1]]
+
+            # Compute Euclidean distances
+            distances = np.linalg.norm(p1 - p2, axis=1)
+
+            o_observation = GraphInstance(
+                nodes=(
+                    np.array(
+                        df_alive["type"].map(self.cell_type_to_id), dtype=np.float32
+                    )
+                    / (self.cell_type_count)
+                )[:, np.newaxis],
+                edge_links=edge_links,
+                edges=(
+                    np.array(distances, dtype=np.float32)
+                    / (np.max([self.width, self.height, self.depth]))
+                )[:, np.newaxis],
+            )
+
         else:
             raise ValueError(
                 f"unknown observation type: {self.kwargs['observation_mode']}"
