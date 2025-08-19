@@ -1027,10 +1027,10 @@ def run(
                     # record policy update to tensoboard
                     losses = {
                         "losses/min_qf_next_target": min_qf_next_target.mean().item(),
-                        "losses/qf1_values": qf1_a_values.mean().item(),
-                        "losses/qf2_values": qf2_a_values.mean().item(),
-                        "losses/qf1_loss": qf1_loss.item(),
-                        "losses/qf2_loss": qf2_loss.item(),
+                        # "losses/qf1_values": qf1_a_values.mean().item(),
+                        # "losses/qf2_values": qf2_a_values.mean().item(),
+                        # "losses/qf1_loss": qf1_loss.item(),
+                        # "losses/qf2_loss": qf2_loss.item(),
                         "losses/qf_loss": qf_loss.item() / 2.0,
                         "losses/actor_loss": actor_loss.item(),
                     }
@@ -1048,6 +1048,7 @@ def run(
             o_observation = o_observation_next
 
             # recording step to tensorboard
+            """
             scalars = {
                 "env/drug_1": a_action[0],
                 "env/reward_value": r_reward,
@@ -1062,7 +1063,7 @@ def run(
             else:
                 for tag, value in scalars.items():
                     writer.add_scalar(tag, value, env.unwrapped.step_env)
-
+            """
             # record step to csv
             d_data = {
                 "step": env.unwrapped.step_episode,
@@ -1078,7 +1079,7 @@ def run(
 
         # recording episode to tensorbord
         scalars = {
-            "charts/cumulative_return": r_cumulative_return,
+            # "charts/cumulative_return": r_cumulative_return,
             "charts/episodic_length": env.unwrapped.step_episode,
             "charts/discounted_cumulative_return": r_discounted_cumulative_return,
         }

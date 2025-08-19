@@ -5,3 +5,5 @@ numpy
 tensordict
 tyro
 wandb
+torch_geometric
+tysserand
