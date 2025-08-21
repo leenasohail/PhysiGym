@@ -679,17 +679,17 @@ def create_csv(
 
 
 def run(
-    s_settingxml="config/PhysiCell_settings.xml",
-    i_seed=int(1),
-    s_observation_mode="scalars",
-    s_render_mode=None,
-    r_max_time_episode=12900.0,  # min xpath  8[d]=12900[min]
-    i_total_step_learn=int(1e6),
-    i_thread=8,  # xpath
-    b_gpu=False,
-    s_name="sac",
-    b_wandb=False,
-    s_entity="corporate-manu-sureli",
+    s_settingxml="config/PhysiCell_settings.xml",  # min xpath
+    i_seed=int(1),  # int or none: seed of the experiment
+    s_observation_mode="scalars_cells",  # str: observation mode
+    s_render_mode=None,  # render is none or rgb_array or human
+    r_max_time_episode=12900.0,  #  8[d]=12900[min]
+    i_total_step_learn=int(1e6),  # int: the total number of steps
+    i_thread=8,  # int: number of threads
+    b_gpu=False,  # bool: if using GPU
+    s_name="sac",  # str: the name of this experiment
+    b_wandb=False,  # bool: track with wandb, if false local tensorboard
+    s_entity="corporate-manu-sureli",  # name of your project in wandb
 ):
     d_arg_run = {
         # basics
@@ -697,7 +697,7 @@ def run(
         # hardware
         "cuda": b_gpu,  # bool: should torch check for gpu (nvidia cuda, amd mroc) accelerator?
         # tracking
-        "wandb_track": b_wandb,  # bool: track with wandb, if false locallt tensorboard
+        "wandb_track": b_wandb,  # bool: track with wandb, if false local tensorboard
         # random seed
         "seed": i_seed,  # int or none: seed of the experiment
         # steps
