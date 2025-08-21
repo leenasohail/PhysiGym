@@ -25,7 +25,8 @@ import time
 
 # Non-standard Python Libraries
 import matplotlib
-matplotlib.use('agg')  # set the plotting backend e.g. agg qtagg
+
+matplotlib.use("agg")  # set the plotting backend e.g. agg qtagg
 import numpy as np
 import pandas as pd
 
@@ -503,7 +504,7 @@ def generate_ellipse_ring(n, r1, r2, center, jitter=5.0):
     return x, y
 
 
-def generate_population(
+def generate_population_circulars(
     n_tumor,
     n_cell_1,
     x_min,
@@ -584,6 +585,8 @@ def create_csv(
     range_cell_dist: list,
     list_proportions: list,
     csv_path: str,
+    circular_mode: bool = True,
+    random_mode: bool = False,
     **kwargs,
 ):
     jitter_tumor = random.randint(*range_jitter_tumor)
@@ -594,21 +597,60 @@ def create_csv(
     cell_dist = random.uniform(*range_cell_dist)
     r1_cell1 = r1 * random.uniform(1.5, 1 / r1 - 0.2)
     proportion = np.random.choice(list_proportions)
-    df = generate_population(
-        n_tumor=n_tumor,
-        n_cell_1=n_cell_1,
-        x_min=x_min,
-        x_max=x_max,
-        y_min=y_min,
-        y_max=y_max,
-        tumor_scale=(r1, r2_frac_tumor),
-        cell1_scale=(
-            r1_cell1,
-            r2_frac_cell_1 * cell_dist,
-        ),
-        jitter_tumor=jitter_tumor,
-        jitter_cell_1=jitter_cell_1,
-    )
+    if circular_mode:
+        df = generate_population_circulars(
+            n_tumor=n_tumor,
+            n_cell_1=n_cell_1,
+            x_min=x_min,
+            x_max=x_max,
+            y_min=y_min,
+            y_max=y_max,
+            tumor_scale=(r1, r2_frac_tumor),
+            cell1_scale=(
+                r1_cell1,
+                r2_frac_cell_1 * cell_dist,
+            ),
+            jitter_tumor=jitter_tumor,
+            jitter_cell_1=jitter_cell_1,
+        )
+    elif random_mode:
+        # Tumor cells randomly in box
+        tumor_x = np.random.uniform(x_min, x_max, n_tumor)
+        tumor_y = np.random.uniform(y_min, y_max, n_tumor)
+        tumor_df = pd.DataFrame(
+            {
+                "x": tumor_x,
+                "y": tumor_y,
+                "z": 0.0,
+                "type": "tumor",
+                "volume": "",
+                "cycle entry": "",
+                "custom:GFP": "",
+                "custom:sample": "",
+            }
+        )
+
+        # Cell_1 cells randomly in box
+        cell1_x = np.random.uniform(x_min, x_max, n_cell_1)
+        cell1_y = np.random.uniform(y_min, y_max, n_cell_1)
+        cell1_df = pd.DataFrame(
+            {
+                "x": cell1_x,
+                "y": cell1_y,
+                "z": 0.0,
+                "type": "cell_1",
+                "volume": "",
+                "cycle entry": "",
+                "custom:GFP": "",
+                "custom:sample": "",
+            }
+        )
+
+        df = pd.concat([tumor_df, cell1_df], ignore_index=True)
+
+    else:
+        raise ValueError("Must set either circular=True or random_mode=True")
+
     mask = df["type"] == "cell_1"
     # Get indices of those rows
     cell1_indices = df[mask].index
@@ -721,7 +763,9 @@ def run(
     d_arg.update(d_arg_rl)
 
     # gpu cpu
-    if (d_arg["cuda"] and not torch.cuda.is_available()) or (not d_arg["cuda"] and torch.cuda.is_available()):
+    if (d_arg["cuda"] and not torch.cuda.is_available()) or (
+        not d_arg["cuda"] and torch.cuda.is_available()
+    ):
         raise ValueError(
             f"argument cuda set {d_arg['cuda']} but torch GPU detection {torch.cuda.is_available()}."
         )
@@ -1140,7 +1184,7 @@ if __name__ == "__main__":
         # type = str,
         nargs="?",
         default="img_rgb",
-        help="observation mode scalars, img_rgb, img_mc or img_mc_substrates",
+        help="different observation modes possible",
     )
     # render_mode
     parser.add_argument(
@@ -1177,7 +1221,7 @@ if __name__ == "__main__":
     # gpu
     parser.add_argument(
         "--gpu",
-        #type=bool,
+        # type=bool,
         nargs="?",
         default="false",
         help="gpu for pytorch available?",
@@ -1193,7 +1237,7 @@ if __name__ == "__main__":
     # wandb tracking
     parser.add_argument(
         "--wandb",
-        #type=bool,
+        # type=bool,
         nargs="?",
         default="false",
         help="tracking online with wandb? false with track locally with tensorboard.",

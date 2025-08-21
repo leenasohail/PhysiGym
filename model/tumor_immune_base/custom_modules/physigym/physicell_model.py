@@ -71,7 +71,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         render_fps=10,
         verbose=True,
         # **kwargs
-        observation_mode="scalars",
+        observation_mode="scalars_cells_substrates",
         img_rgb_grid_size_y=64,  # pixel
         img_rgb_grid_size_x=64,  # pixel
         img_mc_grid_size_x=64,  # pixel
@@ -79,14 +79,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         normalization_factor=512,
     ):
         if observation_mode not in [
-            "scalars",
-            "img_rgb",
-            "img_mc",
-            "img_mc_substrates",
-            "substrates",
+            "scalars_cells",
             "scalars_substrates",
+            "scalars_cells_substrates",
+            "img_mc_cells",
+            "img_mc_substrates",
+            "img_mc_cells_substrates",
+            "img_rgb",
             "delaunay_graph",
-            "img_substrates",
             "neighbor_graph",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
@@ -160,27 +160,30 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             for each observed variable.
         """
         # model dependent observation_space processing logic goes here!
-        if self.kwargs["observation_mode"] == "scalars":
+        if self.kwargs["observation_mode"] == "scalars_cells":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
                 shape=(self.cell_type_count,),
                 dtype=np.float32,
             )
+
         elif self.kwargs["observation_mode"] == "scalars_substrates":
-            o_observation_space = spaces.Box(
-                low=-(2**8),
-                high=2**8,
-                shape=(self.cell_type_count + self.substrate_count,),
-                dtype=np.float32,
-            )
-        elif self.kwargs["observation_mode"] == "substrates":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
                 shape=(self.substrate_count,),
                 dtype=np.float32,
             )
+
+        elif self.kwargs["observation_mode"] == "scalars_cells_substrates":
+            o_observation_space = spaces.Box(
+                low=-(2**8),
+                high=2**8,
+                shape=(self.cell_type_count + self.substrate_count,),
+                dtype=np.float32,
+            )
+
         elif self.kwargs["observation_mode"] == "img_rgb":
             # Define the Box space for the rgb alpha image
             o_observation_space = spaces.Box(
@@ -194,14 +197,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             )
 
         elif self.kwargs["observation_mode"] in [
-            "img_mc",
+            "img_mc_cells",
             "img_mc_substrates",
-            "img_substrates",
+            "img_mc_cells_substrates",
         ]:
             # Define the Box space for the multichannel image
             self.ratio_img_mc_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
             self.ratio_img_mc_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
-            if self.kwargs["observation_mode"] == "img_mc":
+            if self.kwargs["observation_mode"] == "img_mc_cells":
                 o_observation_space = spaces.Box(
                     low=0,
                     high=255,
@@ -212,7 +215,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     ),
                     dtype=np.uint8,
                 )
-            elif self.kwargs["observation_mode"] == "img_substrates":
+            elif self.kwargs["observation_mode"] == "img_mc_substrates":
                 o_observation_space = spaces.Box(
                     low=0,
                     high=255,
@@ -730,4 +733,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         plt.tight_layout()
         s_path = self.x_root.xpath("//save/folder")[0].text + "/render_mode_human/"
         os.makedirs(s_path, exist_ok=True)
-        self.fig.savefig(f"{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg", facecolor="white")
+        self.fig.savefig(
+            f"{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg",
+            facecolor="white",
+        )
