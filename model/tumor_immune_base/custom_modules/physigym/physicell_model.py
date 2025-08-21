@@ -727,7 +727,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # save to file #
         ################
 
-        # plt.tight_layout()
-        # s_path = self.x_root.xpath("//save/folder")[0].text + "/render_mode_human/"
-        # os.makedirs(s_path, exist_ok=True)
-        # self.fig.savefig(f"{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg", facecolor="white")
+        plt.tight_layout()
+        s_path = self.x_root.xpath("//save/folder")[0].text + "/render_mode_human/"
+        os.makedirs(s_path, exist_ok=True)
+        self.fig.savefig(f"{s_path}timeseries_step{str(self.step_env).zfill(3)}.jpeg", facecolor="white")

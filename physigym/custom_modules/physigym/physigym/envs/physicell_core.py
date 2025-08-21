@@ -500,7 +500,10 @@ class CorePhysiCellEnv(gymnasium.Env):
                 if not (self.metadata["render_fps"] is None):
                     plt.pause(1 / self.metadata["render_fps"])
             else:  # rgb_array
-                self.fig.canvas.setVisible(False)
+                try:
+                    self.fig.canvas.setVisible(False)
+                except AttributeError:  # handle agg backend on headless systems.
+                    pass
 
         # output
         if self.verbose:

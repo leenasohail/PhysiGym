@@ -1,8 +1,10 @@
 gymnasium
 imageio[ffmpeg]
 numpy
+tensorboard
 tensordict
-tyro
+torch_geometric
+tysserand
 wandb
 torch_geometric
 tensorboard
