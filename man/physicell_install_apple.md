@@ -45,7 +45,7 @@ Important: before you run the basic physicell installation, you have to install 
 
 ### &#x2728; Install PhysiCell:
 
-Copy the installation command, paste it into the Terminal (found at Applications / Utilities), and press the enter key.
+Copy the whole installation command, paste it into the Terminal (found at Applications / Utilities), and press the enter key.
 
 ```bash
 if [ -d ~/src/PhysiCell ]
@@ -78,8 +78,13 @@ fi
 
 ### &#x2728; Test the PhyiCell installation with the template sample project:
 
+Run this code line by line.
+
 ```bash
 cd ~/src/PhysiCell
+```
+```bash
+make data-cleanup clean reset
 ```
 ```bash
 make template
@@ -108,7 +113,7 @@ We will name this python3 environment pcvenv (PhysiCell virtual environment).
 
 ### &#x2728; Install PhysiCell-Studio:
 
-Copy the installation command, paste it into the Terminal (found at Applications / Utilities), and press the enter key.
+Copy the whole installation command, paste it into the Terminal (found at Applications / Utilities), and press the enter key.
 
 ```bash
 if [ -d ~/src/PhysiCell-Studio ]
@@ -141,6 +146,8 @@ fi
 
 ### &#x2728; Test the PhysiCell-Studio installation:
 
+Run this code line by line.
+
 ```bash
 cd ~/src/PhysiCell
 pcvenv
@@ -156,19 +163,25 @@ pcstudio
 
 ### &#x2728; Install PhysiCell Data Loader (pcdl) and iPython:
 
+Run this code line by line.
+
 ```bash
 pcvenv
 pip3 install pcdl ipython
 ```
 ### &#x2728; Test the pcdl installation:
 
+Fire up a python shell.
+
 ```bash
 ipython
 ```
+
+Inside the python shell write:
+
 ```python
 import pcdl
-```
-```python
+print(pcdl.__version__)
 exit()
 ```
 
@@ -196,7 +209,7 @@ Profile > physicell
 3. Open the Folder:
 
 ```
-File | Open Folder… | src | Open
+File | Open Folder… |  Users/<username>/src | Open
 Yes, I trust the authors
 ```
 
@@ -212,6 +225,5 @@ Extension: C/C++ Install
 5. Link pcvenv (the python environment we generated above):
 
 ```
-View | Command Palette… | Python: Select Interpreter |
-Enter interpreter path… | Find… | src/pcvenv
+View | Command Palette… | Python: Select Interpreter | Enter interpreter path… | Find… | Users/<username>/src/pcvenv/bin/activate
 ```
