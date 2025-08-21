@@ -50,9 +50,15 @@ convert --version
 
 `cd` to the folder where you have your manual installed binaries. e.g. `~/.local/bin/`
 
+Run this code line by line.
+
 ```bash
 echo '$*' > magick
+```
+```bash
 chmod 775 magick
+```
+```bash
 which magick
 ```
 
@@ -106,6 +112,11 @@ fi
 
 ### &#x2728; Test the PhyiCell installation with the template sample project:
 
+Run this code line by line.
+
+```bash
+make data-cleanup clean reset
+```
 ```bash
 cd ~/src/PhysiCell
 ```
@@ -172,9 +183,15 @@ fi
 
 ### &#x2728; Test the PhysiCell-Studio installation:
 
+Run this code line by line.
+
 ```bash
 cd ~/src/PhysiCell
+```
+```bash
 pcvenv
+```
+```bash
 pcstudio
 ```
 
@@ -187,19 +204,27 @@ pcstudio
 
 ### &#x2728; Install PhysiCell Data Loader (pcdl) and iPython:
 
+Run this code line by line.
+
 ```bash
 pcvenv
+```
+```bash
 pip3 install pcdl ipython
 ```
+
 ### &#x2728; Test the pcdl installation:
+
+Fire up a python shell.
 
 ```bash
 ipython
 ```
+Inside the python shell write:
+
 ```python
 import pcdl
-```
-```python
+print(pcdl.__version__)
 exit()
 ```
 
@@ -227,7 +252,7 @@ Profile > physicell
 3. Open the Folder:
 
 ```
-File | Open Folder… | src | Open
+File | Open Folder… | /home/<username>/src | Open
 Yes, I trust the authors
 ```
 
@@ -243,6 +268,5 @@ Extension: C/C++ Install
 5. Link pcvenv (the python environment we generated above):
 
 ```
-View | Command Palette… | Python: Select Interpreter |
-Enter interpreter path… | Find… | src/pcvenv
+View | Command Palette… | Python: Select Interpreter | Enter interpreter path… | Find… | /home/<username>/src/pcvenv/bin/activate
 ```
