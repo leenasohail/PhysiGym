@@ -2,6 +2,8 @@ gymnasium
 imageio[ffmpeg]
 numba
 numpy
+tensorboard
 tensordict
-tyro
+torch_geometric
+tysserand
 wandb

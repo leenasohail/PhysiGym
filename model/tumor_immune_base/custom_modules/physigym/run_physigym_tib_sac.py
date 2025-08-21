@@ -16,43 +16,39 @@
 
 #### IMPORT LIBRARIES ####
 # Standard Python Libraries
+import argparse
+from collections import deque
 import os
 import random
+import shutil
 import time
-import argparse
 
-# Gymnasium PhysiCell bridge module
+# Non-standard Python Libraries
+import matplotlib
+matplotlib.use('agg')  # set the plotting backend e.g. agg qtagg
+import numpy as np
+import pandas as pd
+
+# Load Gymnasium PhysiCell bridge module namespace physigym
 import physigym
 
 # Gymnasium
 import gymnasium as gym
 from gymnasium.spaces import Box
-import numpy as np
 
 # Torch ecosystem
+from tensordict import TensorDict
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils import tensorboard
 from torch_geometric.nn import GATConv, global_mean_pool
 from torch_geometric.data import Data, Batch
 
-
-from torch.utils import tensorboard
-from tensordict import TensorDict
-
+# Tracking
 import wandb
-import tyro
 
-import pandas as pd
-
-import matplotlib.pyplot as plt
-
-import random
-
-import shutil
-
-from collections import deque
 
 ################################
 # Class PhysiCellModel Wrapper #
@@ -642,20 +638,22 @@ def create_csv(
 
 def run(
     s_settingxml="config/PhysiCell_settings.xml",
-    r_max_time_episode=10000.0,  # xpath
-    i_thread=8,  # xpath
     i_seed=int(1),
-    s_observation_mode="img_mc_substrates",
+    s_observation_mode="scalars",
     s_render_mode=None,
+    r_max_time_episode=12900.0,  # min xpath  8[d]=12900[min]
+    i_total_step_learn=int(1e6),
+    i_thread=8,  # xpath
+    b_gpu=False,
     s_name="sac",
-    b_wandb=True,
-    i_total_step_learn=int(2e5),
+    b_wandb=False,
+    s_entity="corporate-manu-sureli",
 ):
     d_arg_run = {
         # basics
         "name": s_name,  # str: the name of this experiment
         # hardware
-        "cuda": True,  # bool: should torch check for gpu (nvidia, amd mroc) accelerator?
+        "cuda": b_gpu,  # bool: should torch check for gpu (nvidia cuda, amd mroc) accelerator?
         # tracking
         "wandb_track": b_wandb,  # bool: track with wandb, if false locallt tensorboard
         # random seed
@@ -665,7 +663,7 @@ def run(
     }
     # wandb
     d_arg_wandb = {
-        "entity": "corporate-manu-sureli",  # str: the wandb s entity name
+        "entity": s_entity,  # str: the wandb s entity name
         "project": "SAC_IMAGE_TIB",  # str: the wandb s project name
         "sync_tensorboard": True,
         "monitor_gym": True,
@@ -682,7 +680,7 @@ def run(
             "cell_2": "navy",
         },  # viridis
         "figsize": (6, 6),
-        "observation_mode": s_observation_mode,  # str: scalars , img_rgb , img_mc
+        "observation_mode": s_observation_mode,  # str: scalars , img_rgb , img_mc, neighbor_graph, delaunay_graph
         "render_mode": s_render_mode,  # human, rgb_array
         "verbose": False,
         "img_rgb_grid_size_x": 64,  # pixel size
@@ -701,7 +699,7 @@ def run(
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
         "batch_size": 16,  # int: the batch size of sample from the replay memory
-        "learning_starts": 25e3,  # float: timestep to start learning
+        "learning_starts": 21900,  # 20[years] float: timestep to start learning (25e3)
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
         # algorithm neural network II
@@ -721,6 +719,12 @@ def run(
     d_arg.update(d_arg_physigym_model)
     d_arg.update(d_arg_physigym_wrapper)
     d_arg.update(d_arg_rl)
+
+    # gpu cpu
+    if (d_arg["cuda"] and not torch.cuda.is_available()) or (not d_arg["cuda"] and torch.cuda.is_available()):
+        raise ValueError(
+            f"argument cuda set {d_arg['cuda']} but torch GPU detection {torch.cuda.is_available()}."
+        )
 
     # initialize tracking
     s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_mode']}_weight_{d_arg['weight']}_time_{int(time.time())}"
@@ -815,9 +819,7 @@ def run(
     }
     d_arg.update(d_arg_generation)
     # initialize neural networks
-    o_device = torch.device(
-        "cuda" if torch.cuda.is_available() and d_arg["cuda"] else "cpu"
-    )  # cpu or gpu
+    o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     actor = Actor(env).to(o_device)
     qf1 = QNetwork(env).to(o_device)
     qf2 = QNetwork(env).to(o_device)
@@ -1114,6 +1116,7 @@ if __name__ == "__main__":
         prog="run physigym episodes",
         description="script to run physigym episodes.",
     )
+
     # settingxml file
     parser.add_argument(
         "settingxml",
@@ -1121,22 +1124,6 @@ if __name__ == "__main__":
         nargs="?",
         default="config/PhysiCell_settings.xml",
         help="path/to/settings.xml file.",
-    )
-    # max_time
-    parser.add_argument(
-        "--max_time_episode",
-        type=float,
-        nargs="?",
-        default=1440.0,
-        help="set overall max_time in min in the settings.xml file.",
-    )
-    # thread
-    parser.add_argument(
-        "--thread",
-        type=int,
-        nargs="?",
-        default=8,
-        help="set parallel omp_num_threads in the settings.xml file.",
     )
     # seed
     parser.add_argument(
@@ -1162,21 +1149,13 @@ if __name__ == "__main__":
         default="rgb_array",
         help="render mode None, rgb_array, or human. observation mode scalars needs either render mode rgb_array or human.",
     )
-    # name
+    # max_time
     parser.add_argument(
-        "--name",
-        # type = str,
+        "--max_time_episode",
+        type=float,
         nargs="?",
-        default="sac_big_red",
-        help="experiment name.",
-    )
-    # wandb tracking
-    parser.add_argument(
-        "--wandb",
-        type=bool,
-        nargs="?",
-        default=False,
-        help="tracking online with wandb? false with track locally with tensorboard.",
+        default=1440.0,
+        help="set overall max_time in min in the settings.xml file.",
     )
     # total timesteps
     parser.add_argument(
@@ -1186,6 +1165,46 @@ if __name__ == "__main__":
         default=5,
         help="set total time steps for the learing process to take.",
     )
+    # thread
+    parser.add_argument(
+        "--thread",
+        type=int,
+        nargs="?",
+        default=8,
+        help="set parallel omp_num_threads in the settings.xml file.",
+    )
+    # gpu
+    parser.add_argument(
+        "--gpu",
+        #type=bool,
+        nargs="?",
+        default="false",
+        help="gpu for pytorch available?",
+    )
+    # name
+    parser.add_argument(
+        "--name",
+        # type = str,
+        nargs="?",
+        default="sac_experiment",
+        help="experiment name.",
+    )
+    # wandb tracking
+    parser.add_argument(
+        "--wandb",
+        #type=bool,
+        nargs="?",
+        default="false",
+        help="tracking online with wandb? false with track locally with tensorboard.",
+    )
+    # entity
+    parser.add_argument(
+        "--entity",
+        # type = str,
+        nargs="?",
+        default="corporate-manu-sureli",
+        help="weight and biases team.",
+    )
 
     # parse arguments
     args = parser.parse_args()
@@ -1194,12 +1213,14 @@ if __name__ == "__main__":
     # processing
     run(
         s_settingxml=args.settingxml,
-        r_max_time_episode=float(args.max_time_episode),
-        i_thread=args.thread,
         i_seed=args.seed,
         s_observation_mode=args.observation_mode,
         s_render_mode=None if args.render_mode.lower() == "none" else args.render_mode,
-        s_name=args.name,
-        b_wandb=args.wandb,
+        r_max_time_episode=float(args.max_time_episode),
         i_total_step_learn=int(args.total_step_learn),
+        i_thread=args.thread,
+        b_gpu=True if args.gpu.lower().startswith("t") else False,
+        s_name=args.name,
+        b_wandb=True if args.wandb.lower().startswith("t") else False,
+        s_entity=args.entity,
     )

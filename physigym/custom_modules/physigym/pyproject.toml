@@ -32,7 +32,6 @@ dependencies = [
     "numpy",
     "pandas",
     "pyqt6",
-    "tysserand",
 ]
 
 [tool.hatch.version]
