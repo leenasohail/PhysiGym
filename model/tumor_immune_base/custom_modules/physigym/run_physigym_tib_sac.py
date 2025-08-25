@@ -587,20 +587,22 @@ def create_csv(
     range_cell_dist: list,
     list_proportions: list,
     csv_path: str,
-    circular_mode: bool = True,
-    random_mode: bool = False,
-    hex_mode: bool = False,
+    init_mode: str,
     **kwargs,
 ):
-    jitter_tumor = random.randint(*range_jitter_tumor)
-    jitter_cell_1 = random.randint(*range_cell_1)
-    r2_frac_tumor = random.uniform(*range_r2_frac_tumor)
-    r2_frac_cell_1 = random.uniform(*range_frac_cell_1)
-    r1 = random.uniform(*range_r1)
-    cell_dist = random.uniform(*range_cell_dist)
-    r1_cell1 = r1 * random.uniform(1.5, 1 / r1 - 0.2)
+    if init_mode not in ["robust", "circular_mode", "random_mode", "hex_mode"]:
+        raise ValueError("Problem with mode")
+    if init_mode == "robust":
+        init_mode = random.choice(["circular_mode", "random_mode", "hex_mode"])
     proportion = np.random.choice(list_proportions)
-    if circular_mode:
+    if init_mode == "circular_mode":
+        jitter_tumor = random.randint(*range_jitter_tumor)
+        jitter_cell_1 = random.randint(*range_cell_1)
+        r2_frac_tumor = random.uniform(*range_r2_frac_tumor)
+        r2_frac_cell_1 = random.uniform(*range_frac_cell_1)
+        r1 = random.uniform(*range_r1)
+        cell_dist = random.uniform(*range_cell_dist)
+        r1_cell1 = r1 * random.uniform(1.5, 1 / r1 - 0.2)
         df = generate_population_circulars(
             n_tumor=n_tumor,
             n_cell_1=n_cell_1,
@@ -616,7 +618,7 @@ def create_csv(
             jitter_tumor=jitter_tumor,
             jitter_cell_1=jitter_cell_1,
         )
-    elif random_mode:
+    elif init_mode == "random_mode":
         # Tumor cells randomly in box
         tumor_x = np.random.uniform(x_min, x_max, n_tumor)
         tumor_y = np.random.uniform(y_min, y_max, n_tumor)
@@ -650,10 +652,10 @@ def create_csv(
         )
 
         df = pd.concat([tumor_df, cell1_df], ignore_index=True)
-    elif hex_mode:
+    elif init_mode == "hex_mode":
         df = generate_cell_positions()
     else:
-        raise ValueError("Must set either circular=True or random_mode=True")
+        raise ValueError("Problem with mode")
 
     mask = df["type"] == "cell_1"
     # Get indices of those rows
@@ -694,6 +696,7 @@ def run(
     s_name="sac",  # str: the name of this experiment
     b_wandb=False,  # bool: track with wandb, if false local tensorboard
     s_entity="corporate-manu-sureli",  # name of your project in wandb
+    init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)
 ):
     d_arg_run = {
         # basics
@@ -864,6 +867,7 @@ def run(
             .xpath("//initial_conditions/cell_positions/filename")[0]
             .text,
         ),
+        "init_mode": init_mode,
     }
     d_arg.update(d_arg_generation)
     # initialize neural networks
@@ -1254,6 +1258,12 @@ if __name__ == "__main__":
         default="corporate-manu-sureli",
         help="weight and biases team.",
     )
+    parser.add_argument(
+        "--init_mode",
+        nargs="?",
+        default="robust",
+        help="type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)",
+    )
 
     # parse arguments
     args = parser.parse_args()
@@ -1272,4 +1282,5 @@ if __name__ == "__main__":
         s_name=args.name,
         b_wandb=True if args.wandb.lower().startswith("t") else False,
         s_entity=args.entity,
+        init_mode=args.init_mode,
     )
