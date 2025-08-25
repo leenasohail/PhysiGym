@@ -47,6 +47,8 @@ from torch.utils import tensorboard
 from torch_geometric.nn import GATConv, global_mean_pool
 from torch_geometric.data import Data, Batch
 
+from .initial_conditions import generate_cell_positions
+
 # Tracking
 import wandb
 
@@ -587,6 +589,7 @@ def create_csv(
     csv_path: str,
     circular_mode: bool = True,
     random_mode: bool = False,
+    hex_mode: bool = False,
     **kwargs,
 ):
     jitter_tumor = random.randint(*range_jitter_tumor)
@@ -647,7 +650,8 @@ def create_csv(
         )
 
         df = pd.concat([tumor_df, cell1_df], ignore_index=True)
-
+    elif hex_mode:
+        df = generate_cell_positions()
     else:
         raise ValueError("Must set either circular=True or random_mode=True")
 
