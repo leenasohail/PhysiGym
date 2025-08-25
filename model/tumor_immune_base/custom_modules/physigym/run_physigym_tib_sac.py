@@ -22,6 +22,7 @@ import os
 import random
 import shutil
 import time
+from typing import Union
 
 # Non-standard Python Libraries
 import matplotlib
@@ -585,7 +586,7 @@ def create_csv(
     range_frac_cell_1: list,
     range_r1: list,
     range_cell_dist: list,
-    list_proportions: list,
+    proportion: Union[list, float],
     csv_path: str,
     init_mode: str,
     **kwargs,
@@ -594,7 +595,10 @@ def create_csv(
         raise ValueError("Problem with mode")
     if init_mode == "robust":
         init_mode = random.choice(["circular_mode", "random_mode", "hex_mode"])
-    proportion = np.random.choice(list_proportions)
+
+    proportion = (
+        np.random.choice(proportion) if hasattr(proportion, list) else proportion
+    )
     if init_mode == "circular_mode":
         jitter_tumor = random.randint(*range_jitter_tumor)
         jitter_cell_1 = random.randint(*range_cell_1)
@@ -697,6 +701,7 @@ def run(
     b_wandb=False,  # bool: track with wandb, if false local tensorboard
     s_entity="corporate-manu-sureli",  # name of your project in wandb
     init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)
+    proportion=0.5,  # proportion of cell_1 into cell_2
 ):
     d_arg_run = {
         # basics
@@ -858,7 +863,6 @@ def run(
             1.5,
             2.0,
         ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
-        "list_proportions": [0, 0.25, 0.33, 0.5, 0.66, 0.75, 1],
         "csv_path": os.path.join(
             env.get_wrapper_attr("x_root")
             .xpath("//initial_conditions/cell_positions/folder")[0]
@@ -868,6 +872,7 @@ def run(
             .text,
         ),
         "init_mode": init_mode,
+        "proportion": proportion,
     }
     d_arg.update(d_arg_generation)
     # initialize neural networks
@@ -1264,6 +1269,13 @@ if __name__ == "__main__":
         default="robust",
         help="type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)",
     )
+    parser.add_argument(
+        "--proportion",
+        type=int,
+        nargs="?",
+        default=0.5,
+        help="proportion of cell_1 into cell_2 ie 0.5 means 50%",
+    )
 
     # parse arguments
     args = parser.parse_args()
@@ -1283,4 +1295,5 @@ if __name__ == "__main__":
         b_wandb=True if args.wandb.lower().startswith("t") else False,
         s_entity=args.entity,
         init_mode=args.init_mode,
+        proportion=int(args.proportion),
     )
