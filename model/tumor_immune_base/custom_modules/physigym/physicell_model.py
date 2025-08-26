@@ -299,7 +299,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         self.nb_cell_2 = df_alive.loc[(df_alive.type == "cell_2"), :].shape[0]
 
         # observe the environemnt
-        if self.kwargs["observation_mode"] == "scalars":
+        if self.kwargs["observation_mode"] == "scalars_cells":
             a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=np.float32)
             for s_cell_type, i_id in self.cell_type_to_id.items():
                 a_norm_cell_count[i_id] = (
@@ -312,7 +312,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 )
             o_observation = a_norm_cell_count
 
-        elif self.kwargs["observation_mode"] == "substrates":
+        elif self.kwargs["observation_mode"] == "scalars_substrates":
             o_observation = np.zeros((self.substrate_count,), dtype=np.float32)
             for i, s_subs in enumerate(self.substrate_unique):
                 # assuming last column is substrate value
@@ -320,7 +320,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     physicell.get_microenv(s_subs), columns=["x", "y", "z", s_subs]
                 )[s_subs].max()
 
-        elif self.kwargs["observation_mode"] == "scalars_substrates":
+        elif self.kwargs["observation_mode"] == "scalars_cells_substrates":
             a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=np.float32)
             for s_cell_type, i_id in self.cell_type_to_id.items():
                 a_norm_cell_count[i_id] = (
@@ -351,11 +351,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             o_observation = ski.util.img_as_ubyte(a_img)
 
         elif self.kwargs["observation_mode"] in [
-            "img_mc",
+            "img_mc_cells",
             "img_mc_substrates",
-            "img_substrates",
+            "img_mc_cells_substrates",
         ]:
-            if self.kwargs["observation_mode"] in ["img_mc", "img_mc_substrates"]:
+            if self.kwargs["observation_mode"] in [
+                "img_mc_cells",
+                "img_mc_cells_substrates",
+            ]:
                 # get cell_type indices
                 cell_type_indices = (
                     df_alive["type"].map(self.cell_type_to_id).to_numpy()
@@ -391,7 +394,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     (cell_type_indices, x_bin, y_bin),
                     1,
                 )
-                if self.kwargs["observation_mode"] == "img_mc":
+                if self.kwargs["observation_mode"] == "img_mc_cells":
                     # output
                     o_observation = ski.util.img_as_ubyte(
                         image / (self.ratio_img_mc_size_x * self.ratio_img_mc_size_y)
@@ -402,8 +405,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     )
 
             if self.kwargs["observation_mode"] in [
+                "img_mc_cells_substrates",
                 "img_mc_substrates",
-                "img_substrates",
             ]:
                 self.df_subs = None
                 for s_subs in self.substrate_unique:
@@ -459,7 +462,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 scales = np.where((max_vals - min_vals) > 0, max_vals - min_vals, 1)
                 img_mc_substrates = ski.util.img_as_ubyte(((image - min_vals) / scales))
 
-                if self.kwargs["observation_mode"] == "img_substrates":
+                if self.kwargs["observation_mode"] == "img_mc_substrates":
                     o_observation = img_mc_substrates
                 else:
                     o_observation = np.concatenate([img_mc_cells, img_mc_substrates])
