@@ -505,6 +505,8 @@ def run(
     b_wandb=False,  # bool: track with wandb, if false local tensorboard
     s_entity="corporate-manu-sureli",  # name of your project in wandb
     init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)
+    tumor=512,
+    cell_1=128,
     proportion=0.5,  # proportion of cell_1 into cell_2
 ):
     d_arg_run = {
@@ -545,7 +547,7 @@ def run(
         "img_rgb_grid_size_y": 64,  # pixel size
         "img_mc_grid_size_x": 64,  # pixel size
         "img_mc_grid_size_y": 64,  # pixel size
-        "normalization_factor": 512,  # normalization factor
+        "normalization_factor": tumor,  # normalization factor
     }
     d_arg_physigym_wrapper = {
         "list_variable_name": ["drug_1"],  # list of str: of action varaible names
@@ -556,7 +558,7 @@ def run(
     d_arg_rl = {
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
-        "batch_size": 16,  # int: the batch size of sample from the replay memory
+        "batch_size": 128,  # int: the batch size of sample from the replay memory
         "learning_starts": 21900,  # 20[years] float: timestep to start learning (25e3)
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
@@ -641,8 +643,8 @@ def run(
         "x_max": env.unwrapped.x_max,
         "y_min": env.unwrapped.y_min,
         "y_max": env.unwrapped.y_max,
-        "n_tumor": 512,  # number of tumor cells for the initial state
-        "n_cell_1": 128,  # number of cell 1 for the initial state
+        "n_tumor": tumor,  # number of tumor cells for the initial state
+        "n_cell_1": cell_1,  # number of cell 1 for the initial state
         "range_jitter_tumor": (
             5,
             15,
@@ -1074,6 +1076,12 @@ if __name__ == "__main__":
         help="type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)",
     )
     parser.add_argument(
+        "--tumor", type=int, nargs="?", default=512, help="number of tumor cells"
+    )
+    parser.add_argument(
+        "--cell_1", type=int, nargs="?", default=128, help="number of tumor cell_1"
+    )
+    parser.add_argument(
         "--proportion",
         type=int,
         nargs="?",
@@ -1099,5 +1107,7 @@ if __name__ == "__main__":
         b_wandb=True if args.wandb.lower().startswith("t") else False,
         s_entity=args.entity,
         init_mode=args.init_mode,
+        tumor=int(args.tumor),
+        cell_1=int(args.cell_1),
         proportion=int(args.proportion),
     )

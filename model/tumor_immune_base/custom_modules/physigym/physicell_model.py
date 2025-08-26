@@ -604,7 +604,20 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        return (self.c_prev - self.c_t) / np.log(self.kwargs["normalization_factor"])
+        if self.c_prev > 0:
+            r_reward_tumor = (self.c_prev - self.c_t) / (
+                self.c_prev
+                * np.e
+                ** (
+                    physicell.get_parameter("growth_rate")
+                    * physicell.get_parameter("dt_gym")
+                )
+                - self.c_prev
+            )
+            r_reward_tumor = np.clip(r_reward_tumor, -1, 1)
+        else:
+            r_reward_tumor = None
+        return r_reward_tumor
 
     def get_img(self):
         """
