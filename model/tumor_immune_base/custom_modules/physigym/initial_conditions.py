@@ -113,9 +113,10 @@ def create_csv(
         raise ValueError("Problem with mode")
     if init_mode == "robust":
         init_mode = random.choice(["circular_mode", "random_mode", "hex_mode"])
-
     proportion = (
-        np.random.choice(proportion) if hasattr(proportion, list) else proportion
+        np.random.choice(proportion)
+        if isinstance(proportion, (list, np.ndarray))
+        else proportion
     )
     if init_mode == "circular_mode":
         jitter_tumor = random.randint(*range_jitter_tumor)
@@ -274,17 +275,47 @@ def generate_cell_positions(
     return pd.concat([tumor_df, other_df, cell1_df], ignore_index=True)
 
 
+def generate_plot(df, path_title):
+    fig, ax = plt.subplots(figsize=(8, 8))
+    for t, c in zip(
+        ["tumor", "other_tissue", "cell_1", "cell_2"],
+        ["green", "orange", "blue", "red"],
+    ):
+        subset = df[df["type"] == t]
+        print(t)
+        ax.scatter(subset.x, subset.y, s=20, c=c, label=t, alpha=0.8)
+    ax.set_aspect("equal")
+    ax.set_title("Cell positions (2D)")
+    ax.legend()
+    plt.savefig(path_title, dpi=300)
+    plt.close()
+
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
 
     df = generate_cell_positions()
 
-    fig, ax = plt.subplots(figsize=(8, 8))
-    for t, c in zip(["tumor", "other_tissue", "cell_1"], ["green", "orange", "blue"]):
-        subset = df[df["type"] == t]
-        ax.scatter(subset.x, subset.y, s=20, c=c, label=t, alpha=0.8)
-    ax.set_aspect("equal")
-    ax.set_title("Cell positions (2D)")
-    ax.legend()
-    plt.savefig("cells.png", dpi=300)
-    plt.close()
+    import os
+
+    os.makedirs("./config_2", exist_ok=True)
+    for i in range(10):
+        create_csv(
+            x_min=-512,
+            x_max=512,
+            y_min=-512,
+            y_max=512,
+            n_tumor=1024,
+            n_cell_1=128,
+            range_jitter_tumor=[5, 15],
+            range_cell_1=[5, 10],
+            range_r2_frac_tumor=[0.1, 0.4],
+            range_frac_cell_1=[0.1, 0.4],
+            range_r1=[0.1, 0.4],
+            range_cell_dist=[1.5, 2.0],
+            csv_path=f"./config_2/df_{i}.csv",
+            proportion=0.3,
+            init_mode="robust",
+        )
+        df = pd.read_csv(f"./config_2/df_{i}.csv")
+        generate_plot(df, f"./config_2/cells_{i}")
