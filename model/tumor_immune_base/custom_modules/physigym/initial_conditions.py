@@ -104,7 +104,7 @@ def create_csv(
     range_frac_cell_1: list,
     range_r1: list,
     range_cell_dist: list,
-    proportion: Union[list, float],
+    cell_2_fraction: Union[list, float],
     csv_path: str,
     init_mode: str,
     **kwargs,
@@ -113,10 +113,10 @@ def create_csv(
         raise ValueError("Problem with mode")
     if init_mode == "robust":
         init_mode = random.choice(["circular_mode", "random_mode", "hex_mode"])
-    proportion = (
-        np.random.choice(proportion)
-        if isinstance(proportion, (list, np.ndarray))
-        else proportion
+    cell_2_fraction = (
+        np.random.choice(cell_2_fraction)
+        if isinstance(cell_2_fraction, (list, np.ndarray))
+        else cell_2_fraction
     )
     if init_mode == "circular_mode":
         jitter_tumor = random.randint(*range_jitter_tumor)
@@ -185,7 +185,7 @@ def create_csv(
     cell1_indices = df[mask].index
 
     # Randomly select 50% of them
-    n_to_change = int(proportion * len(cell1_indices))
+    n_to_change = int(cell_2_fraction * len(cell1_indices))
     indices_to_change = np.random.choice(cell1_indices, n_to_change, replace=False)
 
     # Change type to "cell_2"
@@ -314,7 +314,7 @@ if __name__ == "__main__":
             range_r1=[0.1, 0.4],
             range_cell_dist=[1.5, 2.0],
             csv_path=f"./config_2/df_{i}.csv",
-            proportion=0.3,
+            cell_2_fraction=0.3,
             init_mode="robust",
         )
         df = pd.read_csv(f"./config_2/df_{i}.csv")
