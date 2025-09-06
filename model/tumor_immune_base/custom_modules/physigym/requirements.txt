@@ -3,8 +3,7 @@ imageio[ffmpeg]
 numpy
 tensorboard
 tensordict
-tysserand
-wandb
 torch_geometric
-tensorboard
+tysserand
 scikit-image
+wandb

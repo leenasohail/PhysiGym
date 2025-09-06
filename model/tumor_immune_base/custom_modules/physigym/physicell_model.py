@@ -78,6 +78,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         img_mc_grid_size_y=64,  # pixel
         normalization_factor=512,
     ):
+
+        # check observation mode
         if observation_mode not in [
             "scalars_cells",
             "scalars_substrates",
@@ -86,15 +88,15 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "img_mc_substrates",
             "img_mc_cells_substrates",
             "img_rgb",
-            "delaunay_graph",
-            "neighbor_graph",
+            "graph_delaunay",
+            "graph_neighbor",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
-        # check redner mode
+
+        # check render mode
         if observation_mode == "img_rgb" and render_mode == None:
-            raise ValueError(
-                f"If observation_mode is img_rgb the render_mode can not be None. try: {self.metadata['render_modes']}."
-            )
+            render_mode = "rgb_array"
+
         # call super class init
         super().__init__(
             settingxml=settingxml,
@@ -237,14 +239,14 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     ),
                     dtype=np.uint8,
                 )
-        elif self.kwargs["observation_mode"] == "delaunay_graph":
+        elif self.kwargs["observation_mode"] == "graph_delaunay":
             node_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             edge_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             o_observation_space = spaces.Graph(
                 node_space=node_space, edge_space=edge_space
             )
 
-        elif self.kwargs["observation_mode"] == "neighbor_graph":
+        elif self.kwargs["observation_mode"] == "graph_neighbor":
             node_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             edge_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
             o_observation_space = spaces.Graph(
@@ -467,7 +469,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 else:
                     o_observation = np.concatenate([img_mc_cells, img_mc_substrates])
 
-        elif self.kwargs["observation_mode"] == "delaunay_graph":
+        elif self.kwargs["observation_mode"] == "graph_delaunay":
             df_alive.set_index("ID", inplace=True)
             coords = df_alive.loc[:, ["x", "y"]].values
             pairs = ty.build_delaunay(coords)
@@ -485,7 +487,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     / (np.max([self.width, self.height, self.depth]))
                 )[:, np.newaxis],
             )
-        elif self.kwargs["observation_mode"] == "neighbor_graph":
+        elif self.kwargs["observation_mode"] == "graph_neighbor":
             df_alive.set_index("ID", inplace=True)
             coords = df_alive.loc[:, ["x", "y"]].values
             edge_links = np.array(physicell.get_graph("neighbor"))

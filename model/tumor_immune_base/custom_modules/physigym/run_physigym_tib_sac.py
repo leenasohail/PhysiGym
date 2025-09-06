@@ -25,7 +25,6 @@ import time
 
 # Non-standard Python Libraries
 import matplotlib
-
 matplotlib.use("agg")  # set the plotting backend e.g. agg qtagg
 import numpy as np
 import pandas as pd
@@ -47,15 +46,16 @@ from torch.utils import tensorboard
 from torch_geometric.nn import GATConv, global_mean_pool
 from torch_geometric.data import Data, Batch
 
-from .initial_conditions import create_csv
+# additional model related code
+from initial_conditions import create_csv
 
 # Tracking
 import wandb
 
 
-################################
-# Class PhysiCellModel Wrapper #
-################################
+##################################
+# Classes PhysiCellModel Wrapper #
+##################################
 
 
 class PhysiCellModelWrapper(gym.Wrapper):
@@ -135,9 +135,9 @@ class PhysiCellModelWrapper(gym.Wrapper):
         return o_observation, r_reward, b_terminated, b_truncated, info
 
 
-#########################
-# Class Neural Networks #
-#########################
+###########################
+# Classes Neural Networks #
+###########################
 
 
 class PixelPreprocess(nn.Module):
@@ -343,9 +343,9 @@ class Actor(nn.Module):
         return action, log_prob, mean
 
 
-#### Replay Buffers ####
-#
-####
+##########################
+# Classes Replay Buffers #
+##########################
 
 
 class ReplayBuffer:
@@ -484,16 +484,16 @@ class ReplayBuffer:
             }
 
 
-#### Algorithm Logic ####
-#
+###################
+# Algorithm Logic #
+###################
 # description:
 #   The code is mainly inspired from:
 #   https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
-####
 
 
 def run(
-    s_settingxml="config/PhysiCell_settings.xml",  # min xpath
+    s_settingxml="config/PhysiCell_settings.xml",  # xpath
     i_seed=int(1),  # int or none: seed of the experiment
     s_observation_mode="scalars_cells",  # str: observation mode
     s_render_mode=None,  # render is none or rgb_array or human
@@ -504,10 +504,10 @@ def run(
     s_name="sac",  # str: the name of this experiment
     b_wandb=False,  # bool: track with wandb, if false local tensorboard
     s_entity="corporate-manu-sureli",  # name of your project in wandb
-    init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)
-    tumor=512,
-    cell_1=128,
-    proportion=0.5,  # proportion of cell_1 into cell_2
+    s_init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust (combine previous three modes)
+    i_tumor=512,
+    i_cell_1=128,
+    r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
 ):
     d_arg_run = {
         # basics
@@ -524,7 +524,7 @@ def run(
     # wandb
     d_arg_wandb = {
         "entity": s_entity,  # str: the wandb s entity name
-        "project": "SAC_IMAGE_TIB",  # str: the wandb s project name
+        "project": "SAC_IMAGE_TIB2",  # str: the wandb s project name
         "sync_tensorboard": True,
         "monitor_gym": True,
         "save_code": True,
@@ -540,14 +540,14 @@ def run(
             "cell_2": "navy",
         },  # viridis
         "figsize": (6, 6),
-        "observation_mode": s_observation_mode,  # str: scalars , img_rgb , img_mc, neighbor_graph, delaunay_graph
+        "observation_mode": s_observation_mode,  # str: scalars , img_rgb , img_mc, graph_neighbor, graph_delaunay
         "render_mode": s_render_mode,  # human, rgb_array
         "verbose": False,
         "img_rgb_grid_size_x": 64,  # pixel size
         "img_rgb_grid_size_y": 64,  # pixel size
         "img_mc_grid_size_x": 64,  # pixel size
         "img_mc_grid_size_y": 64,  # pixel size
-        "normalization_factor": tumor,  # normalization factor
+        "normalization_factor": i_tumor,  # normalization factor
     }
     d_arg_physigym_wrapper = {
         "list_variable_name": ["drug_1"],  # list of str: of action varaible names
@@ -589,7 +589,9 @@ def run(
         )
 
     # initialize tracking
-    s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_mode']}_weight_{d_arg['weight']}_time_{int(time.time())}"
+    # bue 20250903: s_run label changed to bigred200 run.
+    #s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_mode']}_weight_{d_arg['weight']}_time_{int(time.time())}"
+    s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observation_mode_{d_arg['observation_mode']}_init_mode_{s_init_mode}_cell_2_fraction_{r_cell_2_fraction}_weight_{d_arg['weight']}_time_{int(time.time())}"
     if d_arg["wandb_track"]:
         print("tracking: wandb ...")
         run = wandb.init(name=s_run, config=d_arg, **d_arg_wandb)
@@ -643,8 +645,8 @@ def run(
         "x_max": env.unwrapped.x_max,
         "y_min": env.unwrapped.y_min,
         "y_max": env.unwrapped.y_max,
-        "n_tumor": tumor,  # number of tumor cells for the initial state
-        "n_cell_1": cell_1,  # number of cell 1 for the initial state
+        "n_tumor": i_tumor,  # number of tumor cells for the initial state
+        "n_cell_1": i_cell_1,  # number of cell 1 for the initial state
         "range_jitter_tumor": (
             5,
             15,
@@ -677,8 +679,8 @@ def run(
             .xpath("//initial_conditions/cell_positions/filename")[0]
             .text,
         ),
-        "init_mode": init_mode,
-        "proportion": proportion,
+        "init_mode": s_init_mode,
+        "cell_2_fraction": r_cell_2_fraction,
     }
     d_arg.update(d_arg_generation)
     # initialize neural networks
@@ -913,7 +915,7 @@ def run(
             o_observation = o_observation_next
 
             # recording step to tensorboard
-            """
+            '''
             scalars = {
                 "env/drug_1": a_action[0],
                 "env/reward_value": r_reward,
@@ -928,7 +930,7 @@ def run(
             else:
                 for tag, value in scalars.items():
                     writer.add_scalar(tag, value, env.unwrapped.step_env)
-            """
+            '''
             # record step to csv
             d_data = {
                 "step": env.unwrapped.step_episode,
@@ -983,7 +985,7 @@ if __name__ == "__main__":
 
     # settingxml file
     parser.add_argument(
-        "settingxml",
+        "--settingxml",
         # type = str,
         nargs="?",
         default="config/PhysiCell_settings.xml",
@@ -992,9 +994,9 @@ if __name__ == "__main__":
     # seed
     parser.add_argument(
         "--seed",
-        type=int,
+        # type = str,
         nargs="?",
-        default=None,
+        default="none",
         help="set options random_seed in the settings.xml file and python.",
     )
     # observation_mode
@@ -1076,17 +1078,25 @@ if __name__ == "__main__":
         help="type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)",
     )
     parser.add_argument(
-        "--tumor", type=int, nargs="?", default=512, help="number of tumor cells"
-    )
-    parser.add_argument(
-        "--cell_1", type=int, nargs="?", default=128, help="number of tumor cell_1"
-    )
-    parser.add_argument(
-        "--proportion",
+        "--tumor",
         type=int,
         nargs="?",
+        default=512,
+        help="number of tumor cells",
+    )
+    parser.add_argument(
+        "--cell_1",
+        type=int,
+        nargs="?",
+        default=128,
+        help="number of tumor cell_1",
+    )
+    parser.add_argument(
+        "--cell_2_fraction",
+        type=float,
+        nargs="?",
         default=0.5,
-        help="proportion of cell_1 into cell_2 ie 0.5 means 50%",
+        help="fraction of cell_1 into cell_2 ie 0.5 means 50%",
     )
 
     # parse arguments
@@ -1096,18 +1106,18 @@ if __name__ == "__main__":
     # processing
     run(
         s_settingxml=args.settingxml,
-        i_seed=args.seed,
+        i_seed=None if args.seed.lower() == "none" else int(args.seed),
         s_observation_mode=args.observation_mode,
         s_render_mode=None if args.render_mode.lower() == "none" else args.render_mode,
-        r_max_time_episode=float(args.max_time_episode),
-        i_total_step_learn=int(args.total_step_learn),
+        r_max_time_episode=args.max_time_episode,
+        i_total_step_learn=args.total_step_learn,
         i_thread=args.thread,
         b_gpu=True if args.gpu.lower().startswith("t") else False,
         s_name=args.name,
         b_wandb=True if args.wandb.lower().startswith("t") else False,
         s_entity=args.entity,
-        init_mode=args.init_mode,
-        tumor=int(args.tumor),
-        cell_1=int(args.cell_1),
-        proportion=int(args.proportion),
+        s_init_mode=args.init_mode,
+        i_tumor=args.tumor,
+        i_cell_1=args.cell_1,
+        r_cell_2_fraction=args.cell_2_fraction,
     )
