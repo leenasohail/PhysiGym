@@ -78,7 +78,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         img_mc_grid_size_y=64,  # pixel
         normalization_factor=512,
     ):
-
         # check observation mode
         if observation_mode not in [
             "scalars_cells",
@@ -482,10 +481,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     / (self.cell_type_count)
                 )[:, np.newaxis],
                 edge_links=pairs,
-                edges=(
-                    np.array(distances, dtype=np.float32)
-                    / (np.max([self.width, self.height, self.depth]))
-                )[:, np.newaxis],
+                edges=np.array(
+                    (distances / (np.max([self.width, self.height, self.depth])))[
+                        :, np.newaxis
+                    ],
+                    dtype=np.float32,
+                ),
             )
         elif self.kwargs["observation_mode"] == "graph_neighbor":
             df_alive.set_index("ID", inplace=True)
@@ -515,10 +516,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     / (self.cell_type_count)
                 )[:, np.newaxis],
                 edge_links=edge_links,
-                edges=(
-                    np.array(distances, dtype=np.float32)
-                    / (np.max([self.width, self.height, self.depth]))
-                )[:, np.newaxis],
+                edges=np.array(
+                    (distances / (np.max([self.width, self.height, self.depth])))[
+                        :, np.newaxis
+                    ],
+                    dtype=np.float32,
+                ),
             )
 
         else:
