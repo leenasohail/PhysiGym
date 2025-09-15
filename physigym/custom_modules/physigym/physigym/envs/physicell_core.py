@@ -631,7 +631,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                     # error
                     except KeyError:
                         sys.exit(
-                            f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium discrete action space value detected! {s_action} {o_value} {type(o_value)}."
+                            f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium discrete action space value detected! {s_action} {o_value} {type(o_value)}.\nIn the PhysiCell_setting.xml, have you specified a {s_action} parameter, custom_variable, or custom_vector?"
                         )
 
             # gymnasium action space text (string)
@@ -647,7 +647,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                     # error
                     except KeyError:
                         sys.exit(
-                            f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium text action space value detected! {s_action} {o_value} {type(o_value)}."
+                            f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium text action space value detected! {s_action} {o_value} {type(o_value)}.\nIn the PhysiCell_setting.xml, have you specified a {s_action} parameter, custom_variable, or custom_vector?"
                         )
 
             # gymnasium action space box (bool, int, float in a numpy array)
@@ -671,7 +671,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                         # error
                         except KeyError:
                             sys.exit(
-                                f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium box action space value detected! {s_action} {o_value} {type(o_value)}."
+                                f"Error @ physigym.envs.physicell_core.CorePhysiCellEnv : unprocessable Gymnasium box action space value detected! {s_action} {o_value} {type(o_value)}.\nIn the PhysiCell_setting.xml, have you specified a {s_action} parameter, custom_variable, or custom_vector?"
                             )
 
             # error

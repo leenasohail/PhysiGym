@@ -577,7 +577,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             truncated (the episode reached the max time limit).
         """
         # model dependent terminated processing logic goes here!
-        return True if self.c_t == 0 else False
+        return True if (self.c_t == 0) or (self.c_t > 2**12) else False
 
     def get_reset_values(self):
         """
@@ -612,19 +612,16 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        if self.c_prev > 0:
-            r_reward_tumor = (self.c_prev - self.c_t) / (
-                self.c_prev
-                * np.e
-                ** (
-                    physicell.get_parameter("growth_rate")
-                    * physicell.get_parameter("dt_gym")
-                )
-                - self.c_prev
+        r_reward_tumor = (self.c_prev - self.c_t) / (
+            self.c_prev
+            * np.e
+            ** (
+                physicell.get_parameter("growth_rate")
+                * physicell.get_parameter("dt_gym")
             )
-            r_reward_tumor = np.clip(r_reward_tumor, -1, 1)
-        else:
-            r_reward_tumor = None
+            - self.c_prev
+        )
+        r_reward_tumor = np.clip(r_reward_tumor, -1, 1)
         return r_reward_tumor
 
     def get_img(self):
