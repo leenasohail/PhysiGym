@@ -25,7 +25,8 @@ endif
 
 ARCH := native
 
-CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+#CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
+CFLAGS := -march=$(ARCH) -ggdb2 -O3 -fomit-frame-pointer -mfpmath=both -fopenmp -m64 -std=c++11
 
 ifeq ($(OS),Windows_NT)
 	UNAME_S := Windows_NT
@@ -36,6 +37,7 @@ else
 		var := $(shell which $(CC) | xargs file)
 		ifeq ($(lastword $(var)),arm64)
 			CFLAGS := -march=$(ARCH) -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11
+			#CFLAGS := -march=$(ARCH) -ggdb2 -O3 -fomit-frame-pointer -fopenmp -m64 -std=c++11
 		endif
 	endif
 endif
