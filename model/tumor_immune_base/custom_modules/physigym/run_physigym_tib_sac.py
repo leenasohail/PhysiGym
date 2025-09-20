@@ -524,7 +524,7 @@ def run(
     # wandb
     d_arg_wandb = {
         "entity": s_entity,  # str: the wandb s entity name
-        "project": "SAC_IMAGE_TIB2",  # str: the wandb s project name
+        "project": "SAC_TIB_060MIN",  # str: the wandb s project name
         "sync_tensorboard": True,
         "monitor_gym": True,
         "save_code": True,
