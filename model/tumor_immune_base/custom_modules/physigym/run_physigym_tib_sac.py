@@ -53,6 +53,15 @@ from initial_conditions import create_csv
 import wandb
 
 
+import json
+import hashlib
+
+def dict_hash(d: dict) -> str:
+    # Convert dict to JSON string with sorted keys
+    dict_str = json.dumps(d, sort_keys=True)
+    # Compute SHA256 hash
+    return hashlib.sha256(dict_str.encode()).hexdigest()
+
 ##################################
 # Classes PhysiCellModel Wrapper #
 ##################################
@@ -684,8 +693,8 @@ def run(
     )[0].text
 
     d_arg.update(d_arg_generation)
-
-    initial_conditions_path = os.path.join(cell_positions_folder, "initial_conditions")
+    str_hash = dict_hash(d_arg)
+    initial_conditions_path = os.path.join(cell_positions_folder, f"initial_conditions_{str_hash}")
 
     if d_arg_generation["pre_generation"]:
         # Remove old folder if exists
@@ -773,13 +782,15 @@ def run(
         r_discounted_cumulative_return = 0
         if d_arg_generation["pre_generation"]:
             chosen_csv = random.choice(csv_files)
-            # Full paths
-            src_path = os.path.join(initial_conditions_path, chosen_csv)
-            dst_path = os.path.join(cell_positions_folder, cell_name_file)
-
-            # Copy + rename
-            shutil.copy(src_path, dst_path)
+            env.get_wrapper_attr("x_root").xpath(
+            "//initial_conditions/cell_positions/folder"
+            )[0].text = initial_conditions_path
+            env.get_wrapper_attr("x_root").xpath(
+                "//initial_conditions/cell_positions/filename"
+            )[0].text = chosen_csv
             b_episode_over = False
+            o_observation, d_info = env.reset(seed=d_arg["seed"])
+
         else:
             create_csv(**d_arg_generation)  # allow to generate new csv file
             try:
