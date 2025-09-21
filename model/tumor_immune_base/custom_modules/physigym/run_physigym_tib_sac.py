@@ -508,6 +508,7 @@ def run(
     i_tumor=512,
     i_cell_1=128,
     r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
+    pre_generation=True,
 ):
     d_arg_run = {
         # basics
@@ -671,18 +672,40 @@ def run(
             1.5,
             2.0,
         ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
-        "csv_path": os.path.join(
-            env.get_wrapper_attr("x_root")
-            .xpath("//initial_conditions/cell_positions/folder")[0]
-            .text,
-            env.get_wrapper_attr("x_root")
-            .xpath("//initial_conditions/cell_positions/filename")[0]
-            .text,
-        ),
         "init_mode": s_init_mode,
         "cell_2_fraction": r_cell_2_fraction,
+        "pre_generation": pre_generation,
     }
+    cell_positions_folder = env.get_wrapper_attr("x_root").xpath(
+        "//initial_conditions/cell_positions/folder"
+    )[0].text
+    cell_name_file = env.get_wrapper_attr("x_root").xpath(
+        "//initial_conditions/cell_positions/filename"
+    )[0].text
+
     d_arg.update(d_arg_generation)
+
+    initial_conditions_path = os.path.join(cell_positions_folder, "initial_conditions")
+
+    if d_arg_generation["pre_generation"]:
+        # Remove old folder if exists
+        if os.path.exists(initial_conditions_path):
+            shutil.rmtree(initial_conditions_path)
+        os.makedirs(initial_conditions_path, exist_ok=True)
+
+        # Assuming you want to generate multiple CSVs
+        for i in range(d_arg_generation.get("number_of_initial_states", 100)):  
+            d_arg_generation["csv_path"] = os.path.join(
+                initial_conditions_path, f"{i}_{cell_name_file}"
+            )
+            create_csv(**d_arg_generation)
+        csv_files = [f for f in os.listdir(initial_conditions_path) if f.endswith(".csv")]
+
+    else:
+        d_arg_generation["csv_path"] = os.path.join(
+            cell_positions_folder, cell_name_file
+        )
+        
     # initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     actor = Actor(env).to(o_device)
@@ -748,11 +771,23 @@ def run(
         # reset gymnasium env
         r_cumulative_return = 0
         r_discounted_cumulative_return = 0
-        create_csv(**d_arg_generation)  # allow to generate new csv file
-        o_observation, d_info = env.reset(seed=d_arg["seed"])
+        if d_arg_generation["pre_generation"]:
+            chosen_csv = random.choice(csv_files)
+            # Full paths
+            src_path = os.path.join(initial_conditions_path, chosen_csv)
+            dst_path = os.path.join(cell_positions_folder, cell_name_file)
 
-        # time step loop
-        b_episode_over = False
+            # Copy + rename
+            shutil.copy(src_path, dst_path)
+        else:
+            create_csv(**d_arg_generation)  # allow to generate new csv file
+            try:
+                o_observation, d_info = env.reset(seed=d_arg["seed"])
+                # time step loop
+                b_episode_over = False
+            except:
+                b_episode_over = True
+                print("Problem with the seeding, Relanunch a new generation")
         while not b_episode_over:
             # sample the action space or learn
             if env.unwrapped.step_env <= d_arg["learning_starts"]:
@@ -1099,6 +1134,14 @@ if __name__ == "__main__":
         help="fraction of cell_1 into cell_2 ie 0.5 means 50%",
     )
 
+    parser.add_argument(
+        "--pre_generation",
+        nargs="?",
+        default="true",
+        help="if the initial conditions are pre-generated"
+
+    )
+
     # parse arguments
     args = parser.parse_args()
     print(args)
@@ -1120,4 +1163,5 @@ if __name__ == "__main__":
         i_tumor=args.tumor,
         i_cell_1=args.cell_1,
         r_cell_2_fraction=args.cell_2_fraction,
+        pre_generation=True if args.pre_generation.lower().startswith("t") else False,
     )
