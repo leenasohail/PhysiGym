@@ -779,6 +779,7 @@ def run(
 
             # Copy + rename
             shutil.copy(src_path, dst_path)
+            b_episode_over = False
         else:
             create_csv(**d_arg_generation)  # allow to generate new csv file
             try:
