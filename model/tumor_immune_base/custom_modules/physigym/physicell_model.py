@@ -191,6 +191,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 low=0,
                 high=255,
                 shape=(
+                    1,
                     self.kwargs["img_rgb_grid_size_y"],
                     self.kwargs["img_rgb_grid_size_x"],
                 ),
@@ -349,7 +350,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 ),
                 anti_aliasing=True,
             )
-            o_observation = ski.util.img_as_ubyte(a_img)
+            o_observation = np.expand_dims(ski.util.img_as_ubyte(a_img), axis=0) 
 
         elif self.kwargs["observation_mode"] in [
             "img_mc_cells",
