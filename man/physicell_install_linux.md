@@ -75,10 +75,10 @@ sudo apt install qtbase5-dev
 
 ### &#x2728; Install Python (required by PhysiCell-Studio and PhysiCell Data Loader):
 
-Python is most probably already installed, but pip might be missing (required by PhysiCell-Studio and pcdl).
+Python is most probably already installed, but pip and venv might be missing (required to install PhysiCell-Studio and pcdl).
 
 ```bash
-sudo apt install python3-pip
+sudo apt install python3-pip python3-venv
 ```
 
 
@@ -115,10 +115,10 @@ fi
 Run this code line by line.
 
 ```bash
-make data-cleanup clean reset
+cd ~/src/PhysiCell
 ```
 ```bash
-cd ~/src/PhysiCell
+make data-cleanup clean reset
 ```
 ```bash
 make template
