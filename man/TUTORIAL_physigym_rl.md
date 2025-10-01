@@ -35,7 +35,7 @@ python3 install_physigym.py tumor_immune_base -f
 
 ```bash
 cd ../PhysiCell
-make clean data-cleanup reset
+make clean data-cleanup reset  # ./config/PhysiCell_settings-backup.xml related Error can be ignored!
 make list-user-projects
 make load PROJ=physigym_tumor_immune_base
 ```

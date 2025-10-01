@@ -21,7 +21,7 @@ python3 install_physigym.py template
 This will install two Python modules, the first one named `extending`, the second one named `physigym`.
 ```bash
 cd ../PhysiCell
-make clean data-cleanup reset
+make clean data-cleanup reset  # ./config/PhysiCell_settings-backup.xml related Error can be ignored!
 make list-user-projects
 make load PROJ=physigym_template
 make install-requirement  # only the first time needed to install the physigym python3 dependencies

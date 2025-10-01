@@ -55,7 +55,7 @@ For this tutorial, we assume you have additionally [PhysiCell Studio](https://gi
 0.1 Load a fresh [template](https://github.com/Dante-Berth/PhysiGym/tree/main/model/template) model.
 
 ```bash
-make data-cleanup clean reset
+make data-cleanup clean reset  # ./config/PhysiCell_settings-backup.xml related Error can be ignored!
 make list-user-projects
 make load PROJ=physigym_template
 ```
@@ -524,7 +524,7 @@ python3 install_physigym.py episode
 ```
 ```bash
 cd ../PhysiCell
-make clean data-cleanup reset
+make clean data-cleanup reset  # ./config/PhysiCell_settings-backup.xml related Error can be ignored!
 make list-user-projects
 make load PROJ=physigym_episode
 ```
