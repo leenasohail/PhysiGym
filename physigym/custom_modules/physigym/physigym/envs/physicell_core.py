@@ -25,8 +25,9 @@ import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
 import os
-import skimage as ski
+#import shutil
 import sys
+import time
 
 
 # global variable
@@ -454,7 +455,12 @@ class CorePhysiCellEnv(gymnasium.Env):
             self.x_root.xpath("//random_seed")[0].text = str(i_seed)
 
         # rewrite setting xml file
+        i_size = os.path.getsize(self.settingxml)
         self.x_tree.write(self.settingxml, pretty_print=True)
+        time.sleep(1)
+        while os.path.getsize(self.settingxml) != i_size:
+            i_size = os.path.getsize(self.settingxml)
+            time.sleep(1)
 
         # seed self.np_random number generator
         super().reset(seed=i_seed)
@@ -719,6 +725,8 @@ class CorePhysiCellEnv(gymnasium.Env):
                     f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
                 )
             physicell.stop()
+            #s_backupxml = self.settingxml.replace(".xml",f"_{int(time.time())}.xml")
+            #shutil.copy2(self.settingxml, s_backupxml)
 
         # output
         if self.verbose:
