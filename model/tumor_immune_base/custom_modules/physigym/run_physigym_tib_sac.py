@@ -517,7 +517,7 @@ def run(
     i_tumor=512,
     i_cell_1=128,
     r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
-    pre_generation=True,
+    pre_generation=False,
 ):
     d_arg_run = {
         # basics
