@@ -65,7 +65,7 @@ May the force be with you!
 
 # Discussion:
 
-Check out our pre-print at bioRxiv.
+Check out our preprint at bioRxiv.
 + https://doi.org/10.1101/2025.09.18.677030
 
 
