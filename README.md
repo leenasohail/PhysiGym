@@ -62,9 +62,11 @@ May the force be with you!
 + [reference manual](https://github.com/Dante-Berth/PhysiGym/blob/main/man/REFERENCE.md)
 + [class ModelPhysiCellEnv gymnasium environment structure](https://github.com/Dante-Berth/PhysiGym/blob/main/man/ModelPhysiCellEnv_struct.md)
 
+
 # Discussion:
 
-To be developed.
+Check out our preprint at bioRxiv.
++ https://doi.org/10.1101/2025.09.18.677030
 
 
 # About Documentation:
@@ -82,7 +84,7 @@ If you like to contribute to the software with models or rl algorithms, please m
 
 # Funding:
 
-This material is based upon research supported by the [Chateaubriand Fellowship](https://chateaubriand-fellowship.org/) from the Office for Science & Technology from the Embassy of France in the United States, the [Occitanie Region Toulouse](https://www.laregion.fr/), France, and [Inserm](https://www.inserm.fr/en/home/), France.
+This material is based upon research supported by the [Chateaubriand Fellowship](https://chateaubriand-fellowship.org/) from the Office for Science & Technology from the Embassy of France in the United States, the [Occitanie Region Toulouse](https://www.laregion.fr/), France, and [Inserm](https://www.inserm.fr/en/home/), France. This research was also supported in part by Lilly Endowment, Inc., through its support for the [Indiana University Pervasive Technology Institute](https://pti.iu.edu/).
 
 
 # Cite:
