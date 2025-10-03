@@ -9,6 +9,7 @@ git push --tag
 
 ![physigym logo & title](man/img/logo/physigym_title_v0.0.0.png)
 
+PhysiGym is still BETA!
 
 # Header:
 
@@ -95,6 +96,7 @@ To be BibTeX.
 # Road Map:
 
 + Add more models and rl algorithm.
++ Vectorize the physigym environment with the python multiprocessing library, taking inspiration from the stable-baseline3 SubprocVecEnv. 
 
 
 # Release Notes:
