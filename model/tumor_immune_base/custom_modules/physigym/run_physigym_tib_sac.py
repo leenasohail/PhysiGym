@@ -25,6 +25,7 @@ import time
 
 # Non-standard Python Libraries
 import matplotlib
+
 matplotlib.use("agg")  # set the plotting backend e.g. agg qtagg
 import numpy as np
 import pandas as pd
@@ -56,11 +57,13 @@ import wandb
 import json
 import hashlib
 
+
 def dict_hash(d: dict) -> str:
     # Convert dict to JSON string with sorted keys
     dict_str = json.dumps(d, sort_keys=True)
     # Compute SHA256 hash
     return hashlib.sha256(dict_str.encode()).hexdigest()
+
 
 ##################################
 # Classes PhysiCellModel Wrapper #
@@ -517,7 +520,7 @@ def run(
     i_tumor=512,
     i_cell_1=128,
     r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
-    pre_generation=False,
+    pre_generation=True,
 ):
     d_arg_run = {
         # basics
@@ -600,7 +603,7 @@ def run(
 
     # initialize tracking
     # bue 20250903: s_run label changed to bigred200 run.
-    #s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_mode']}_weight_{d_arg['weight']}_time_{int(time.time())}"
+    # s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_mode']}_weight_{d_arg['weight']}_time_{int(time.time())}"
     s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observation_mode_{d_arg['observation_mode']}_init_mode_{s_init_mode}_cell_2_fraction_{r_cell_2_fraction}_weight_{d_arg['weight']}_time_{int(time.time())}"
     if d_arg["wandb_track"]:
         print("tracking: wandb ...")
@@ -685,16 +688,22 @@ def run(
         "cell_2_fraction": r_cell_2_fraction,
         "pre_generation": pre_generation,
     }
-    cell_positions_folder = env.get_wrapper_attr("x_root").xpath(
-        "//initial_conditions/cell_positions/folder"
-    )[0].text
-    cell_name_file = env.get_wrapper_attr("x_root").xpath(
-        "//initial_conditions/cell_positions/filename"
-    )[0].text
+    cell_positions_folder = (
+        env.get_wrapper_attr("x_root")
+        .xpath("//initial_conditions/cell_positions/folder")[0]
+        .text
+    )
+    cell_name_file = (
+        env.get_wrapper_attr("x_root")
+        .xpath("//initial_conditions/cell_positions/filename")[0]
+        .text
+    )
 
     d_arg.update(d_arg_generation)
     str_hash = dict_hash(d_arg)
-    initial_conditions_path = os.path.join(cell_positions_folder, f"initial_conditions_{str_hash}")
+    initial_conditions_path = os.path.join(
+        cell_positions_folder, f"initial_conditions_{str_hash}"
+    )
 
     if d_arg_generation["pre_generation"]:
         # Remove old folder if exists
@@ -703,18 +712,20 @@ def run(
         os.makedirs(initial_conditions_path, exist_ok=True)
 
         # Assuming you want to generate multiple CSVs
-        for i in range(d_arg_generation.get("number_of_initial_states", 100)):  
+        for i in range(d_arg_generation.get("number_of_initial_states", 100)):
             d_arg_generation["csv_path"] = os.path.join(
                 initial_conditions_path, f"{i}_{cell_name_file}"
             )
             create_csv(**d_arg_generation)
-        csv_files = [f for f in os.listdir(initial_conditions_path) if f.endswith(".csv")]
+        csv_files = [
+            f for f in os.listdir(initial_conditions_path) if f.endswith(".csv")
+        ]
 
     else:
         d_arg_generation["csv_path"] = os.path.join(
             cell_positions_folder, cell_name_file
         )
-        
+
     # initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     actor = Actor(env).to(o_device)
@@ -783,7 +794,7 @@ def run(
         if d_arg_generation["pre_generation"]:
             chosen_csv = random.choice(csv_files)
             env.get_wrapper_attr("x_root").xpath(
-            "//initial_conditions/cell_positions/folder"
+                "//initial_conditions/cell_positions/folder"
             )[0].text = initial_conditions_path
             env.get_wrapper_attr("x_root").xpath(
                 "//initial_conditions/cell_positions/filename"
@@ -962,7 +973,7 @@ def run(
             o_observation = o_observation_next
 
             # recording step to tensorboard
-            '''
+            """
             scalars = {
                 "env/drug_1": a_action[0],
                 "env/reward_value": r_reward,
@@ -977,7 +988,7 @@ def run(
             else:
                 for tag, value in scalars.items():
                     writer.add_scalar(tag, value, env.unwrapped.step_env)
-            '''
+            """
             # record step to csv
             d_data = {
                 "step": env.unwrapped.step_episode,
@@ -1149,9 +1160,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pre_generation",
         nargs="?",
-        default="true",
-        help="if the initial conditions are pre-generated"
-
+        default="false",
+        help="if the initial conditions are pre-generated",
     )
 
     # parse arguments
