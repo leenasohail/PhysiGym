@@ -457,10 +457,10 @@ class CorePhysiCellEnv(gymnasium.Env):
         # rewrite setting xml file
         i_size = os.path.getsize(self.settingxml)
         self.x_tree.write(self.settingxml, pretty_print=True)
-        time.sleep(1)
+        time.sleep(2)
         while os.path.getsize(self.settingxml) != i_size:
             i_size = os.path.getsize(self.settingxml)
-            time.sleep(1)
+            time.sleep(2)
 
         # seed self.np_random number generator
         super().reset(seed=i_seed)
