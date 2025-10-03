@@ -24,10 +24,10 @@ from lxml import etree
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
-import os
-#import shutil
+import tempfile, shutil, os, time
+
+# import shutil
 import sys
-import time
 
 
 # global variable
@@ -454,20 +454,34 @@ class CorePhysiCellEnv(gymnasium.Env):
                 print(f"physigym: set {self.settingxml} random_seed to {i_seed}.")
             self.x_root.xpath("//random_seed")[0].text = str(i_seed)
 
-        # rewrite setting xml file
-        i_size = os.path.getsize(self.settingxml)
-        self.x_tree.write(self.settingxml, pretty_print=True)
-        time.sleep(2)
-        while os.path.getsize(self.settingxml) != i_size:
-            i_size = os.path.getsize(self.settingxml)
-            time.sleep(2)
+        # --- make private copy of the settings XML ---
+        tmpdir = tempfile.mkdtemp(prefix="physigym_")
+        new_xml = os.path.join(tmpdir, "PhysiCell_settings.xml")
+
+        x_tree = self.x_tree
+        x_root = self.x_root
+
+        seed_node = x_root.xpath("//random_seed")
+        if seed_node:
+            seed_node[0].text = i_seed
+        else:
+            # ensure seed element exists
+            user_params = x_root.find("user_parameters")
+            if user_params is None:
+                user_params = etree.SubElement(x_root, "user_parameters")
+            etree.SubElement(user_params, "random_seed").text = i_seed
+
+        with open(new_xml, "wb") as f:
+            x_tree.write(f, pretty_print=True)
+            f.flush()
+            os.fsync(f.fileno())
 
         # seed self.np_random number generator
         super().reset(seed=i_seed)
         if self.verbose:
             print(f"physigym: seed random number generator with {i_seed}.")
 
-        # update class whide variables
+        # update class-wide variables
         if self.verbose:
             print(f"physigym: update class instance-wide variables.")
         self.episode += 1
@@ -477,18 +491,19 @@ class CorePhysiCellEnv(gymnasium.Env):
         # handle possible keyword arguments input
         self.kwargs.update(kwargs)
         if self.verbose and len(kwargs) > 0:
-            print("physigym: self.kwarg", sorted(self.kwarg))
+            print("physigym: self.kwargs", sorted(self.kwargs))
 
         # load reset values
         self.get_reset_values()
 
-        # generate output folder
-        os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
+        # generate output folder (from updated XML)
+        save_path = x_root.xpath("//save/folder")[0].text
+        os.makedirs(save_path, exist_ok=True)
 
-        # initialize physcell model
+        # initialize physiCell model with the temp XML
         if self.verbose:
             print(f"physigym: declare PhysiCell model instance.")
-        physicell.start(self.settingxml, self.episode != 0)
+        physicell.start(new_xml, self.episode != 0)
 
         # observe domain
         if self.verbose:
@@ -514,9 +529,11 @@ class CorePhysiCellEnv(gymnasium.Env):
         # output
         if self.verbose:
             print(
-                f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\nto run another env, it will be necessary to fork or spawn the runtime!"
+                f"Warning: per runtime, only one PhysiCellEnv gymnasium environment can be generated.\n"
+                "to run another env, it will be necessary to fork or spawn the runtime!"
             )
             print(f"physigym: ok!")
+
         return o_observation, d_info
 
     def get_truncated(self):
@@ -725,8 +742,8 @@ class CorePhysiCellEnv(gymnasium.Env):
                     f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
                 )
             physicell.stop()
-            #s_backupxml = self.settingxml.replace(".xml",f"_{int(time.time())}.xml")
-            #shutil.copy2(self.settingxml, s_backupxml)
+            # s_backupxml = self.settingxml.replace(".xml",f"_{int(time.time())}.xml")
+            # shutil.copy2(self.settingxml, s_backupxml)
 
         # output
         if self.verbose:
