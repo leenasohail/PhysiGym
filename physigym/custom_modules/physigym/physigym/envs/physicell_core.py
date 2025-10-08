@@ -24,10 +24,9 @@ from lxml import etree
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import numpy as np
-import tempfile, shutil, os, time
-
-# import shutil
+import os
 import sys
+import tempfile
 
 
 # global variable
@@ -343,6 +342,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: ok!")
 
+
     def render(self, **kwargs):
         """
         input:
@@ -392,6 +392,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"ok!")
         return a_img
+
 
     def reset(self, seed=None, options={}, **kwargs):
         """
@@ -454,25 +455,11 @@ class CorePhysiCellEnv(gymnasium.Env):
                 print(f"physigym: set {self.settingxml} random_seed to {i_seed}.")
             self.x_root.xpath("//random_seed")[0].text = str(i_seed)
 
-        # --- make private copy of the settings XML ---
-        tmpdir = tempfile.mkdtemp(prefix="physigym_")
-        new_xml = os.path.join(tmpdir, "PhysiCell_settings.xml")
-
-        x_tree = self.x_tree
-        x_root = self.x_root
-
-        seed_node = x_root.xpath("//random_seed")
-        if seed_node:
-            seed_node[0].text = i_seed
-        else:
-            # ensure seed element exists
-            user_params = x_root.find("user_parameters")
-            if user_params is None:
-                user_params = etree.SubElement(x_root, "user_parameters")
-            etree.SubElement(user_params, "random_seed").text = i_seed
-
-        with open(new_xml, "wb") as f:
-            x_tree.write(f, pretty_print=True)
+        # rewrite setting xml file
+        s_tmpdir = tempfile.mkdtemp(prefix="physigym_")
+        s_settingxml = os.path.join(s_tmpdir, "PhysiCell_settings.xml")
+        with open(s_settingxml, "wb") as f:
+            self.x_tree.write(f, pretty_print=True)
             f.flush()
             os.fsync(f.fileno())
 
@@ -481,7 +468,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: seed random number generator with {i_seed}.")
 
-        # update class-wide variables
+        # update class wide variables
         if self.verbose:
             print(f"physigym: update class instance-wide variables.")
         self.episode += 1
@@ -496,14 +483,13 @@ class CorePhysiCellEnv(gymnasium.Env):
         # load reset values
         self.get_reset_values()
 
-        # generate output folder (from updated XML)
-        save_path = x_root.xpath("//save/folder")[0].text
-        os.makedirs(save_path, exist_ok=True)
+        # generate output folder
+        os.makedirs(self.x_root.xpath("//save/folder")[0].text, exist_ok=True)
 
         # initialize physiCell model with the temp XML
         if self.verbose:
             print(f"physigym: declare PhysiCell model instance.")
-        physicell.start(new_xml, self.episode != 0)
+        physicell.start(s_settingxml, self.episode != 0)
 
         # observe domain
         if self.verbose:
@@ -536,6 +522,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         return o_observation, d_info
 
+
     def get_truncated(self):
         """
         input:
@@ -562,6 +549,7 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         return b_truncated
+
 
     def step(self, action, **kwargs):
         """
@@ -742,13 +730,12 @@ class CorePhysiCellEnv(gymnasium.Env):
                     f"physigym: PhysiCell model episode finish by termination ({b_terminated}) or truncation ({b_truncated})."
                 )
             physicell.stop()
-            # s_backupxml = self.settingxml.replace(".xml",f"_{int(time.time())}.xml")
-            # shutil.copy2(self.settingxml, s_backupxml)
 
         # output
         if self.verbose:
             print(f"physigym: ok!")
         return o_observation, r_reward, b_terminated, b_truncated, d_info
+
 
     def close(self, **kwargs):
         """
@@ -791,6 +778,7 @@ class CorePhysiCellEnv(gymnasium.Env):
             )
             print(f"physigym: ok!")
 
+
     def verbose_true(self):
         """
         input:
@@ -814,6 +802,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         print(f"physigym: set env.verbose = True.")
         self.verbose = True
+
 
     def verbose_false(self):
         """
