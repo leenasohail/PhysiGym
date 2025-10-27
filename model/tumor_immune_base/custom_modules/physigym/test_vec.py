@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-title: run_physigym_vectorized_combined.py
+title: test_vec.py
 
 description:
     Run multiple PhysiCell simulations in parallel with Gymnasium + SubprocVecEnv.
@@ -13,18 +13,12 @@ author: Alexandre Bertin (with ChatGPT), Elmar Bucher
 date: 2025
 """
 
-# --- Multiprocessing start method (critical for JAX/OpenMP safety) ---
-import multiprocessing as mp
-
-mp.set_start_method("spawn", force=True)
-
 import os
 import shutil
 import argparse
 import psutil
 import gymnasium as gym
 import numpy as np
-from random import randrange
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from lxml import etree
 import time
