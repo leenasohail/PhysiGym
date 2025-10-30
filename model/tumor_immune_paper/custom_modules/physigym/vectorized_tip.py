@@ -24,7 +24,9 @@ from lxml import etree
 import time
 
 
-from model.tumor_immune_paper.custom_modules.physigym.wrapper_tip import PhysiCellModelWrapper
+from model.tumor_immune_paper.custom_modules.physigym.wrapper_tip import (
+    PhysiCellModelWrapper,
+)
 
 
 # ============================================================

@@ -171,8 +171,6 @@ def run(
         )
 
     # initialize tracking
-    # bue 20250903: s_run label changed to bigred200 run.
-    # s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observationtype_{d_arg['observation_mode']}_weight_{d_arg['weight']}_time_{int(time.time())}"
     s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observation_mode_{d_arg['observation_mode']}_init_mode_{s_init_mode}_cell_2_fraction_{r_cell_2_fraction}_weight_{d_arg['weight']}_time_{int(time.time())}"
     if d_arg["wandb_track"]:
         print("tracking: wandb ...")
