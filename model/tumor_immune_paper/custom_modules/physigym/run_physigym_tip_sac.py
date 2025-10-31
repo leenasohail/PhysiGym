@@ -256,19 +256,18 @@ def run(
     d_arg["generation"] = d_arg_generation
 
     str_hash = dict_hash(d_arg)
-    for i in range(num_envs):
-        cell_positions_folder = (
-            envs[i]
-            .get_wrapper_attr("x_root")
-            .xpath("//initial_conditions/cell_positions/folder")[0]
-            .text
-        )
-        cell_name_file = (
-            envs[i]
-            .get_wrapper_attr("x_root")
-            .xpath("//initial_conditions/cell_positions/filename")[0]
-            .text
-        )
+    cell_positions_folder = (
+        envs[0]
+        .get_wrapper_attr("x_root")
+        .xpath("//initial_conditions/cell_positions/folder")[0]
+        .text
+    )
+    cell_name_file = (
+        envs[0]
+        .get_wrapper_attr("x_root")
+        .xpath("//initial_conditions/cell_positions/filename")[0]
+        .text
+    )
     initial_conditions_path = os.path.join(
         cell_positions_folder, f"initial_conditions_{str_hash}"
     )
@@ -293,7 +292,14 @@ def run(
         d_arg_generation["csv_path"] = os.path.join(
             cell_positions_folder, cell_name_file
         )
-
+    for i in range(num_envs):
+        envs[i].get_wrapper_attr("x_root").xpath("//save/folder")[
+            0
+        ].text = os.path.join(s_dir_data, "devnull")
+        envs[i].get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+            0
+        ].text = "false"
+        envs[i].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
     # initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     actor = Actor(envs[0]).to(o_device)
@@ -331,7 +337,7 @@ def run(
         is_graph=is_graph,
     )
 
-    while envs[0].unwrapped.step_env < d_arg["rl"]["total_timesteps"]:
+    while envs[0].unwrapped.step_env < d_arg["rl"]["total_timesteps"] // num_envs:
         s_dir_data_episode = os.path.join(
             s_dir_data, f"episode{str(envs[0].unwrapped.episode).zfill(8)}"
         )
@@ -340,7 +346,7 @@ def run(
         # bue can be used for track or not track stuff, e.g. every 1024 episode
         # env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
         # manipulate setting xml before reset to record full physicell run every 1024 episode.
-        if envs[0].unwrapped.episode % 256 == 0:
+        if envs[0].unwrapped.episode % (256 // num_envs) == 0:
             envs[0].get_wrapper_attr("x_root").xpath("//save/folder")[
                 0
             ].text = s_dir_data_episode
@@ -361,18 +367,18 @@ def run(
                 0
             ].text = "false"
         # reset gymnasium env
-        r_cumulative_return = 0
         r_discounted_cumulative_return = 0
         if d_arg_generation["pre_generation"]:
-            chosen_csv = random.choice(csv_files)
-            envs[0].get_wrapper_attr("x_root").xpath(
-                "//initial_conditions/cell_positions/folder"
-            )[0].text = initial_conditions_path
-            envs[0].get_wrapper_attr("x_root").xpath(
-                "//initial_conditions/cell_positions/filename"
-            )[0].text = chosen_csv
-            b_episode_over = False
-            o_observation, d_info = envs[0].reset(seed=d_arg["seed"])
+            for i in range(num_envs):
+                chosen_csv = random.choice(csv_files)
+                envs[0].get_wrapper_attr("x_root").xpath(
+                    "//initial_conditions/cell_positions/folder"
+                )[0].text = initial_conditions_path
+                envs[0].get_wrapper_attr("x_root").xpath(
+                    "//initial_conditions/cell_positions/filename"
+                )[0].text = chosen_csv
+                b_episode_over = False
+                o_observation = envs.reset(seed=d_arg["seed"])
 
         else:
             create_csv(**d_arg_generation)  # allow to generate new csv file
@@ -415,7 +421,6 @@ def run(
             o_observation_next, r_reward, b_terminated, b_truncated, d_info = envs[
                 0
             ].step(a_action)
-            r_cumulative_return += r_reward
             r_discounted_cumulative_return += r_reward * d_arg["rl"]["gamma"] ** (
                 envs[0].unwrapped.step_episode
             )
@@ -535,7 +540,6 @@ def run(
             d_data = {
                 "step": envs[0].unwrapped.step_episode,
                 "reward": r_reward,
-                "cumulative_return": r_cumulative_return,
                 "discounted_cumulative_return": r_discounted_cumulative_return,
                 "drug_1": a_action[0],
                 "number_tumor": d_info["number_tumor"],
