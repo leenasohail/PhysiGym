@@ -46,7 +46,7 @@ from torch_geometric.data import Data
 
 # additional model related code
 from initial_conditions_tip import create_csv
-from vectorized_tip import make_physigym_env
+from vectorized_tip import vec_envs
 from physigym.nn_tip import Actor, QNetwork
 from physigym.rb_tip import ReplayBuffer
 
@@ -91,7 +91,7 @@ def run(
     r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
     pre_generation=True,
 ):
-    d_arg_run = {
+    d_arg_simulation = {
         # basics
         "name": s_name,  # str: the name of this experiment
         # hardware
@@ -153,28 +153,34 @@ def run(
         # algorithm neural network III
         "gamma": 0.99,  # float: the discount factor gamma (how much learning)
     }
+    d_arg_vect = {
+        "num_envs": args.num_envs,
+        "threads_per_env": args.threads,
+    }
 
     # all in one
     d_arg = {}
-    d_arg.update(d_arg_run)
-    d_arg.update(d_arg_wandb)
-    d_arg.update(d_arg_physigym_model)
-    d_arg.update(d_arg_physigym_wrapper)
-    d_arg.update(d_arg_rl)
+    d_arg["simulation"] = d_arg_simulation
+    d_arg["vectorization"] = d_arg_vect
+    d_arg["wandb"] = d_arg_wandb
+    d_arg["rl"] = d_arg_rl
+    d_arg["wrapper"] = d_arg_physigym_wrapper
+    d_arg["model"] = d_arg_physigym_model
+    num_envs = d_arg["vectorization"]["num_envs"]
 
     # gpu cpu
-    if (d_arg["cuda"] and not torch.cuda.is_available()) or (
-        not d_arg["cuda"] and torch.cuda.is_available()
+    if (d_arg["simulation"]["cuda"] and not torch.cuda.is_available()) or (
+        not d_arg["simulation"]["cuda"] and torch.cuda.is_available()
     ):
         raise ValueError(
-            f"argument cuda set {d_arg['cuda']} but torch GPU detection {torch.cuda.is_available()}."
+            f"argument cuda set {d_arg['simulation']['cuda']} but torch GPU detection {torch.cuda.is_available()}."
         )
 
     # initialize tracking
-    s_run = f"{d_arg['name']}_seed_{d_arg['seed']}_observation_mode_{d_arg['observation_mode']}_init_mode_{s_init_mode}_cell_2_fraction_{r_cell_2_fraction}_weight_{d_arg['weight']}_time_{int(time.time())}"
-    if d_arg["wandb_track"]:
+    s_run = f"{d_arg['simulation']['name']}_seed_{d_arg['simulation']['seed']}_observation_mode_{d_arg['model']['observation_mode']}_init_mode_{s_init_mode}_cell_2_fraction_{r_cell_2_fraction}_weight_{d_arg['wrapper']['weight']}_time_{int(time.time())}"
+    if d_arg["simulation"]["wandb_track"]:
         print("tracking: wandb ...")
-        run = wandb.init(name=s_run, config=d_arg, **d_arg_wandb)
+        run = wandb.init(name=s_run, config=d_arg["simulation"], **d_arg["wandb"])
         s_dir_run = os.path.join(
             run.dir, s_run
         )  # run.dir wandb/run-20250612_123456-abcdef
@@ -208,23 +214,14 @@ def run(
         torch.manual_seed(d_arg["seed"])
         torch.backends.cudnn.deterministic = True
 
-    # initialize physigym environment
-    env = gym.make(**d_arg_physigym_model)
-    env = PhysiCellModelWrapper(env=env, **d_arg_physigym_wrapper)
-    # manipulate setting xml
-    env.get_wrapper_attr("x_root").xpath("//overall/max_time")[0].text = str(
-        r_max_time_episode
-    )
-    env.get_wrapper_attr("x_root").xpath("//parallel/omp_num_threads")[0].text = str(
-        i_thread
-    )
+    envs = vec_envs(d_arg)
     # d_arg_generation control the generation of initial states, you should not modify it, at your own risk
     # but you may change the number of tumor cells (n_tumor) and you may also change (n_cell_1)
     d_arg_generation = {
-        "x_min": env.unwrapped.x_min,
-        "x_max": env.unwrapped.x_max,
-        "y_min": env.unwrapped.y_min,
-        "y_max": env.unwrapped.y_max,
+        "x_min": envs[0].unwrapped.x_min,
+        "x_max": envs[0].unwrapped.x_max,
+        "y_min": envs[0].unwrapped.y_min,
+        "y_max": envs[0].unwrapped.y_max,
         "n_tumor": i_tumor,  # number of tumor cells for the initial state
         "n_cell_1": i_cell_1,  # number of cell 1 for the initial state
         "range_jitter_tumor": (
@@ -255,19 +252,23 @@ def run(
         "cell_2_fraction": r_cell_2_fraction,
         "pre_generation": pre_generation,
     }
-    cell_positions_folder = (
-        env.get_wrapper_attr("x_root")
-        .xpath("//initial_conditions/cell_positions/folder")[0]
-        .text
-    )
-    cell_name_file = (
-        env.get_wrapper_attr("x_root")
-        .xpath("//initial_conditions/cell_positions/filename")[0]
-        .text
-    )
 
-    d_arg.update(d_arg_generation)
+    d_arg["generation"] = d_arg_generation
+
     str_hash = dict_hash(d_arg)
+    for i in range(num_envs):
+        cell_positions_folder = (
+            envs[i]
+            .get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/folder")[0]
+            .text
+        )
+        cell_name_file = (
+            envs[i]
+            .get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/filename")[0]
+            .text
+        )
     initial_conditions_path = os.path.join(
         cell_positions_folder, f"initial_conditions_{str_hash}"
     )
@@ -295,84 +296,88 @@ def run(
 
     # initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    actor = Actor(env).to(o_device)
-    qf1 = QNetwork(env).to(o_device)
-    qf2 = QNetwork(env).to(o_device)
-    qf1_target = QNetwork(env).to(o_device)
-    qf2_target = QNetwork(env).to(o_device)
+    actor = Actor(envs[0]).to(o_device)
+    qf1 = QNetwork(envs[0]).to(o_device)
+    qf2 = QNetwork(envs[0]).to(o_device)
+    qf1_target = QNetwork(envs[0]).to(o_device)
+    qf2_target = QNetwork(envs[0]).to(o_device)
     q_optimizer = optim.Adam(
-        list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["q_lr"]
+        list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["rl"]["q_lr"]
     )
-    actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg["policy_lr"])
+    actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg["rl"]["policy_lr"])
     # set neural network entropy alpha by automatic tuning or manual
-    if d_arg["autotune"]:
+    if d_arg["rl"]["autotune"]:
         target_entropy = -torch.prod(
-            torch.Tensor(env.action_space.shape).to(o_device)
+            torch.Tensor(envs[0].action_space.shape).to(o_device)
         ).item()
         log_alpha = torch.zeros(1, requires_grad=True, device=o_device)
         alpha = log_alpha.exp().item()
-        a_optimizer = optim.Adam([log_alpha], lr=d_arg["q_lr"])
+        a_optimizer = optim.Adam([log_alpha], lr=d_arg["rl"]["q_lr"])
     else:
-        alpha = d_arg["alpha"]
+        alpha = d_arg["rl"]["alpha"]
 
     is_graph = False
-    if hasattr(env.unwrapped, "kwargs"):
-        obs_mode = env.unwrapped.kwargs.get("observation_mode", "")
+    if hasattr(envs[0].unwrapped, "kwargs"):
+        obs_mode = envs[0].unwrapped.kwargs.get("observation_mode", "")
         is_graph = "graph" in str(obs_mode)
     # initilize the reply buffer
     rb = ReplayBuffer(
-        state_dim=env.observation_space.shape,
-        action_dim=env.action_space.shape,
+        state_dim=envs[0].observation_space.shape,
+        action_dim=envs[0].action_space.shape,
         device=o_device,
-        buffer_size=d_arg["buffer_size"],
-        batch_size=d_arg["batch_size"],
-        state_type=env.observation_space.dtype,
+        buffer_size=d_arg["rl"]["buffer_size"],
+        batch_size=d_arg["rl"]["batch_size"],
+        state_type=envs[0].observation_space.dtype,
         is_graph=is_graph,
     )
 
-    while env.unwrapped.step_env < d_arg["total_timesteps"]:
+    while envs[0].unwrapped.step_env < d_arg["rl"]["total_timesteps"]:
         s_dir_data_episode = os.path.join(
-            s_dir_data, f"episode{str(env.unwrapped.episode).zfill(8)}"
+            s_dir_data, f"episode{str(envs[0].unwrapped.episode).zfill(8)}"
         )
         os.makedirs(s_dir_data_episode, exist_ok=True)
         # manipulate setting xml before reset
         # bue can be used for track or not track stuff, e.g. every 1024 episode
         # env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
         # manipulate setting xml before reset to record full physicell run every 1024 episode.
-        if env.unwrapped.episode % 256 == 0:
-            env.get_wrapper_attr("x_root").xpath("//save/folder")[
+        if envs[0].unwrapped.episode % 256 == 0:
+            envs[0].get_wrapper_attr("x_root").xpath("//save/folder")[
                 0
             ].text = s_dir_data_episode
-            env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+            envs[0].get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
                 0
             ].text = "true"
-            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "true"
+            envs[0].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                0
+            ].text = "true"
         else:
-            env.get_wrapper_attr("x_root").xpath("//save/folder")[
+            envs[0].get_wrapper_attr("x_root").xpath("//save/folder")[
                 0
             ].text = os.path.join(s_dir_data, "devnull")
-            env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+            envs[0].get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
                 0
             ].text = "false"
-            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
+            envs[0].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                0
+            ].text = "false"
         # reset gymnasium env
         r_cumulative_return = 0
         r_discounted_cumulative_return = 0
         if d_arg_generation["pre_generation"]:
             chosen_csv = random.choice(csv_files)
-            env.get_wrapper_attr("x_root").xpath(
+            envs[0].get_wrapper_attr("x_root").xpath(
                 "//initial_conditions/cell_positions/folder"
             )[0].text = initial_conditions_path
-            env.get_wrapper_attr("x_root").xpath(
+            envs[0].get_wrapper_attr("x_root").xpath(
                 "//initial_conditions/cell_positions/filename"
             )[0].text = chosen_csv
             b_episode_over = False
-            o_observation, d_info = env.reset(seed=d_arg["seed"])
+            o_observation, d_info = envs[0].reset(seed=d_arg["seed"])
 
         else:
             create_csv(**d_arg_generation)  # allow to generate new csv file
             try:
-                o_observation, d_info = env.reset(seed=d_arg["seed"])
+                o_observation, d_info = envs[0].reset(seed=d_arg["seed"])
                 # time step loop
                 b_episode_over = False
             except:
@@ -380,8 +385,8 @@ def run(
                 print("Problem with the seeding, Relanunch a new generation")
         while not b_episode_over:
             # sample the action space or learn
-            if env.unwrapped.step_env <= d_arg["learning_starts"]:
-                a_action = np.array(env.action_space.sample(), dtype=np.float32)
+            if envs[0].unwrapped.step_env <= d_arg["rl"]["learning_starts"]:
+                a_action = np.array(envs[0].action_space.sample(), dtype=np.float32)
             else:
                 if is_graph:
                     x = [
@@ -407,12 +412,12 @@ def run(
                 a_action = actions.detach().squeeze(0).cpu().numpy()
 
             # physigym step
-            o_observation_next, r_reward, b_terminated, b_truncated, d_info = env.step(
-                a_action
-            )
+            o_observation_next, r_reward, b_terminated, b_truncated, d_info = envs[
+                0
+            ].step(a_action)
             r_cumulative_return += r_reward
-            r_discounted_cumulative_return += r_reward * d_arg["gamma"] ** (
-                env.unwrapped.step_episode
+            r_discounted_cumulative_return += r_reward * d_arg["rl"]["gamma"] ** (
+                envs[0].unwrapped.step_episode
             )
             b_episode_over = b_terminated or b_truncated
 
@@ -425,22 +430,8 @@ def run(
                 done=b_episode_over,
             )
 
-            # for debuging the replay buffer
-            if env.unwrapped.step_env == int(d_arg["batch_size"] * (1.05)):
-                data = rb.sample()
-                with torch.no_grad():
-                    next_state_actions, _, _ = actor.get_action(data["next_state"])
-                    qf1(data["next_state"], next_state_actions)
-                    qf2(data["next_state"], next_state_actions)
-                    qf1_target.load_state_dict(qf1.state_dict())
-                    qf2_target.load_state_dict(qf2.state_dict())
-
-                    qf1_target(data["next_state"], next_state_actions)
-                    qf2_target(data["next_state"], next_state_actions)
-                del data, next_state_actions
-
             # learning
-            if env.unwrapped.step_env > d_arg["learning_starts"]:
+            if envs[0].unwrapped.step_env > d_arg["rl"]["learning_starts"]:
                 data = rb.sample()
                 with torch.no_grad():
                     next_state_actions, next_state_log_pi, _ = actor.get_action(
@@ -454,7 +445,7 @@ def run(
                     )
                     next_q_value = data["reward"].flatten() + (
                         1 - data["done"].flatten()
-                    ) * d_arg["gamma"] * (min_qf_next_target).view(-1)
+                    ) * d_arg["rl"]["gamma"] * (min_qf_next_target).view(-1)
 
                 qf1_a_values = qf1(data["state"], data["action"]).view(-1)
                 qf2_a_values = qf2(data["state"], data["action"]).view(-1)
@@ -468,28 +459,31 @@ def run(
                 q_optimizer.step()
 
                 # update the target networks
-                if env.unwrapped.step_env % d_arg["target_network_frequency"] == 0:
+                if (
+                    envs[0].unwrapped.step_env % d_arg["rl"]["target_network_frequency"]
+                    == 0
+                ):
                     for param, target_param in zip(
                         qf1.parameters(), qf1_target.parameters()
                     ):
                         target_param.data.copy_(
-                            d_arg["tau"] * param.data
-                            + (1 - d_arg["tau"]) * target_param.data
+                            d_arg["rl"]["tau"] * param.data
+                            + (1 - d_arg["rl"]["tau"]) * target_param.data
                         )
                     for param, target_param in zip(
                         qf2.parameters(), qf2_target.parameters()
                     ):
                         target_param.data.copy_(
-                            d_arg["tau"] * param.data
-                            + (1 - d_arg["tau"]) * target_param.data
+                            d_arg["rl"]["tau"] * param.data
+                            + (1 - d_arg["rl"]["tau"]) * target_param.data
                         )
 
                 # update the policy
                 if (
-                    env.unwrapped.step_env % d_arg["policy_frequency"] == 0
+                    envs[0].unwrapped.step_env % d_arg["rl"]["policy_frequency"] == 0
                 ):  # TD 3 Delayed update support
                     # compensate for the delay by doing "actor_update_interval" instead of 1
-                    for _ in range(d_arg["policy_frequency"]):
+                    for _ in range(d_arg["rl"]["policy_frequency"]):
                         pi, log_pi, _ = actor.get_action(data["state"])
 
                         qf1_pi = qf1(data["state"], pi)
@@ -502,7 +496,7 @@ def run(
                         actor_optimizer.step()
 
                         # entropy autotune
-                        if d_arg["autotune"]:
+                        if d_arg["rl"]["autotune"]:
                             with torch.no_grad():
                                 _, log_pi, _ = actor.get_action(data["state"])
 
@@ -523,11 +517,13 @@ def run(
                         "losses/actor_loss": actor_loss.item(),
                     }
 
-                    if d_arg["wandb_track"]:
+                    if d_arg["simulation"]["wandb_track"]:
                         run.log(losses)
                     else:
                         for tag, value in losses.items():
-                            writer.add_scalar(tag, value, env.unwrapped.step_episode)
+                            writer.add_scalar(
+                                tag, value, envs[0].unwrapped.step_episode
+                            )
 
                     # record policy update to csv
                     # pass
@@ -537,7 +533,7 @@ def run(
 
             # record step to csv
             d_data = {
-                "step": env.unwrapped.step_episode,
+                "step": envs[0].unwrapped.step_episode,
                 "reward": r_reward,
                 "cumulative_return": r_cumulative_return,
                 "discounted_cumulative_return": r_discounted_cumulative_return,
@@ -551,11 +547,11 @@ def run(
         scalars = {
             "charts/discounted_cumulative_return": r_discounted_cumulative_return,
         }
-        if d_arg["wandb_track"]:
+        if d_arg["simulation"]["wandb_track"]:
             run.log(scalars)
         else:
             for tag, value in scalars.items():
-                writer.add_scalar(tag, value, env.unwrapped.step_env)
+                writer.add_scalar(tag, value, envs[0].unwrapped.step_env)
 
         # recording episode to csv
         df = pd.DataFrame(ld_data)
@@ -567,7 +563,7 @@ def run(
         ld_data = []
 
     # finish
-    env.close()
+    envs.close()
     writer.close()
 
 
