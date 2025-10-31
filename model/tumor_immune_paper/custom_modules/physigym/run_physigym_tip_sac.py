@@ -45,10 +45,10 @@ from torch.utils import tensorboard
 from torch_geometric.data import Data
 
 # additional model related code
-from model.tumor_immune_paper.custom_modules.physigym.initial_conditions_tip import create_csv
-from model.tumor_immune_paper.custom_modules.physigym.vectorized_tip import make_physigym_env
-from model.tumor_immune_paper.custom_modules.physigym.nn_tip import Actor, QNetwork
-from model.tumor_immune_paper.custom_modules.physigym.rb_tip import ReplayBuffer
+from initial_conditions_tip import create_csv
+from vectorized_tip import make_physigym_env
+from physigym.nn_tip import Actor, QNetwork
+from physigym.rb_tip import ReplayBuffer
 
 # Tracking
 import wandb
