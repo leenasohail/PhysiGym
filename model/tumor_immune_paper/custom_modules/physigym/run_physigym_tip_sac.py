@@ -1,5 +1,5 @@
 #####
-# title: model/tumor_immune_base/custom_modules/physigym/run_physigym_tib_sac.py
+# title: model/tumor_immune_paper/custom_modules/physigym/run_physigym_tip_sac.py
 #
 # language: python3
 # main libraries: gymnasium, physigym, torch
@@ -10,7 +10,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     sac implementation for tumor immune base model
+#     sac implementation for tumor immune paper
 #####
 
 
