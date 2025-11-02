@@ -352,7 +352,6 @@ def run(
         is_graph=is_graph,
     )
     for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
-        
         s_dir_data_episode = os.path.join(
             s_dir_data, f"episode{str(envs[0].unwrapped.episode).zfill(8)}"
         )
@@ -406,8 +405,11 @@ def run(
                 print("Problem with the seeding, Relanunch a new generation")
         while not b_episode_over:
             # sample the action space or learn
-            if envs[0].unwrapped.step_env <= d_arg["rl"]["learning_starts"]:
-                a_action = np.array(envs[0].action_space.sample(), dtype=np.float32)
+            if global_step <= d_arg["rl"]["learning_starts"] // num_envs:
+                a_actions = np.array(
+                    [envs[i].action_space.sample() for i in range(num_envs)],
+                    dtype=np.float32,
+                )
             else:
                 if is_graph:
                     x = [
@@ -435,22 +437,21 @@ def run(
             # physigym step
             o_observation_nexts, r_rewards, b_dones, d_infos = envs.step(a_actions)
             for i in range(num_envs):
-                r_discounted_cumulative_returns[i] += r_rewards[i] * d_arg["rl"][
-                    "gamma"
-                ] ** (envs[i].unwrapped.step_episode)
-
-            # record to replay buffer
-            for i in range(num_envs):
                 rb.add(
                     state=o_observations[i],
-                    action=a_action[i],
+                    action=a_actions[i],
                     next_state=o_observation_nexts[i],
                     reward=r_rewards[i],
                     done=b_dones[i],
                 )
+                r_discounted_cumulative_returns[i] += r_rewards[i] * d_arg["rl"][
+                    "gamma"
+                ] ** (envs[i].unwrapped.step_episode)
+                if b_dones[i]:
+                    r_discounted_cumulative_returns[i] = 0
 
             # learning
-            if envs[0].unwrapped.step_env > d_arg["rl"]["learning_starts"] // num_envs:
+            if global_step > d_arg["rl"]["learning_starts"] // num_envs:
                 data = rb.sample()
                 with torch.no_grad():
                     next_state_actions, next_state_log_pi, _ = actor.get_action(
@@ -478,10 +479,7 @@ def run(
                 q_optimizer.step()
 
                 # update the target networks
-                if (
-                    envs[0].unwrapped.step_env % d_arg["rl"]["target_network_frequency"]
-                    == 0
-                ):
+                if global_step % d_arg["rl"]["target_network_frequency"] == 0:
                     for param, target_param in zip(
                         qf1.parameters(), qf1_target.parameters()
                     ):
@@ -498,10 +496,7 @@ def run(
                         )
 
                 # update the policy
-                if (
-                    envs[0].unwrapped.step_env % d_arg["rl"]["policy_frequency"] == 0
-                ):  # TD 3 Delayed update support
-                    # compensate for the delay by doing "actor_update_interval" instead of 1
+                if global_step % d_arg["rl"]["policy_frequency"] == 0:
                     for _ in range(d_arg["rl"]["policy_frequency"]):
                         pi, log_pi, _ = actor.get_action(data["state"])
 
@@ -553,23 +548,26 @@ def run(
             # record step to csv
             d_data = {
                 "step": envs[0].unwrapped.step_episode,
-                "reward": r_reward,
-                "discounted_cumulative_return": r_discounted_cumulative_return,
-                "drug_1": a_action[0],
-                "number_tumor": d_info["number_tumor"],
-                "number_cell_1": d_info["number_cell_1"],
+                "reward": r_rewards,
+                "discounted_cumulative_return": r_discounted_cumulative_returns[0],
+                "drug_1": a_actions[0],
+                "number_tumor": d_infos[0]["number_tumor"],
+                "number_cell_1": d_infos[0]["number_cell_1"],
             }
             ld_data.append(d_data)
 
         # recording episode to tensorbord
         scalars = {
-            "charts/discounted_cumulative_return": r_discounted_cumulative_return,
+            "charts/discounted_cumulative_return": r_discounted_cumulative_returns[0],
+            "charts/mean_discounted_cumulative_return": np.mean(
+                r_discounted_cumulative_returns
+            ),
         }
         if d_arg["simulation"]["wandb_track"]:
             run.log(scalars)
         else:
             for tag, value in scalars.items():
-                writer.add_scalar(tag, value, envs[0].unwrapped.step_env)
+                writer.add_scalar(tag, value, global_step)
 
         # recording episode to csv
         df = pd.DataFrame(ld_data)
