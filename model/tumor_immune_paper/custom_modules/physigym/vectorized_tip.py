@@ -128,7 +128,7 @@ def run_vectorized(cfg: dict):
     for t in range(50):
         actions = np.random.uniform(low=0, high=1, size=(num_envs, 1))
         obs, rewards, dones, infos = envs.step(actions)
-
+        
         print(f"[Step {t}] rewards = {rewards}")
         if np.any(dones):
             print(f"[INFO] Envs done: {np.where(dones)[0]}")

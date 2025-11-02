@@ -191,6 +191,7 @@ def run(
 
     # initialize tensorbord recording
     writer = tensorboard.SummaryWriter(s_dir_run)
+
     def flatten_dict(d, parent_key=""):
         """Flatten a nested dictionary, joining keys with dots."""
         items = []
@@ -207,7 +208,10 @@ def run(
         "|param|value|\n|-|-|\n%s"
         % (
             "\n".join(
-                [f"|{s_key}|{s_value}|" for s_key, s_value in sorted(flatten_dict(d_arg).items())]
+                [
+                    f"|{s_key}|{s_value}|"
+                    for s_key, s_value in sorted(flatten_dict(d_arg).items())
+                ]
             )
         ),
     )
@@ -347,8 +351,8 @@ def run(
         state_type=envs[0].observation_space.dtype,
         is_graph=is_graph,
     )
-
-    while envs[0].unwrapped.step_env < d_arg["rl"]["total_timesteps"] // num_envs:
+    for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
+        
         s_dir_data_episode = os.path.join(
             s_dir_data, f"episode{str(envs[0].unwrapped.episode).zfill(8)}"
         )
@@ -378,7 +382,7 @@ def run(
                 0
             ].text = "false"
         # reset gymnasium env
-        r_discounted_cumulative_return = 0
+        r_discounted_cumulative_returns = np.zeros((num_envs))
         if d_arg_generation["pre_generation"]:
             for i in range(num_envs):
                 chosen_csv = random.choice(csv_files)
@@ -389,12 +393,12 @@ def run(
                     "//initial_conditions/cell_positions/filename"
                 )[0].text = chosen_csv
                 b_episode_over = False
-                o_observation = envs.reset(seed=d_arg["seed"])
+                o_observations = envs.reset(seed=d_arg["seed"])
 
         else:
             create_csv(**d_arg_generation)  # allow to generate new csv file
             try:
-                o_observation, d_info = envs[0].reset(seed=d_arg["seed"])
+                o_observations = envs.reset(seed=d_arg["seed"])
                 # time step loop
                 b_episode_over = False
             except:
@@ -409,45 +413,44 @@ def run(
                     x = [
                         Data(
                             x=torch.tensor(
-                                o_observation.nodes, dtype=torch.float, device=o_device
+                                o_observations.nodes, dtype=torch.float, device=o_device
                             ),
                             edge_index=torch.tensor(
-                                o_observation.edge_links,
+                                o_observations.edge_links,
                                 dtype=torch.long,
                                 device=o_device,
                             )
                             .t()
                             .contiguous(),
                             edge_attr=torch.tensor(
-                                o_observation.edges, dtype=torch.float, device=o_device
+                                o_observations.edges, dtype=torch.float, device=o_device
                             ),
                         )
                     ]
                 else:
-                    x = torch.Tensor(o_observation).to(o_device).unsqueeze(0)
+                    x = torch.Tensor(o_observations).to(o_device)
                 actions, _, _ = actor.get_action(x)
-                a_action = actions.detach().squeeze(0).cpu().numpy()
+                a_actions = actions.detach().cpu().numpy()
 
             # physigym step
-            o_observation_next, r_reward, b_terminated, b_truncated, d_info = envs[
-                0
-            ].step(a_action)
-            r_discounted_cumulative_return += r_reward * d_arg["rl"]["gamma"] ** (
-                envs[0].unwrapped.step_episode
-            )
-            b_episode_over = b_terminated or b_truncated
+            o_observation_nexts, r_rewards, b_dones, d_infos = envs.step(a_actions)
+            for i in range(num_envs):
+                r_discounted_cumulative_returns[i] += r_rewards[i] * d_arg["rl"][
+                    "gamma"
+                ] ** (envs[i].unwrapped.step_episode)
 
             # record to replay buffer
-            rb.add(
-                state=o_observation,
-                action=a_action,
-                next_state=o_observation_next,
-                reward=r_reward,
-                done=b_episode_over,
-            )
+            for i in range(num_envs):
+                rb.add(
+                    state=o_observations[i],
+                    action=a_action[i],
+                    next_state=o_observation_nexts[i],
+                    reward=r_rewards[i],
+                    done=b_dones[i],
+                )
 
             # learning
-            if envs[0].unwrapped.step_env > d_arg["rl"]["learning_starts"]:
+            if envs[0].unwrapped.step_env > d_arg["rl"]["learning_starts"] // num_envs:
                 data = rb.sample()
                 with torch.no_grad():
                     next_state_actions, next_state_log_pi, _ = actor.get_action(
@@ -545,7 +548,7 @@ def run(
                     # pass
 
             # handle observation
-            o_observation = o_observation_next
+            o_observations = o_observation_nexts
 
             # record step to csv
             d_data = {
