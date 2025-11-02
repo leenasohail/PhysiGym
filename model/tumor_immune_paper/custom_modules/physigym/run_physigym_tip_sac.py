@@ -191,12 +191,23 @@ def run(
 
     # initialize tensorbord recording
     writer = tensorboard.SummaryWriter(s_dir_run)
+    def flatten_dict(d, parent_key=""):
+        """Flatten a nested dictionary, joining keys with dots."""
+        items = []
+        for k, v in d.items():
+            new_key = f"{parent_key}.{k}" if parent_key else k
+            if isinstance(v, dict):
+                items.extend(flatten_dict(v, new_key).items())
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s"
         % (
             "\n".join(
-                [f"|{s_key}|{s_value}|" for s_key, s_value in sorted(d_arg.items())]
+                [f"|{s_key}|{s_value}|" for s_key, s_value in sorted(flatten_dict(d_arg).items())]
             )
         ),
     )
