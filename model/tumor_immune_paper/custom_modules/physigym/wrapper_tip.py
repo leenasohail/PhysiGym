@@ -1,6 +1,8 @@
 import gymnasium as gym
 from gymnasium.spaces import Box
 import numpy as np
+from initial_conditions_tip import create_csv
+import os
 
 
 # ============================================================
@@ -40,6 +42,19 @@ class PhysiCellModelWrapper(gym.Wrapper):
         )
         self._action_space = Box(low=low, high=high, dtype=np.float64)
         self.weight = weight
+        self.cell_positions_folder = (
+            self.env.get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/folder")[0]
+            .text
+        )
+        self.cell_name_file = (
+            self.env.get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/filename")[0]
+            .text
+        )
+        self.csv_path_init = os.path.join(
+            self.cell_positions_folder, self.cell_name_file
+        )
 
     @property
     def action_space(self):
@@ -61,3 +76,8 @@ class PhysiCellModelWrapper(gym.Wrapper):
         reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
 
         return obs, reward, terminated, truncated, info
+
+    def reset(self, seed=None, options={}, generation_cfg={}, **kwargs):
+        generation_cfg["csv_path"] = self.csv_path_init
+        create_csv(**generation_cfg)
+        self.env.reset(seed=seed, options=options, **kwargs)
