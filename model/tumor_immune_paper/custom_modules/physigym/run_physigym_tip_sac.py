@@ -370,16 +370,7 @@ def run(
             envs[0].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
                 0
             ].text = "true"
-        else:
-            envs[0].get_wrapper_attr("x_root").xpath("//save/folder")[
-                0
-            ].text = os.path.join(s_dir_data, "devnull")
-            envs[0].get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-                0
-            ].text = "false"
-            envs[0].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
-                0
-            ].text = "false"
+            
         # reset gymnasium env
         r_discounted_cumulative_returns = np.zeros((num_envs))
         if d_arg_generation["pre_generation"]:

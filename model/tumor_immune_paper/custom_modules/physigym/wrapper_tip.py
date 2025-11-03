@@ -55,6 +55,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         self.csv_path_init = os.path.join(
             self.cell_positions_folder, self.cell_name_file
         )
+        self.generation_cfg = None
 
     @property
     def action_space(self):
@@ -79,5 +80,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
     def reset(self, seed=None, options={}, generation_cfg={}, **kwargs):
         generation_cfg["csv_path"] = self.csv_path_init
-        create_csv(**generation_cfg)
+        if self.generation_cfg is None:
+            self.generation_cfg = generation_cfg
+        create_csv(**self.generation_cfg)
         self.env.reset(seed=seed, options=options, **kwargs)
