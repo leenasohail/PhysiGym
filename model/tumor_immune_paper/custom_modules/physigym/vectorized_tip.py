@@ -60,17 +60,23 @@ def make_physigym_env(env_id: int, cfg: dict):
     vect_cfg = cfg["vectorization"]
     model_cfg = cfg["model"]
     wrapper_cfg = cfg["wrapper"]
+    generation_cfg = cfg["generation"]
 
     base_xml = model_cfg["settingxml"]
+    base_cells = model_cfg["settingcells"]
+    model_cfg_copy = model_cfg.copy()
     threads_per_env = vect_cfg["threads_per_env"]
     seed = sim_cfg.get("seed")
-
     env_xml = f"config/PhysiCell_settings_env{env_id}.xml"
+    env_cells = f"config/cells_{env_id}.csv"
     if not os.path.exists(env_xml):
         shutil.copy(base_xml, env_xml)
+    if not os.path.exists(env_cells):
+        shutil.copy(base_cells, env_cells)
 
     output_dir = f"output/env{env_id}"
     os.makedirs(output_dir, exist_ok=True)
+    del model_cfg_copy["settingcells"]
 
     def _init():
         assign_cpu_affinity(env_id, threads_per_env)
@@ -81,15 +87,19 @@ def make_physigym_env(env_id: int, cfg: dict):
         root.xpath("//overall/max_time")[0].text = str(sim_cfg["max_time"])
         root.xpath("//parallel/omp_num_threads")[0].text = str(threads_per_env)
         root.xpath("//save/folder")[0].text = output_dir
+        root.xpath("//initial_conditions/cell_positions/filename")[
+            0
+        ].text = f"cells_{env_id}.csv"
         tree.write(env_xml, pretty_print=True)
-        model_cfg["settingxml"] = env_xml
+        model_cfg_copy["settingxml"] = env_xml
+
         # Create the base PhysiCell environment
-        env = gym.make(**model_cfg)
+        env = gym.make(**model_cfg_copy)
         # Wrap it for simplified action and custom reward
         env = PhysiCellModelWrapper(env, **wrapper_cfg)
 
         if seed is not None:
-            env.reset(seed=seed + env_id)
+            env.reset(seed=seed + env_id, generation_cfg=generation_cfg)
 
         return env
 
@@ -128,7 +138,7 @@ def run_vectorized(cfg: dict):
     for t in range(50):
         actions = np.random.uniform(low=0, high=1, size=(num_envs, 1))
         obs, rewards, dones, infos = envs.step(actions)
-        
+
         print(f"[Step {t}] rewards = {rewards}")
         if np.any(dones):
             print(f"[INFO] Envs done: {np.where(dones)[0]}")
@@ -148,6 +158,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "settingxml", nargs="?", default="config/PhysiCell_settings.xml"
     )
+    parser.add_argument("settingcells", nargs="?", default="cells.csv")
     parser.add_argument("-m", "--max_time", type=float, default=1440.0)
     parser.add_argument("-n", "--num_envs", type=int, default=4)
     parser.add_argument("-t", "--threads", type=int, default=None)
@@ -169,6 +180,7 @@ if __name__ == "__main__":
         "model": {
             "id": "physigym/ModelPhysiCellEnv-v0",
             "settingxml": args.settingxml,
+            "settingcells": args.settingcells,
             "cell_type_cmap": {"tumor": "yellow", "cell_1": "green", "cell_2": "navy"},
             "figsize": (6, 6),
             "observation_mode": "scalars",
@@ -183,6 +195,40 @@ if __name__ == "__main__":
         "wrapper": {
             "list_variable_name": ["drug_1"],
             "weight": 0.8,
+        },
+        "generation": {
+            "x_min": -256,
+            "x_max": 256,
+            "y_min": -256,
+            "y_max": 256,
+            "n_tumor": 512,  # number of tumor cells for the initial state
+            "n_cell_1": 128,  # number of cell 1 for the initial state
+            "range_jitter_tumor": (
+                5,
+                15,
+            ),  # range of std for the Gaussian noise jitter applied to tumor cells' positions inside ellipse
+            "range_cell_1": (
+                5,
+                10,
+            ),  # range  of std for the Gaussian noise jitter applied to surrounding cell_1 positions
+            "range_r2_frac_tumor": (
+                0.1,
+                0.4,
+            ),  # range for the fractional size of the semi-minor axis (y-axis radius) of the tumor ellipse relative to bounding box
+            "range_frac_cell_1": (
+                0.1,
+                0.4,
+            ),  # range for fractional size of semi-minor axis of the surrounding cells' ellipse (cell_1)
+            "range_r1": (
+                0.1,
+                0.4,
+            ),  # range for fractional size of the semi-major axis (x-axis radius) of the tumor ellipse
+            "range_cell_dist": (
+                1.5,
+                2.0,
+            ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
+            "init_mode": "robust",
+            "cell_2_fraction": 0.3,
         },
     }
 
