@@ -83,4 +83,4 @@ class PhysiCellModelWrapper(gym.Wrapper):
         if self.generation_cfg is None:
             self.generation_cfg = generation_cfg
         create_csv(**self.generation_cfg)
-        self.env.reset(seed=seed, options=options, **kwargs)
+        return self.env.reset(seed=seed, options=options, **kwargs)
