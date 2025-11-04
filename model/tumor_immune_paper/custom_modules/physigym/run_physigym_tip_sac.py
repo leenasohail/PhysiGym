@@ -32,10 +32,6 @@ import pandas as pd
 # Load Gymnasium PhysiCell bridge module namespace physigym
 import physigym
 
-# Gymnasium
-import gymnasium as gym
-from gymnasium.spaces import Box
-
 # Torch ecosystem
 import torch
 import torch.nn as nn
@@ -45,7 +41,6 @@ from torch.utils import tensorboard
 from torch_geometric.data import Data
 
 # additional model related code
-from initial_conditions_tip import create_csv
 from vectorized_tip import vec_envs
 from physigym.nn_tip import Actor, QNetwork
 from physigym.rb_tip import ReplayBuffer
@@ -54,15 +49,16 @@ from physigym.rb_tip import ReplayBuffer
 import wandb
 
 
-import json
-import hashlib
-
-
-def dict_hash(d: dict) -> str:
-    # Convert dict to JSON string with sorted keys
-    dict_str = json.dumps(d, sort_keys=True)
-    # Compute SHA256 hash
-    return hashlib.sha256(dict_str.encode()).hexdigest()
+def flatten_dict(d, parent_key=""):
+    """Flatten a nested dictionary, joining keys with dots."""
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}.{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
 
 
 ###################
@@ -89,7 +85,7 @@ def run(
     i_tumor=512,
     i_cell_1=128,
     r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
-    pre_generation=True,
+    i_num_envs=8,
 ):
     d_arg_simulation = {
         # basics
@@ -102,6 +98,7 @@ def run(
         "seed": i_seed,  # int or none: seed of the experiment
         # steps
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
+        "max_time": r_max_time_episode,
     }
     # wandb
     d_arg_wandb = {
@@ -154,8 +151,8 @@ def run(
         "gamma": 0.99,  # float: the discount factor gamma (how much learning)
     }
     d_arg_vect = {
-        "num_envs": args.num_envs,
-        "threads_per_env": args.threads,
+        "num_envs": i_num_envs,
+        "threads_per_env": i_thread,
     }
 
     # all in one
@@ -183,7 +180,7 @@ def run(
         run = wandb.init(name=s_run, config=d_arg["simulation"], **d_arg["wandb"])
         s_dir_run = os.path.join(
             run.dir, s_run
-        )  # run.dir wandb/run-20250612_123456-abcdef
+        )
     else:
         print("tracking tensorboard ...")
         s_dir_run = os.path.join("tensorboard", s_run)
@@ -191,18 +188,6 @@ def run(
 
     # initialize tensorbord recording
     writer = tensorboard.SummaryWriter(s_dir_run)
-
-    def flatten_dict(d, parent_key=""):
-        """Flatten a nested dictionary, joining keys with dots."""
-        items = []
-        for k, v in d.items():
-            new_key = f"{parent_key}.{k}" if parent_key else k
-            if isinstance(v, dict):
-                items.extend(flatten_dict(v, new_key).items())
-            else:
-                items.append((new_key, v))
-        return dict(items)
-
     writer.add_text(
         "hyperparameters",
         "|param|value|\n|-|-|\n%s"
@@ -220,13 +205,13 @@ def run(
     ld_data = []
 
     # set random seed
-    random.seed(d_arg["seed"])
-    np.random.seed(d_arg["seed"])
-    if d_arg["seed"] is None:
+    random.seed(d_arg_simulation["seed"])
+    np.random.seed(d_arg_simulation["seed"])
+    if d_arg_simulation["seed"] is None:
         torch.seed()
         torch.backends.cudnn.deterministic = False
     else:
-        torch.manual_seed(d_arg["seed"])
+        torch.manual_seed(d_arg_simulation["seed"])
         torch.backends.cudnn.deterministic = True
 
     envs = vec_envs(d_arg)
@@ -265,48 +250,10 @@ def run(
         ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
         "init_mode": s_init_mode,
         "cell_2_fraction": r_cell_2_fraction,
-        "pre_generation": pre_generation,
     }
 
     d_arg["generation"] = d_arg_generation
 
-    str_hash = dict_hash(d_arg)
-    cell_positions_folder = (
-        envs[0]
-        .get_wrapper_attr("x_root")
-        .xpath("//initial_conditions/cell_positions/folder")[0]
-        .text
-    )
-    cell_name_file = (
-        envs[0]
-        .get_wrapper_attr("x_root")
-        .xpath("//initial_conditions/cell_positions/filename")[0]
-        .text
-    )
-    initial_conditions_path = os.path.join(
-        cell_positions_folder, f"initial_conditions_{str_hash}"
-    )
-
-    if d_arg_generation["pre_generation"]:
-        # Remove old folder if exists
-        if os.path.exists(initial_conditions_path):
-            shutil.rmtree(initial_conditions_path)
-        os.makedirs(initial_conditions_path, exist_ok=True)
-
-        # Assuming you want to generate multiple CSVs
-        for i in range(d_arg_generation.get("number_of_initial_states", 100)):
-            d_arg_generation["csv_path"] = os.path.join(
-                initial_conditions_path, f"{i}_{cell_name_file}"
-            )
-            create_csv(**d_arg_generation)
-        csv_files = [
-            f for f in os.listdir(initial_conditions_path) if f.endswith(".csv")
-        ]
-
-    else:
-        d_arg_generation["csv_path"] = os.path.join(
-            cell_positions_folder, cell_name_file
-        )
     for i in range(num_envs):
         envs[i].get_wrapper_attr("x_root").xpath("//save/folder")[
             0
@@ -370,30 +317,11 @@ def run(
             envs[0].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
                 0
             ].text = "true"
-            
+
         # reset gymnasium env
         r_discounted_cumulative_returns = np.zeros((num_envs))
-        if d_arg_generation["pre_generation"]:
-            for i in range(num_envs):
-                chosen_csv = random.choice(csv_files)
-                envs[0].get_wrapper_attr("x_root").xpath(
-                    "//initial_conditions/cell_positions/folder"
-                )[0].text = initial_conditions_path
-                envs[0].get_wrapper_attr("x_root").xpath(
-                    "//initial_conditions/cell_positions/filename"
-                )[0].text = chosen_csv
-                b_episode_over = False
-                o_observations = envs.reset(seed=d_arg["seed"])
-
-        else:
-            create_csv(**d_arg_generation)  # allow to generate new csv file
-            try:
-                o_observations = envs.reset(seed=d_arg["seed"])
-                # time step loop
-                b_episode_over = False
-            except:
-                b_episode_over = True
-                print("Problem with the seeding, Relanunch a new generation")
+        o_observations = envs.reset(seed=d_arg["seed"])
+        b_episode_over = False
         while not b_episode_over:
             # sample the action space or learn
             if global_step <= d_arg["rl"]["learning_starts"] // num_envs:
@@ -426,12 +354,12 @@ def run(
                 a_actions = actions.detach().cpu().numpy()
 
             # physigym step
-            o_observation_nexts, r_rewards, b_dones, d_infos = envs.step(a_actions)
+            o_observations_next, r_rewards, b_dones, d_infos = envs.step(a_actions)
             for i in range(num_envs):
                 rb.add(
                     state=o_observations[i],
                     action=a_actions[i],
-                    next_state=o_observation_nexts[i],
+                    next_state=o_observations_next[i],
                     reward=r_rewards[i],
                     done=b_dones[i],
                 )
@@ -440,101 +368,102 @@ def run(
                 ] ** (envs[i].unwrapped.step_episode)
                 if b_dones[i]:
                     r_discounted_cumulative_returns[i] = 0
+            b_episode_over = b_dones[0]
 
             # learning
             if global_step > d_arg["rl"]["learning_starts"] // num_envs:
-                data = rb.sample()
-                with torch.no_grad():
-                    next_state_actions, next_state_log_pi, _ = actor.get_action(
-                        data["next_state"]
-                    )
-                    qf1_next_target = qf1_target(data["next_state"], next_state_actions)
-                    qf2_next_target = qf2_target(data["next_state"], next_state_actions)
-                    min_qf_next_target = (
-                        torch.min(qf1_next_target, qf2_next_target)
-                        - alpha * next_state_log_pi
-                    )
-                    next_q_value = data["reward"].flatten() + (
-                        1 - data["done"].flatten()
-                    ) * d_arg["rl"]["gamma"] * (min_qf_next_target).view(-1)
-
-                qf1_a_values = qf1(data["state"], data["action"]).view(-1)
-                qf2_a_values = qf2(data["state"], data["action"]).view(-1)
-                qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
-                qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
-                qf_loss = qf1_loss + qf2_loss
-
-                # optimize the model
-                q_optimizer.zero_grad()
-                qf_loss.backward()
-                q_optimizer.step()
-
-                # update the target networks
-                if global_step % d_arg["rl"]["target_network_frequency"] == 0:
-                    for param, target_param in zip(
-                        qf1.parameters(), qf1_target.parameters()
-                    ):
-                        target_param.data.copy_(
-                            d_arg["rl"]["tau"] * param.data
-                            + (1 - d_arg["rl"]["tau"]) * target_param.data
+                for _ in range(num_envs):
+                    data = rb.sample()
+                    with torch.no_grad():
+                        next_state_actions, next_state_log_pi, _ = actor.get_action(
+                            data["next_state"]
                         )
-                    for param, target_param in zip(
-                        qf2.parameters(), qf2_target.parameters()
-                    ):
-                        target_param.data.copy_(
-                            d_arg["rl"]["tau"] * param.data
-                            + (1 - d_arg["rl"]["tau"]) * target_param.data
+                        qf1_next_target = qf1_target(data["next_state"], next_state_actions)
+                        qf2_next_target = qf2_target(data["next_state"], next_state_actions)
+                        min_qf_next_target = (
+                            torch.min(qf1_next_target, qf2_next_target)
+                            - alpha * next_state_log_pi
                         )
+                        next_q_value = data["reward"].flatten() + (
+                            1 - data["done"].flatten()
+                        ) * d_arg["rl"]["gamma"] * (min_qf_next_target).view(-1)
 
-                # update the policy
-                if global_step % d_arg["rl"]["policy_frequency"] == 0:
-                    for _ in range(d_arg["rl"]["policy_frequency"]):
-                        pi, log_pi, _ = actor.get_action(data["state"])
+                    qf1_a_values = qf1(data["state"], data["action"]).view(-1)
+                    qf2_a_values = qf2(data["state"], data["action"]).view(-1)
+                    qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
+                    qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
+                    qf_loss = qf1_loss + qf2_loss
 
-                        qf1_pi = qf1(data["state"], pi)
-                        qf2_pi = qf2(data["state"], pi)
-                        min_qf_pi = torch.min(qf1_pi, qf2_pi)
-                        actor_loss = ((alpha * log_pi) - min_qf_pi).mean()
+                    # optimize the model
+                    q_optimizer.zero_grad()
+                    qf_loss.backward()
+                    q_optimizer.step()
 
-                        actor_optimizer.zero_grad()
-                        actor_loss.backward()
-                        actor_optimizer.step()
-
-                        # entropy autotune
-                        if d_arg["rl"]["autotune"]:
-                            with torch.no_grad():
-                                _, log_pi, _ = actor.get_action(data["state"])
-
-                            alpha_loss = (
-                                -log_alpha.exp() * (log_pi + target_entropy)
-                            ).mean()
-
-                            a_optimizer.zero_grad()
-                            alpha_loss.backward()
-                            a_optimizer.step()
-
-                            alpha = log_alpha.exp().item()
-
-                    # record policy update to tensoboard
-                    losses = {
-                        "losses/min_qf_next_target": min_qf_next_target.mean().item(),
-                        "losses/qf_loss": qf_loss.item() / 2.0,
-                        "losses/actor_loss": actor_loss.item(),
-                    }
-
-                    if d_arg["simulation"]["wandb_track"]:
-                        run.log(losses)
-                    else:
-                        for tag, value in losses.items():
-                            writer.add_scalar(
-                                tag, value, envs[0].unwrapped.step_episode
+                    # update the target networks
+                    if global_step % d_arg["rl"]["target_network_frequency"] == 0:
+                        for param, target_param in zip(
+                            qf1.parameters(), qf1_target.parameters()
+                        ):
+                            target_param.data.copy_(
+                                d_arg["rl"]["tau"] * param.data
+                                + (1 - d_arg["rl"]["tau"]) * target_param.data
+                            )
+                        for param, target_param in zip(
+                            qf2.parameters(), qf2_target.parameters()
+                        ):
+                            target_param.data.copy_(
+                                d_arg["rl"]["tau"] * param.data
+                                + (1 - d_arg["rl"]["tau"]) * target_param.data
                             )
 
-                    # record policy update to csv
-                    # pass
+                    # update the policy
+                    if global_step % d_arg["rl"]["policy_frequency"] == 0:
+                        for _ in range(d_arg["rl"]["policy_frequency"]):
+                            pi, log_pi, _ = actor.get_action(data["state"])
+
+                            qf1_pi = qf1(data["state"], pi)
+                            qf2_pi = qf2(data["state"], pi)
+                            min_qf_pi = torch.min(qf1_pi, qf2_pi)
+                            actor_loss = ((alpha * log_pi) - min_qf_pi).mean()
+
+                            actor_optimizer.zero_grad()
+                            actor_loss.backward()
+                            actor_optimizer.step()
+
+                            # entropy autotune
+                            if d_arg["rl"]["autotune"]:
+                                with torch.no_grad():
+                                    _, log_pi, _ = actor.get_action(data["state"])
+
+                                alpha_loss = (
+                                    -log_alpha.exp() * (log_pi + target_entropy)
+                                ).mean()
+
+                                a_optimizer.zero_grad()
+                                alpha_loss.backward()
+                                a_optimizer.step()
+
+                                alpha = log_alpha.exp().item()
+
+                        # record policy update to tensoboard
+                        losses = {
+                            "losses/min_qf_next_target": min_qf_next_target.mean().item(),
+                            "losses/qf_loss": qf_loss.item() / 2.0,
+                            "losses/actor_loss": actor_loss.item(),
+                        }
+
+                        if d_arg["simulation"]["wandb_track"]:
+                            run.log(losses)
+                        else:
+                            for tag, value in losses.items():
+                                writer.add_scalar(
+                                    tag, value, envs[0].unwrapped.step_episode
+                                )
+                    del data
+
 
             # handle observation
-            o_observations = o_observation_nexts
+            o_observations = o_observations_next
 
             # record step to csv
             d_data = {
@@ -564,9 +493,9 @@ def run(
         df = pd.DataFrame(ld_data)
         df.to_csv(os.path.join(s_dir_data_episode, "data.csv"), index=False)
         dst_path = os.path.join(
-            s_dir_data_episode, os.path.basename(d_arg_generation["csv_path"])
+            s_dir_data_episode, os.path.basename(envs[0].unwrapped.csv_path_init)
         )
-        shutil.copy(d_arg_generation["csv_path"], dst_path)
+        shutil.copy(envs[0].unwrapped.csv_path_init, dst_path)
         ld_data = []
 
     # finish
