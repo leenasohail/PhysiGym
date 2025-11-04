@@ -3,7 +3,7 @@
     <cell_rules>
         <rulesets>
             <ruleset protocol="CBHG" version="3.0" format="csv" enabled="true">
-                <folder>./config</folder>
+                <folder>config</folder>
                 <filename>cell_rules.csv</filename>
             </ruleset>
         </rulesets>
@@ -36,7 +36,7 @@
     </parallel>
 
     <save>
-        <folder>tensorboard/sac_big_red_seed_None_observationtype_scalars_weight_0.8_time_1754158477/data/devnull</folder>
+	<folder>output</folder>
         <full_data>
             <interval units="min">12</interval>
             <enable>false</enable>
@@ -816,7 +816,7 @@
 
     <initial_conditions>
         <cell_positions type="csv" enabled="true">
-            <folder>./config</folder>
+            <folder>config</folder>
             <filename>cells.csv</filename>
         </cell_positions>
     </initial_conditions>
