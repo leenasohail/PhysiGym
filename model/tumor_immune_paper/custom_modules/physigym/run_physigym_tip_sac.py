@@ -38,7 +38,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils import tensorboard
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 
 # additional model related code
 from vectorized_tip import vec_envs
@@ -178,9 +178,7 @@ def run(
     if d_arg["simulation"]["wandb_track"]:
         print("tracking: wandb ...")
         run = wandb.init(name=s_run, config=d_arg["simulation"], **d_arg["wandb"])
-        s_dir_run = os.path.join(
-            run.dir, s_run
-        )
+        s_dir_run = os.path.join(run.dir, s_run)
     else:
         print("tracking tensorboard ...")
         s_dir_run = os.path.join("tensorboard", s_run)
@@ -331,23 +329,30 @@ def run(
                 )
             else:
                 if is_graph:
-                    x = [
-                        Data(
+                    data_list = []
+                    for i in range(num_envs):
+                        data = Data(
                             x=torch.tensor(
-                                o_observations.nodes, dtype=torch.float, device=o_device
+                                o_observations.nodes[i],
+                                dtype=torch.float,
+                                device=o_device,
                             ),
                             edge_index=torch.tensor(
-                                o_observations.edge_links,
+                                o_observations.edge_links[i],
                                 dtype=torch.long,
                                 device=o_device,
                             )
                             .t()
                             .contiguous(),
                             edge_attr=torch.tensor(
-                                o_observations.edges, dtype=torch.float, device=o_device
+                                o_observations.edges[i],
+                                dtype=torch.float,
+                                device=o_device,
                             ),
                         )
-                    ]
+                        data_list.append(data)
+
+                    x = Batch.from_data_list(data_list)
                 else:
                     x = torch.Tensor(o_observations).to(o_device)
                 actions, _, _ = actor.get_action(x)
@@ -378,8 +383,12 @@ def run(
                         next_state_actions, next_state_log_pi, _ = actor.get_action(
                             data["next_state"]
                         )
-                        qf1_next_target = qf1_target(data["next_state"], next_state_actions)
-                        qf2_next_target = qf2_target(data["next_state"], next_state_actions)
+                        qf1_next_target = qf1_target(
+                            data["next_state"], next_state_actions
+                        )
+                        qf2_next_target = qf2_target(
+                            data["next_state"], next_state_actions
+                        )
                         min_qf_next_target = (
                             torch.min(qf1_next_target, qf2_next_target)
                             - alpha * next_state_log_pi
@@ -460,7 +469,6 @@ def run(
                                     tag, value, envs[0].unwrapped.step_episode
                                 )
                     del data
-
 
             # handle observation
             o_observations = o_observations_next
