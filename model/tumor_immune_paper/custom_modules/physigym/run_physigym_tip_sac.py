@@ -10,7 +10,7 @@
 # original source code: https://github.com/Dante-Berth/PhysiGym
 #
 # description:
-#     sac implementation for tumor immune paper
+#     vectorized sac implementation for tumor immune paper
 #####
 
 
@@ -184,7 +184,6 @@ def run(
     else:
         print("tracking tensorboard ...")
         s_dir_run = os.path.join("tensorboard", s_run)
-    s_dir_data = os.path.join(s_dir_run, "data")
 
     # initialize tensorbord recording
     writer = tensorboard.SummaryWriter(s_dir_run)
@@ -200,9 +199,6 @@ def run(
             )
         ),
     )
-
-    # initialize csv recording
-    ld_data = []
 
     # set random seed
     random.seed(d_arg_simulation["seed"])
@@ -254,14 +250,6 @@ def run(
 
     d_arg["generation"] = d_arg_generation
 
-    for i in range(num_envs):
-        envs[i].get_wrapper_attr("x_root").xpath("//save/folder")[
-            0
-        ].text = os.path.join(s_dir_data, "devnull")
-        envs[i].get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-            0
-        ].text = "false"
-        envs[i].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
     # initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     actor = Actor(envs[0]).to(o_device)
@@ -299,25 +287,6 @@ def run(
         is_graph=is_graph,
     )
     for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
-        s_dir_data_episode = os.path.join(
-            s_dir_data, f"episode{str(envs[0].unwrapped.episode).zfill(8)}"
-        )
-        os.makedirs(s_dir_data_episode, exist_ok=True)
-        # manipulate setting xml before reset
-        # bue can be used for track or not track stuff, e.g. every 1024 episode
-        # env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
-        # manipulate setting xml before reset to record full physicell run every 1024 episode.
-        if envs[0].unwrapped.episode % (256 // num_envs) == 0:
-            envs[0].get_wrapper_attr("x_root").xpath("//save/folder")[
-                0
-            ].text = s_dir_data_episode
-            envs[0].get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-                0
-            ].text = "true"
-            envs[0].get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
-                0
-            ].text = "true"
-
         # reset gymnasium env
         r_discounted_cumulative_returns = np.zeros((num_envs))
         o_observations = envs.reset(seed=d_arg["seed"])
@@ -361,7 +330,7 @@ def run(
                 a_actions = actions.detach().cpu().numpy()
 
             # physigym step
-            o_observations_next, r_rewards, b_dones, d_infos = envs.step(a_actions)
+            o_observations_next, r_rewards, b_dones, _ = envs.step(a_actions)
             for i in range(num_envs):
                 rb.add(
                     state=o_observations[i],
@@ -475,17 +444,6 @@ def run(
             # handle observation
             o_observations = o_observations_next
 
-            # record step to csv
-            d_data = {
-                "step": envs[0].unwrapped.step_episode,
-                "reward": r_rewards,
-                "discounted_cumulative_return": r_discounted_cumulative_returns[0],
-                "drug_1": a_actions[0],
-                "number_tumor": d_infos[0]["number_tumor"],
-                "number_cell_1": d_infos[0]["number_cell_1"],
-            }
-            ld_data.append(d_data)
-
         # recording episode to tensorbord
         scalars = {
             "charts/discounted_cumulative_return": r_discounted_cumulative_returns[0],
@@ -498,15 +456,6 @@ def run(
         else:
             for tag, value in scalars.items():
                 writer.add_scalar(tag, value, global_step)
-
-        # recording episode to csv
-        df = pd.DataFrame(ld_data)
-        df.to_csv(os.path.join(s_dir_data_episode, "data.csv"), index=False)
-        dst_path = os.path.join(
-            s_dir_data_episode, os.path.basename(envs[0].unwrapped.csv_path_init)
-        )
-        shutil.copy(envs[0].unwrapped.csv_path_init, dst_path)
-        ld_data = []
 
     # finish
     envs.close()
@@ -645,13 +594,6 @@ if __name__ == "__main__":
         help="fraction of cell_1 into cell_2 ie 0.5 means 50%",
     )
 
-    parser.add_argument(
-        "--pre_generation",
-        nargs="?",
-        default="false",
-        help="if the initial conditions are pre-generated",
-    )
-
     # parse arguments
     args = parser.parse_args()
     print(args)
@@ -674,5 +616,4 @@ if __name__ == "__main__":
         i_tumor=args.tumor,
         i_cell_1=args.cell_1,
         r_cell_2_fraction=args.cell_2_fraction,
-        pre_generation=True if args.pre_generation.lower().startswith("t") else False,
     )
