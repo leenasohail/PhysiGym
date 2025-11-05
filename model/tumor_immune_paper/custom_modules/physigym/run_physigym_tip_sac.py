@@ -71,6 +71,7 @@ def flatten_dict(d, parent_key=""):
 
 def run(
     s_settingxml="config/PhysiCell_settings.xml",  # xpath
+    s_settingcells="cells.csv",
     i_seed=int(1),  # int or none: seed of the experiment
     s_observation_mode="scalars_cells",  # str: observation mode
     s_render_mode=None,  # render is none or rgb_array or human
@@ -113,6 +114,7 @@ def run(
     d_arg_physigym_model = {
         "id": "physigym/ModelPhysiCellEnv-v0",  # str: the id of the gymnasium environmenit
         "settingxml": s_settingxml,
+        "settingcells": s_settingcells,
         "cell_type_cmap": {
             "tumor": "yellow",
             "cell_1": "green",
@@ -532,6 +534,9 @@ if __name__ == "__main__":
         default="config/PhysiCell_settings.xml",
         help="path/to/settings.xml file.",
     )
+    parser.add_argument(
+        "--settingcells", nargs="?", default="cells.csv", help="name cells.csv ."
+    )
     # seed
     parser.add_argument(
         "--seed",
@@ -654,6 +659,7 @@ if __name__ == "__main__":
     # processing
     run(
         s_settingxml=args.settingxml,
+        s_settingcells=args.settingcells,
         i_seed=None if args.seed.lower() == "none" else int(args.seed),
         s_observation_mode=args.observation_mode,
         s_render_mode=None if args.render_mode.lower() == "none" else args.render_mode,
