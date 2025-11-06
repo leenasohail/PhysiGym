@@ -122,6 +122,7 @@ def run(
             "tumor": "yellow",
             "cell_1": "green",
             "cell_2": "navy",
+            "other_tissue": "red",
         },  # viridis
         "figsize": (6, 6),
         "observation_mode": s_observation_mode,  # str: scalars , img_rgb , img_mc, graph_neighbor, graph_delaunay
@@ -289,6 +290,7 @@ def run(
         state_type=ghost_env.observation_space.dtype,
         is_graph=is_graph,
     )
+    del ghost_env
     for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
         # reset gymnasium env
         r_discounted_cumulative_returns = np.zeros((num_envs))

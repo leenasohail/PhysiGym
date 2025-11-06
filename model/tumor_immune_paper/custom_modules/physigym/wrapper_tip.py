@@ -56,6 +56,10 @@ class PhysiCellModelWrapper(gym.Wrapper):
             self.cell_positions_folder, self.cell_name_file
         )
         self.generation_cfg = None
+        self.output_dir = (
+            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text
+        )
+        os.makedirs(self.output_dir, exist_ok=True)
 
     @property
     def action_space(self):

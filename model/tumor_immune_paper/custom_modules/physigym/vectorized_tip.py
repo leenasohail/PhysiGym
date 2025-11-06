@@ -22,7 +22,6 @@ import numpy as np
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from lxml import etree
 import time
-
 import physigym
 from extending import physicell
 from wrapper_tip import PhysiCellModelWrapper
@@ -56,6 +55,7 @@ def make_physigym_env(env_id: int, cfg: dict):
         "wrapper": {...}
     }
     """
+
     sim_cfg = cfg["simulation"]
     vect_cfg = cfg["vectorization"]
     model_cfg = cfg["model"]
@@ -73,9 +73,8 @@ def make_physigym_env(env_id: int, cfg: dict):
         shutil.copy(base_xml, env_xml)
     if not os.path.exists(env_cells):
         shutil.copy(base_cells, env_cells)
-
-    output_dir = f"output/env{env_id}"
-    os.makedirs(output_dir, exist_ok=True)
+    if model_cfg_copy["output_dir"] is None:
+        model_cfg_copy["output_dir"] = "output"
     del model_cfg_copy["settingcells"]
 
     def _init():
@@ -86,12 +85,17 @@ def make_physigym_env(env_id: int, cfg: dict):
         root = tree.getroot()
         root.xpath("//overall/max_time")[0].text = str(sim_cfg["max_time"])
         root.xpath("//parallel/omp_num_threads")[0].text = str(threads_per_env)
-        root.xpath("//save/folder")[0].text = output_dir
+        root.xpath("//save/folder")[0].text = os.path.join(
+            model_cfg_copy["output_dir"], f"env{env_id}"
+        )
+        root.xpath("//save/full_data/enable")[0].text = "false"
+        root.xpath("//save/SVG/enable")[0].text = "false"
         root.xpath("//initial_conditions/cell_positions/filename")[
             0
         ].text = f"cells_{env_id}.csv"
         tree.write(env_xml, pretty_print=True)
         model_cfg_copy["settingxml"] = env_xml
+        del model_cfg_copy["output_dir"]
 
         # Create the base PhysiCell environment
         env = gym.make(**model_cfg_copy)
@@ -121,6 +125,7 @@ def vec_envs(cfg: dict):
     print(f"[INFO] Launching {num_envs} envs × {threads_per_env} threads each")
 
     env_fns = [make_physigym_env(i, cfg) for i in range(num_envs)]
+
     return SubprocVecEnv(env_fns)
 
 
@@ -132,13 +137,14 @@ def run_vectorized(cfg: dict):
     envs = vec_envs(cfg)
 
     obs = envs.reset()
-    print(f"[INFO] Observation shape: {np.shape(obs[0])}")
-
     time_1 = time.time()
     for t in range(50):
-        actions = np.random.uniform(low=0, high=1, size=(num_envs, 1))
+        actions = np.array(
+            [envs.action_space.sample() for _ in range(num_envs)],
+            dtype=np.float32,
+        )
+        # actions = np.random.uniform(low=0, high=1, size=(num_envs, 1))
         obs, rewards, dones, infos = envs.step(actions)
-
         print(f"[Step {t}] rewards = {rewards}")
         if np.any(dones):
             print(f"[INFO] Envs done: {np.where(dones)[0]}")
@@ -181,7 +187,13 @@ if __name__ == "__main__":
             "id": "physigym/ModelPhysiCellEnv-v0",
             "settingxml": args.settingxml,
             "settingcells": args.settingcells,
-            "cell_type_cmap": {"tumor": "yellow", "cell_1": "green", "cell_2": "navy"},
+            "output_dir": "test",
+            "cell_type_cmap": {
+                "tumor": "yellow",
+                "cell_1": "green",
+                "cell_2": "navy",
+                "other_tissue": "red",
+            },
             "figsize": (6, 6),
             "observation_mode": "scalars",
             "render_mode": None,
