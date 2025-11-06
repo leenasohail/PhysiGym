@@ -71,8 +71,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
         r_drugs = np.mean(action)
         info["action"] = d_action
-        info["reward_drugs"] = r_drugs
-        info["reward_cancer_cells"] = r_cancer_cells
+        info["step_episode"] = self.env.unwrapped.step_episode
 
         reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
 

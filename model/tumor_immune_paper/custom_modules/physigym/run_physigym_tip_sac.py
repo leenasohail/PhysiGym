@@ -21,26 +21,29 @@ import os
 import random
 import shutil
 import time
+from lxml import etree
 
 # Non-standard Python Libraries
 import matplotlib
 
 matplotlib.use("agg")  # set the plotting backend e.g. agg qtagg
+
 import numpy as np
-import pandas as pd
+
+import gymnasium as gym
 
 # Load Gymnasium PhysiCell bridge module namespace physigym
 import physigym
 
 # Torch ecosystem
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils import tensorboard
 from torch_geometric.data import Data, Batch
 
-# additional model related code
+
+# Utils code related to the project
 from vectorized_tip import vec_envs
 from physigym.nn_tip import Actor, QNetwork
 from physigym.rb_tip import ReplayBuffer
@@ -166,6 +169,7 @@ def run(
     d_arg["wrapper"] = d_arg_physigym_wrapper
     d_arg["model"] = d_arg_physigym_model
     num_envs = d_arg["vectorization"]["num_envs"]
+    ghost_env = gym.make(**d_arg["model"])
 
     # gpu cpu
     if (d_arg["simulation"]["cuda"] and not torch.cuda.is_available()) or (
@@ -214,10 +218,10 @@ def run(
     # d_arg_generation control the generation of initial states, you should not modify it, at your own risk
     # but you may change the number of tumor cells (n_tumor) and you may also change (n_cell_1)
     d_arg_generation = {
-        "x_min": envs[0].unwrapped.x_min,
-        "x_max": envs[0].unwrapped.x_max,
-        "y_min": envs[0].unwrapped.y_min,
-        "y_max": envs[0].unwrapped.y_max,
+        "x_min": ghost_env.unwrapped.x_min,
+        "x_max": ghost_env.unwrapped.x_max,
+        "y_min": ghost_env.unwrapped.y_min,
+        "y_max": ghost_env.unwrapped.y_max,
         "n_tumor": i_tumor,  # number of tumor cells for the initial state
         "n_cell_1": i_cell_1,  # number of cell 1 for the initial state
         "range_jitter_tumor": (
@@ -249,14 +253,13 @@ def run(
     }
 
     d_arg["generation"] = d_arg_generation
-
     # initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    actor = Actor(envs[0]).to(o_device)
-    qf1 = QNetwork(envs[0]).to(o_device)
-    qf2 = QNetwork(envs[0]).to(o_device)
-    qf1_target = QNetwork(envs[0]).to(o_device)
-    qf2_target = QNetwork(envs[0]).to(o_device)
+    actor = Actor(ghost_env).to(o_device)
+    qf1 = QNetwork(ghost_env).to(o_device)
+    qf2 = QNetwork(ghost_env).to(o_device)
+    qf1_target = QNetwork(ghost_env).to(o_device)
+    qf2_target = QNetwork(ghost_env).to(o_device)
     q_optimizer = optim.Adam(
         list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["rl"]["q_lr"]
     )
@@ -264,7 +267,7 @@ def run(
     # set neural network entropy alpha by automatic tuning or manual
     if d_arg["rl"]["autotune"]:
         target_entropy = -torch.prod(
-            torch.Tensor(envs[0].action_space.shape).to(o_device)
+            torch.Tensor(ghost_env.action_space.shape).to(o_device)
         ).item()
         log_alpha = torch.zeros(1, requires_grad=True, device=o_device)
         alpha = log_alpha.exp().item()
@@ -273,17 +276,17 @@ def run(
         alpha = d_arg["rl"]["alpha"]
 
     is_graph = False
-    if hasattr(envs[0].unwrapped, "kwargs"):
-        obs_mode = envs[0].unwrapped.kwargs.get("observation_mode", "")
+    if hasattr(ghost_env.unwrapped, "kwargs"):
+        obs_mode = ghost_env.unwrapped.kwargs.get("observation_mode", "")
         is_graph = "graph" in str(obs_mode)
     # initilize the reply buffer
     rb = ReplayBuffer(
-        state_dim=envs[0].observation_space.shape,
-        action_dim=envs[0].action_space.shape,
+        state_dim=ghost_env.observation_space.shape,
+        action_dim=ghost_env.action_space.shape,
         device=o_device,
         buffer_size=d_arg["rl"]["buffer_size"],
         batch_size=d_arg["rl"]["batch_size"],
-        state_type=envs[0].observation_space.dtype,
+        state_type=ghost_env.observation_space.dtype,
         is_graph=is_graph,
     )
     for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
@@ -295,9 +298,10 @@ def run(
             # sample the action space or learn
             if global_step <= d_arg["rl"]["learning_starts"] // num_envs:
                 a_actions = np.array(
-                    [envs[i].action_space.sample() for i in range(num_envs)],
+                    [envs.action_space.sample() for _ in range(num_envs)],
                     dtype=np.float32,
                 )
+
             else:
                 if is_graph:
                     data_list = []
@@ -330,7 +334,7 @@ def run(
                 a_actions = actions.detach().cpu().numpy()
 
             # physigym step
-            o_observations_next, r_rewards, b_dones, _ = envs.step(a_actions)
+            o_observations_next, r_rewards, b_dones, infos = envs.step(a_actions)
             for i in range(num_envs):
                 rb.add(
                     state=o_observations[i],
@@ -339,15 +343,19 @@ def run(
                     reward=r_rewards[i],
                     done=b_dones[i],
                 )
-                r_discounted_cumulative_returns[i] += r_rewards[i] * d_arg["rl"][
-                    "gamma"
-                ] ** (envs[i].unwrapped.step_episode)
-                if b_dones[i]:
-                    r_discounted_cumulative_returns[i] = 0
+                r_discounted_cumulative_returns[i] += (
+                    r_rewards[i] * d_arg["rl"]["gamma"] ** (infos[i]["step_episode"])
+                )
+            r_discounted_cumulative_returns *= 1 - b_dones
             b_episode_over = b_dones[0]
+            # handle observation
+            o_observations = o_observations_next
 
             # learning
             if global_step > d_arg["rl"]["learning_starts"] // num_envs:
+                list_min_qf_next_target = []
+                list_qf_loss = []
+                list_actor_loss = []
                 for _ in range(num_envs):
                     data = rb.sample()
                     with torch.no_grad():
@@ -424,29 +432,30 @@ def run(
                                 a_optimizer.step()
 
                                 alpha = log_alpha.exp().item()
-
-                        # record policy update to tensoboard
-                        losses = {
-                            "losses/min_qf_next_target": min_qf_next_target.mean().item(),
-                            "losses/qf_loss": qf_loss.item() / 2.0,
-                            "losses/actor_loss": actor_loss.item(),
-                        }
-
-                        if d_arg["simulation"]["wandb_track"]:
-                            run.log(losses)
-                        else:
-                            for tag, value in losses.items():
-                                writer.add_scalar(
-                                    tag, value, envs[0].unwrapped.step_episode
-                                )
+                    list_min_qf_next_target.append(min_qf_next_target.mean().item())
+                    list_qf_loss.append(qf_loss.item() / 2.0)
+                    list_actor_loss.append(actor_loss.item())
                     del data
+                # record policy update to tensoboard
+                losses = {
+                    "losses/min_qf_next_target": np.mean(list_min_qf_next_target),
+                    "losses/qf_loss": np.mean(list_qf_loss),
+                    "losses/actor_loss": np.mean(list_actor_loss),
+                }
 
-            # handle observation
-            o_observations = o_observations_next
+                if d_arg["simulation"]["wandb_track"]:
+                    run.log(losses)
+                else:
+                    for tag, value in losses.items():
+                        writer.add_scalar(
+                            tag=tag, scalar_value=value, global_step=global_step
+                        )
 
         # recording episode to tensorbord
         scalars = {
-            "charts/discounted_cumulative_return": r_discounted_cumulative_returns[0],
+            "charts/one_env_discounted_cumulative_return": r_discounted_cumulative_returns[
+                0
+            ],
             "charts/mean_discounted_cumulative_return": np.mean(
                 r_discounted_cumulative_returns
             ),
