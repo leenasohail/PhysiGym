@@ -90,6 +90,7 @@ def run(
     i_cell_1=128,
     r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
     i_num_envs=8,
+    s_frequency_save_data=64,
 ):
     d_arg_simulation = {
         # basics
@@ -137,6 +138,7 @@ def run(
     d_arg_physigym_wrapper = {
         "list_variable_name": ["drug_1"],  # list of str: of action varaible names
         "weight": 0.8,  # float: weight for the reduction of tumor
+        "frequency_save_data": s_frequency_save_data,
     }
 
     # rl algorithm
@@ -605,6 +607,22 @@ if __name__ == "__main__":
         help="fraction of cell_1 into cell_2 ie 0.5 means 50%",
     )
 
+    parser.add_argument(
+        "--i_num_envs",
+        type=int,
+        nargs="?",
+        default=5,
+        help="number of parallelized environments",
+    )
+
+    parser.add_argument(
+        "--s_frequency_save_data",
+        type=int,
+        nargs="?",
+        default=256,
+        help="each number of episode data is saved",
+    )
+
     # parse arguments
     args = parser.parse_args()
     print(args)
@@ -619,6 +637,7 @@ if __name__ == "__main__":
         r_max_time_episode=args.max_time_episode,
         i_total_step_learn=args.total_step_learn,
         i_thread=args.thread,
+        i_num_envs=args.num_envs,
         b_gpu=True if args.gpu.lower().startswith("t") else False,
         s_name=args.name,
         b_wandb=True if args.wandb.lower().startswith("t") else False,
@@ -627,4 +646,5 @@ if __name__ == "__main__":
         i_tumor=args.tumor,
         i_cell_1=args.cell_1,
         r_cell_2_fraction=args.cell_2_fraction,
+        s_frequency_save_data=args.s_frequency_save_data,
     )

@@ -14,6 +14,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         env: gym.Env,
         list_variable_name: list[str] = ["drug_1"],
         weight: float = 0.8,
+        frequency_save_data=256,
     ):
         """
         Wraps a PhysiCell environment to use a flat continuous Box action space.
@@ -60,10 +61,38 @@ class PhysiCellModelWrapper(gym.Wrapper):
             self.env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text
         )
         os.makedirs(self.output_dir, exist_ok=True)
+        self.frequency_save_data = frequency_save_data
 
     @property
     def action_space(self):
         return self._action_space
+
+    def save_data(self, episode):
+        if episode % self.frequency_save_data == 0:
+            output_dir_episode = os.path.join(
+                self.output_dir, f"episode{str(episode).zfill(8)}"
+            )
+            os.makedirs(output_dir_episode, exist_ok=True)
+            # manipulate setting xml before reset
+            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
+                0
+            ].text = output_dir_episode
+            self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+                0
+            ].text = "true"
+            self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                0
+            ].text = "true"
+        else:
+            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
+                0
+            ].text = os.path.join(self.output_dir, "devnull")
+            self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+                0
+            ].text = "false"
+            self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                0
+            ].text = "false"
 
     def step(self, action: np.ndarray):
         d_action = {
@@ -86,4 +115,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
         if self.generation_cfg is None:
             self.generation_cfg = generation_cfg
         create_csv(**self.generation_cfg)
+        if self.frequency_save_data is not None:
+            self.save_data(self.env.unwrapped.episode)
         return self.env.reset(seed=seed, options=options, **kwargs)

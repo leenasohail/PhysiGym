@@ -96,7 +96,8 @@ def make_physigym_env(env_id: int, cfg: dict):
         tree.write(env_xml, pretty_print=True)
         model_cfg_copy["settingxml"] = env_xml
         del model_cfg_copy["output_dir"]
-
+        if env_id != 0:
+            wrapper_cfg["frequency_save_data"] = None
         # Create the base PhysiCell environment
         env = gym.make(**model_cfg_copy)
         # Wrap it for simplified action and custom reward
@@ -207,6 +208,7 @@ if __name__ == "__main__":
         "wrapper": {
             "list_variable_name": ["drug_1"],
             "weight": 0.8,
+            "frequency_save_data": 64,
         },
         "generation": {
             "x_min": -256,
