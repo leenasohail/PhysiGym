@@ -3,6 +3,8 @@ from gymnasium.spaces import Box
 import numpy as np
 from initial_conditions_tip import create_csv
 import os
+import pandas as pd
+import shutil
 
 
 # ============================================================
@@ -62,21 +64,34 @@ class PhysiCellModelWrapper(gym.Wrapper):
         )
         os.makedirs(self.output_dir, exist_ok=True)
         self.frequency_save_data = frequency_save_data
+        self.list_data = []
 
     @property
     def action_space(self):
         return self._action_space
 
-    def save_data(self, episode):
+    def save_data(self):
+        self.output_dir_episode = os.path.join(
+            self.output_dir, f"episode{str(self.env.unwrapped.episode).zfill(8)}"
+        )
+        episode = self.env.unwrapped.episode
+        df = pd.DataFrame(self.list_data)
+        df.to_csv(os.path.join(self.output_dir_episode, "data.csv"), index=False)
+        dst_path = os.path.join(
+            self.output_dir_episode,
+            os.path.basename(self.generation_cfg["csv_path"]["csv_path"]),
+        )
+        shutil.copy(self.generation_cfg["csv_path"], dst_path)
+        self.list_data = []
+        self.output_dir_episode = os.path.join(
+            self.output_dir, f"episode{str(episode).zfill(8)}"
+        )
         if episode % self.frequency_save_data == 0:
-            output_dir_episode = os.path.join(
-                self.output_dir, f"episode{str(episode).zfill(8)}"
-            )
-            os.makedirs(output_dir_episode, exist_ok=True)
+            os.makedirs(self.output_dir_episode, exist_ok=True)
             # manipulate setting xml before reset
             self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
                 0
-            ].text = output_dir_episode
+            ].text = self.output_dir_episode
             self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
                 0
             ].text = "true"
@@ -107,6 +122,17 @@ class PhysiCellModelWrapper(gym.Wrapper):
         info["step_episode"] = self.env.unwrapped.step_episode
 
         reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+        if self.frequency_save_data is not None:
+            data = {
+                "step": self.env.unwrapped.step_episode,
+                "reward": reward,
+                "drug_1": r_drugs,
+                "number_tumor": info["number_tumor"],
+                "number_cell_1": info["number_cell_1"],
+                "number_cell_2": info["number_cell_2"],
+            }
+
+            self.list_data.append(data)
 
         return obs, reward, terminated, truncated, info
 
@@ -116,5 +142,5 @@ class PhysiCellModelWrapper(gym.Wrapper):
             self.generation_cfg = generation_cfg
         create_csv(**self.generation_cfg)
         if self.frequency_save_data is not None:
-            self.save_data(self.env.unwrapped.episode)
+            self.save_data()
         return self.env.reset(seed=seed, options=options, **kwargs)

@@ -74,7 +74,7 @@ def flatten_dict(d, parent_key=""):
 
 def run(
     s_settingxml="config/PhysiCell_settings.xml",  # xpath
-    s_settingcells="cells.csv",
+    s_settingcells="cells.csv",  # cells csv path
     i_seed=int(1),  # int or none: seed of the experiment
     s_observation_mode="scalars_cells",  # str: observation mode
     s_render_mode=None,  # render is none or rgb_array or human
@@ -256,7 +256,8 @@ def run(
     }
 
     d_arg["generation"] = d_arg_generation
-    # initialize neural networks
+
+    # Initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     actor = Actor(ghost_env).to(o_device)
     qf1 = QNetwork(ghost_env).to(o_device)
@@ -267,7 +268,8 @@ def run(
         list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["rl"]["q_lr"]
     )
     actor_optimizer = optim.Adam(list(actor.parameters()), lr=d_arg["rl"]["policy_lr"])
-    # set neural network entropy alpha by automatic tuning or manual
+
+    # Set neural network entropy alpha by automatic tuning or manual
     if d_arg["rl"]["autotune"]:
         target_entropy = -torch.prod(
             torch.Tensor(ghost_env.action_space.shape).to(o_device)
@@ -282,7 +284,8 @@ def run(
     if hasattr(ghost_env.unwrapped, "kwargs"):
         obs_mode = ghost_env.unwrapped.kwargs.get("observation_mode", "")
         is_graph = "graph" in str(obs_mode)
-    # initilize the reply buffer
+
+    # Initialize the reply buffer
     rb = ReplayBuffer(
         state_dim=ghost_env.observation_space.shape,
         action_dim=ghost_env.action_space.shape,
@@ -293,177 +296,168 @@ def run(
         is_graph=is_graph,
     )
     del ghost_env
+    r_discounted_cumulative_returns = np.zeros((num_envs))
+    o_observations = envs.reset(seed=d_arg["seed"])
+
     for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
-        # reset gymnasium env
-        r_discounted_cumulative_returns = np.zeros((num_envs))
-        o_observations = envs.reset(seed=d_arg["seed"])
-        b_episode_over = False
-        while not b_episode_over:
-            # sample the action space or learn
-            if global_step <= d_arg["rl"]["learning_starts"] // num_envs:
-                a_actions = np.array(
-                    [envs.action_space.sample() for _ in range(num_envs)],
-                    dtype=np.float32,
-                )
+        # sample the action space or learn
+        if global_step <= d_arg["rl"]["learning_starts"] // num_envs:
+            a_actions = np.array(
+                [envs.action_space.sample() for _ in range(num_envs)],
+                dtype=np.float32,
+            )
 
+        else:
+            if is_graph:
+                data_list = []
+                for i in range(num_envs):
+                    data = Data(
+                        x=torch.tensor(
+                            o_observations.nodes[i],
+                            dtype=torch.float,
+                            device=o_device,
+                        ),
+                        edge_index=torch.tensor(
+                            o_observations.edge_links[i],
+                            dtype=torch.long,
+                            device=o_device,
+                        )
+                        .t()
+                        .contiguous(),
+                        edge_attr=torch.tensor(
+                            o_observations.edges[i],
+                            dtype=torch.float,
+                            device=o_device,
+                        ),
+                    )
+                    data_list.append(data)
+
+                x = Batch.from_data_list(data_list)
             else:
-                if is_graph:
-                    data_list = []
-                    for i in range(num_envs):
-                        data = Data(
-                            x=torch.tensor(
-                                o_observations.nodes[i],
-                                dtype=torch.float,
-                                device=o_device,
-                            ),
-                            edge_index=torch.tensor(
-                                o_observations.edge_links[i],
-                                dtype=torch.long,
-                                device=o_device,
-                            )
-                            .t()
-                            .contiguous(),
-                            edge_attr=torch.tensor(
-                                o_observations.edges[i],
-                                dtype=torch.float,
-                                device=o_device,
-                            ),
-                        )
-                        data_list.append(data)
+                x = torch.Tensor(o_observations).to(o_device)
+            actions, _, _ = actor.get_action(x)
+            a_actions = actions.detach().cpu().numpy()
 
-                    x = Batch.from_data_list(data_list)
-                else:
-                    x = torch.Tensor(o_observations).to(o_device)
-                actions, _, _ = actor.get_action(x)
-                a_actions = actions.detach().cpu().numpy()
+        # physigym step
+        o_observations_next, r_rewards, b_dones, infos = envs.step(a_actions)
+        for i in range(num_envs):
+            rb.add(
+                state=o_observations[i],
+                action=a_actions[i],
+                next_state=o_observations_next[i],
+                reward=r_rewards[i],
+                done=b_dones[i],
+            )
+            r_discounted_cumulative_returns[i] += (
+                r_rewards[i] * d_arg["rl"]["gamma"] ** (infos[i]["step_episode"])
+            )
+        r_discounted_cumulative_returns *= 1 - b_dones
+        # handle observation
+        o_observations = o_observations_next
 
-            # physigym step
-            o_observations_next, r_rewards, b_dones, infos = envs.step(a_actions)
-            for i in range(num_envs):
-                rb.add(
-                    state=o_observations[i],
-                    action=a_actions[i],
-                    next_state=o_observations_next[i],
-                    reward=r_rewards[i],
-                    done=b_dones[i],
+        # learning
+        if global_step > d_arg["rl"]["learning_starts"] // num_envs:
+            batch_list = [rb.sample() for _ in range(num_envs)]
+            data = {
+                k: torch.cat([b[k] for b in batch_list], dim=0) for k in batch_list[0]
+            }  # can be problematic num_envs*batch_size
+
+            with torch.no_grad():
+                next_state_actions, next_state_log_pi, _ = actor.get_action(
+                    data["next_state"]
                 )
-                r_discounted_cumulative_returns[i] += (
-                    r_rewards[i] * d_arg["rl"]["gamma"] ** (infos[i]["step_episode"])
+                qf1_next_target = qf1_target(data["next_state"], next_state_actions)
+                qf2_next_target = qf2_target(data["next_state"], next_state_actions)
+                min_qf_next_target = (
+                    torch.min(qf1_next_target, qf2_next_target)
+                    - alpha * next_state_log_pi
                 )
-            r_discounted_cumulative_returns *= 1 - b_dones
-            b_episode_over = b_dones[0]
-            # handle observation
-            o_observations = o_observations_next
+                next_q_value = data["reward"].flatten() + (
+                    1 - data["done"].flatten()
+                ) * d_arg["rl"]["gamma"] * (min_qf_next_target).view(-1)
 
-            # learning
-            if global_step > d_arg["rl"]["learning_starts"] // num_envs:
-                list_min_qf_next_target = []
-                list_qf_loss = []
-                list_actor_loss = []
-                for _ in range(num_envs):
-                    data = rb.sample()
-                    with torch.no_grad():
-                        next_state_actions, next_state_log_pi, _ = actor.get_action(
-                            data["next_state"]
-                        )
-                        qf1_next_target = qf1_target(
-                            data["next_state"], next_state_actions
-                        )
-                        qf2_next_target = qf2_target(
-                            data["next_state"], next_state_actions
-                        )
-                        min_qf_next_target = (
-                            torch.min(qf1_next_target, qf2_next_target)
-                            - alpha * next_state_log_pi
-                        )
-                        next_q_value = data["reward"].flatten() + (
-                            1 - data["done"].flatten()
-                        ) * d_arg["rl"]["gamma"] * (min_qf_next_target).view(-1)
+            qf1_a_values = qf1(data["state"], data["action"]).view(-1)
+            qf2_a_values = qf2(data["state"], data["action"]).view(-1)
+            qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
+            qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
+            qf_loss = qf1_loss + qf2_loss
 
-                    qf1_a_values = qf1(data["state"], data["action"]).view(-1)
-                    qf2_a_values = qf2(data["state"], data["action"]).view(-1)
-                    qf1_loss = F.mse_loss(qf1_a_values, next_q_value)
-                    qf2_loss = F.mse_loss(qf2_a_values, next_q_value)
-                    qf_loss = qf1_loss + qf2_loss
+            # optimize the model
+            q_optimizer.zero_grad()
+            qf_loss.backward()
+            q_optimizer.step()
 
-                    # optimize the model
-                    q_optimizer.zero_grad()
-                    qf_loss.backward()
-                    q_optimizer.step()
+            # update the target networks
+            if global_step % d_arg["rl"]["target_network_frequency"] == 0:
+                for param, target_param in zip(
+                    qf1.parameters(), qf1_target.parameters()
+                ):
+                    target_param.data.copy_(
+                        d_arg["rl"]["tau"] * param.data
+                        + (1 - d_arg["rl"]["tau"]) * target_param.data
+                    )
+                for param, target_param in zip(
+                    qf2.parameters(), qf2_target.parameters()
+                ):
+                    target_param.data.copy_(
+                        d_arg["rl"]["tau"] * param.data
+                        + (1 - d_arg["rl"]["tau"]) * target_param.data
+                    )
 
-                    # update the target networks
-                    if global_step % d_arg["rl"]["target_network_frequency"] == 0:
-                        for param, target_param in zip(
-                            qf1.parameters(), qf1_target.parameters()
-                        ):
-                            target_param.data.copy_(
-                                d_arg["rl"]["tau"] * param.data
-                                + (1 - d_arg["rl"]["tau"]) * target_param.data
-                            )
-                        for param, target_param in zip(
-                            qf2.parameters(), qf2_target.parameters()
-                        ):
-                            target_param.data.copy_(
-                                d_arg["rl"]["tau"] * param.data
-                                + (1 - d_arg["rl"]["tau"]) * target_param.data
-                            )
+            # update the policy
+            if global_step % d_arg["rl"]["policy_frequency"] == 0:
+                for _ in range(d_arg["rl"]["policy_frequency"]):
+                    pi, log_pi, _ = actor.get_action(data["state"])
 
-                    # update the policy
-                    if global_step % d_arg["rl"]["policy_frequency"] == 0:
-                        for _ in range(d_arg["rl"]["policy_frequency"]):
-                            pi, log_pi, _ = actor.get_action(data["state"])
+                    qf1_pi = qf1(data["state"], pi)
+                    qf2_pi = qf2(data["state"], pi)
+                    min_qf_pi = torch.min(qf1_pi, qf2_pi)
+                    actor_loss = ((alpha * log_pi) - min_qf_pi).mean()
 
-                            qf1_pi = qf1(data["state"], pi)
-                            qf2_pi = qf2(data["state"], pi)
-                            min_qf_pi = torch.min(qf1_pi, qf2_pi)
-                            actor_loss = ((alpha * log_pi) - min_qf_pi).mean()
+                    actor_optimizer.zero_grad()
+                    actor_loss.backward()
+                    actor_optimizer.step()
 
-                            actor_optimizer.zero_grad()
-                            actor_loss.backward()
-                            actor_optimizer.step()
+                    # entropy autotune
+                    if d_arg["rl"]["autotune"]:
+                        with torch.no_grad():
+                            _, log_pi, _ = actor.get_action(data["state"])
 
-                            # entropy autotune
-                            if d_arg["rl"]["autotune"]:
-                                with torch.no_grad():
-                                    _, log_pi, _ = actor.get_action(data["state"])
+                        alpha_loss = (
+                            -log_alpha.exp() * (log_pi + target_entropy)
+                        ).mean()
 
-                                alpha_loss = (
-                                    -log_alpha.exp() * (log_pi + target_entropy)
-                                ).mean()
+                        a_optimizer.zero_grad()
+                        alpha_loss.backward()
+                        a_optimizer.step()
 
-                                a_optimizer.zero_grad()
-                                alpha_loss.backward()
-                                a_optimizer.step()
+                        alpha = log_alpha.exp().item()
 
-                                alpha = log_alpha.exp().item()
-                    list_min_qf_next_target.append(min_qf_next_target.mean().item())
-                    list_qf_loss.append(qf_loss.item() / 2.0)
-                    list_actor_loss.append(actor_loss.item())
-                    del data
-                # record policy update to tensoboard
-                losses = {
-                    "losses/min_qf_next_target": np.mean(list_min_qf_next_target),
-                    "losses/qf_loss": np.mean(list_qf_loss),
-                    "losses/actor_loss": np.mean(list_actor_loss),
-                }
+            # record policy update to tensoboard
+            losses = {
+                "losses/min_qf_next_target": min_qf_next_target.mean().item(),
+                "losses/qf_loss": qf_loss.item() / 2.0,
+                "losses/actor_loss": actor_loss.item(),
+            }
 
-                if d_arg["simulation"]["wandb_track"]:
-                    run.log(losses)
-                else:
-                    for tag, value in losses.items():
-                        writer.add_scalar(
-                            tag=tag, scalar_value=value, global_step=global_step
-                        )
+            if d_arg["simulation"]["wandb_track"]:
+                run.log(losses)
+            else:
+                for tag, value in losses.items():
+                    writer.add_scalar(
+                        tag=tag, scalar_value=value, global_step=global_step
+                    )
 
         # recording episode to tensorbord
-        scalars = {
-            "charts/one_env_discounted_cumulative_return": r_discounted_cumulative_returns[
-                0
-            ],
-            "charts/mean_discounted_cumulative_return": np.mean(
-                r_discounted_cumulative_returns
-            ),
-        }
+        scalars = {}
+        for i in range(num_envs):
+            scalars[f"charts/env_{i}_discounted_cumulative_return"] = (
+                r_discounted_cumulative_returns[i]
+            )
+        scalars["charts/mean_discounted_cumulative_return"] = np.mean(
+            r_discounted_cumulative_returns
+        )
+
         if d_arg["simulation"]["wandb_track"]:
             run.log(scalars)
         else:
