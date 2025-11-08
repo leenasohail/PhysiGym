@@ -76,13 +76,13 @@ def run(
     s_settingxml="config/PhysiCell_settings.xml",  # xpath
     s_settingcells="cells.csv",  # cells csv path
     i_seed=int(1),  # int or none: seed of the experiment
-    s_observation_mode="scalars_cells",  # str: observation mode
+    s_observation_mode="scalars_cells_substrates",  # str: observation mode
     s_render_mode=None,  # render is none or rgb_array or human
     r_max_time_episode=12900.0,  #  8[d]=12900[min] = 8 * 3 = 24[steps]
     i_total_step_learn=int(1e6),  # int: the total number of steps
-    i_thread=8,  # int: number of threads
+    i_thread=None,  # int or None: number of threads
     b_gpu=False,  # bool: if using GPU
-    s_name="sac",  # str: the name of this experiment
+    s_name="vec_sac",  # str: the name of this experiment
     b_wandb=False,  # bool: track with wandb, if false local tensorboard
     s_entity="corporate-manu-sureli",  # name of your project in wandb
     s_init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust (combine previous three modes)
