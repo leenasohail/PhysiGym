@@ -31,6 +31,7 @@ from wrapper_tip import PhysiCellModelWrapper
 # Helper: CPU affinity per environment
 # ============================================================
 def assign_cpu_affinity(env_id: int, threads_per_env: int):
+    os.environ["OMP_NUM_THREADS"] = str(threads_per_env)
     total_cores = psutil.cpu_count(logical=True)
     start = env_id * threads_per_env
     end = min(start + threads_per_env, total_cores)
@@ -165,14 +166,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "settingxml", nargs="?", default="config/PhysiCell_settings.xml"
     )
-    parser.add_argument("settingcells", nargs="?", default="cells.csv")
+    parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
     parser.add_argument("-m", "--max_time", type=float, default=1440.0)
-    parser.add_argument("-n", "--num_envs", type=int, default=4)
+    parser.add_argument("-n", "--num_envs", type=int, default=10)
     parser.add_argument("-t", "--threads", type=int, default=None)
     parser.add_argument("-s", "--seed", type=int, default=3)
     args = parser.parse_args()
-
-    os.environ["OMP_NUM_THREADS"] = "1"
 
     # ---- Unified nested configuration ----
     cfg = {
