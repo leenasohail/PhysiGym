@@ -25,7 +25,6 @@ import time
 
 # Non-standard Python Libraries
 import matplotlib
-
 matplotlib.use("agg")  # set the plotting backend e.g. agg qtagg
 import numpy as np
 import pandas as pd
@@ -52,11 +51,8 @@ from initial_conditions import create_csv
 
 # Tracking
 import wandb
-
-
 import json
 import hashlib
-
 
 def dict_hash(d: dict) -> str:
     # Convert dict to JSON string with sorted keys
@@ -494,9 +490,8 @@ class ReplayBuffer:
 ###################
 # Algorithm Logic #
 ###################
-# description:
-#   The code is mainly inspired from:
-#   https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
+# The code is mainly inspired from:
+# https://github.com/vwxyzjn/cleanrl/blob/master/cleanrl/sac_continuous_action.py
 
 
 def run(
@@ -550,7 +545,7 @@ def run(
         "figsize": (6, 6),
         "observation_mode": s_observation_mode,  # str: scalars , img_rgb , img_mc, graph_neighbor, graph_delaunay
         "render_mode": s_render_mode,  # human, rgb_array
-        "verbose": False,
+        "verbose": False,  # True
         "img_rgb_grid_size_x": 64,  # pixel size
         "img_rgb_grid_size_y": 64,  # pixel size
         "img_mc_grid_size_x": 64,  # pixel size
@@ -747,6 +742,7 @@ def run(
     if hasattr(env.unwrapped, "kwargs"):
         obs_mode = env.unwrapped.kwargs.get("observation_mode", "")
         is_graph = "graph" in str(obs_mode)
+
     # initilize the reply buffer
     rb = ReplayBuffer(
         state_dim=env.observation_space.shape,
@@ -758,31 +754,31 @@ def run(
         is_graph=is_graph,
     )
 
+    # run episode
     while env.unwrapped.step_env < d_arg["total_timesteps"]:
         s_dir_data_episode = os.path.join(
             s_dir_data, f"episode{str(env.unwrapped.episode).zfill(8)}"
         )
         os.makedirs(s_dir_data_episode, exist_ok=True)
+
         # manipulate setting xml before reset
         # bue can be used for track or not track stuff, e.g. every 1024 episode
         # env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text = f"output/episode{str(i_episode).zfill(8)}"
         # manipulate setting xml before reset to record full physicell run every 1024 episode.
+        env.get_wrapper_attr("x_root").xpath("//save/folder")[
+            0
+        ].text = s_dir_data_episode
         if env.unwrapped.episode % 256 == 0:
-            env.get_wrapper_attr("x_root").xpath("//save/folder")[
-                0
-            ].text = s_dir_data_episode
-            env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-                0
-            ].text = "true"
-            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "true"
-        else:
-            env.get_wrapper_attr("x_root").xpath("//save/folder")[
-                0
-            ].text = os.path.join(s_dir_data, "devnull")
             env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
                 0
             ].text = "false"
             env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
+        else:
+            env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+                0
+            ].text = "false"
+            env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[0].text = "false"
+
         # reset gymnasium env
         r_cumulative_return = 0
         r_discounted_cumulative_return = 0
@@ -806,6 +802,7 @@ def run(
             except:
                 b_episode_over = True
                 print("Problem with the seeding, Relanunch a new generation")
+
         while not b_episode_over:
             # sample the action space or learn
             if env.unwrapped.step_env <= d_arg["learning_starts"]:
@@ -853,7 +850,7 @@ def run(
                 done=b_episode_over,
             )
 
-            # for debuging the replay buffer
+            # debuging the replay buffer
             if env.unwrapped.step_env == int(d_arg["batch_size"] * (1.05)):
                 data = rb.sample()
                 with torch.no_grad():
@@ -968,7 +965,7 @@ def run(
             o_observation = o_observation_next
 
             # recording step to tensorboard
-            """
+            '''
             scalars = {
                 "env/drug_1": a_action[0],
                 "env/reward_value": r_reward,
@@ -983,7 +980,7 @@ def run(
             else:
                 for tag, value in scalars.items():
                     writer.add_scalar(tag, value, env.unwrapped.step_env)
-            """
+            '''
             # record step to csv
             d_data = {
                 "step": env.unwrapped.step_episode,
@@ -1155,7 +1152,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pre_generation",
         nargs="?",
-        default="false",
+        default="true",
         help="if the initial conditions are pre-generated",
     )
 

@@ -1,3 +1,9 @@
+# comppile
+# 1. pcvenv  # this is important!
+# 2. srun -A r00241 -p gpu-debug make data-cleanup clean  # gpu-debug debug
+# 3. srun -A r00241 -p gpu make  # gpu-debug debug
+
+
 # library
 import os
 import subprocess
@@ -27,15 +33,15 @@ ls_observation_mode = [
     "img_rgb",
     "graph_delaunay","graph_neighbor"
 ]
-ls_init_mode = ["hex_mode"]  # ["random_mode","circular_mode","hex_mode","robust"]
-lr_cell_2_fraction = [0.5]  # [0.0,0.5,1.0]
+ls_init_mode = ["random_mode","circular_mode","hex_mode","robust"]  # ["hex_mode"]
+lr_cell_2_fraction = [0.0,0.5,1.0]  # [0.5]
 
 # generate slurm sbatch scripts
 i = 0
 for i_repeat in range(1):
     for s_observation_mode in ls_observation_mode[:]:  # 9
-        for s_init_mode in ls_init_mode[:]:  # 4
-            for r_cell_2_fraction in lr_cell_2_fraction[:]:  # 3
+        for s_init_mode in ls_init_mode[:]:  # 4 (for now 1)
+            for r_cell_2_fraction in lr_cell_2_fraction[:]:  # 3 (for now 1)
                 s_label = f"sts{str(i).zfill(3)}"
                 print(f"processing: {s_label}\t{i_repeat}\t{s_observation_mode}\t{s_init_mode}\t{r_cell_2_fraction}")
 
@@ -45,7 +51,7 @@ for i_repeat in range(1):
                 #s_cmd = f"srun python3 custom_modules/physigym/physigym/envs/run_physigym_tib_sac.py --name sac_bigred200 --gpu {b_gpu} --wandb true --max_time_episode {r_max_time_episode} --total_step_learn {i_total_step_learn}"
                 s_cmd = f"srun python3 custom_modules/physigym/physigym/envs/run_physigym_tib_sac.py --gpu {b_gpu} --name sac_bigred200 --wandb true --entity {s_entity} --settingxml {s_settingxml} --render_mode {s_render_mode} --seed {i_seed} --max_time_episode={r_max_time_episode} --total_step_learn={i_total_step_learn} --max_time_episode {r_max_time_episode} --total_step_learn {i_total_step_learn} --observation_mode {s_observation_mode} --init_mode {s_init_mode} --tumor {i_tumor} --cell_1 {i_cell_1} --cell_2_fraction {r_cell_2_fraction}"
 
-                # write slurm batch script (iu bigred200 epbucher@iu.edu specific)
+                # write slurm batch script (iu bigred200 USER@iu.edu specific)
                 ls_script = [
                     "#!/bin/bash\n",
                     f"#SBATCH -J {s_label}\n",
@@ -53,18 +59,18 @@ for i_repeat in range(1):
                     f"#SBATCH -o {s_label}_%j.out\n",
                     f"#SBATCH -e {s_label}_%j.err\n",
                     "#SBATCH --mail-type=ALL\n",
-                    "#SBATCH --mail-user=epbucher@iu.edu  # bue specific\n",
+                    "#SBATCH --mail-user=USER@iu.edu  # specific\n",
                     "#SBATCH --nodes=1\n",
                     "#SBATCH --ntasks-per-node=1  # 64\n",
                     f"#SBATCH --cpus-per-task={i_thread}  # 64\n",
                     "#SBATCH --gpus-per-node=1  # 4\n",
-                    "#SBATCH --time=46:00:00  #hh:mm:ss 48:00:00\n",
+                    "#SBATCH --time=48:00:00  #hh:mm:ss 48:00:00\n",
                     "#SBATCH --mem=64G  # 512G\n",
-                    "#SBATCH -A r00241  # bue specific\n",
+                    "#SBATCH -A r00241  # specific\n",
                     "\n",
                     "# Load any modules that your program needs\n",
                     "module --ignore_cache load python/gpu/3.11.5\n",
-                    "source /N/slate/epbucher/.local/lib/pcvenv/bin/activate\n",
+                    "source /N/slate/USER/.local/lib/pcvenv/bin/activate\n",
                     "\n",
                     "# Run your program\n",
                     f"{s_cmd}\n",
