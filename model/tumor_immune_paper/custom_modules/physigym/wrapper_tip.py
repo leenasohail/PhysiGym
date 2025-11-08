@@ -74,12 +74,12 @@ class PhysiCellModelWrapper(gym.Wrapper):
         self.output_dir_episode = os.path.join(
             self.output_dir, f"episode{str(self.env.unwrapped.episode).zfill(8)}"
         )
+        os.makedirs(self.output_dir_episode, exist_ok=True)
         episode = self.env.unwrapped.episode
         df = pd.DataFrame(self.list_data)
         df.to_csv(os.path.join(self.output_dir_episode, "data.csv"), index=False)
         dst_path = os.path.join(
-            self.output_dir_episode,
-            os.path.basename(self.generation_cfg["csv_path"]["csv_path"]),
+            self.output_dir_episode, os.path.basename(self.generation_cfg["csv_path"])
         )
         shutil.copy(self.generation_cfg["csv_path"], dst_path)
         self.list_data = []
@@ -122,11 +122,14 @@ class PhysiCellModelWrapper(gym.Wrapper):
         info["step_episode"] = self.env.unwrapped.step_episode
 
         reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+        reward = np.clip(reward, -1, 1)
         if self.frequency_save_data is not None:
             data = {
                 "step": self.env.unwrapped.step_episode,
                 "reward": reward,
-                "drug_1": r_drugs,
+                "drug_1": action,
+                "r_drugs": r_drugs,
+                "r_cancer_cells": r_cancer_cells,
                 "number_tumor": info["number_tumor"],
                 "number_cell_1": info["number_cell_1"],
                 "number_cell_2": info["number_cell_2"],

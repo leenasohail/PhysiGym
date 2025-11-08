@@ -45,8 +45,9 @@ from torch_geometric.data import Data, Batch
 
 # Utils code related to the project
 from vectorized_tip import vec_envs
-from physigym.nn_tip import Actor, QNetwork
-from physigym.rb_tip import ReplayBuffer
+from nn_tip import Actor, QNetwork
+from rb_tip import ReplayBuffer
+from wrapper_tip import PhysiCellModelWrapper
 
 # Tracking
 import wandb
@@ -102,7 +103,6 @@ def run(
         # random seed
         "seed": i_seed,  # int or none: seed of the experiment
         # steps
-        "total_timesteps": i_total_step_learn,  # int: the total number of steps
         "max_time": r_max_time_episode,
     }
     # wandb
@@ -119,6 +119,7 @@ def run(
         "id": "physigym/ModelPhysiCellEnv-v0",  # str: the id of the gymnasium environmenit
         "settingxml": s_settingxml,
         "settingcells": s_settingcells,
+        "output_dir": None,
         "cell_type_cmap": {
             "tumor": "yellow",
             "cell_1": "green",
@@ -143,6 +144,7 @@ def run(
 
     # rl algorithm
     d_arg_rl = {
+        "total_timesteps": i_total_step_learn,  # int: the total number of steps
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
         "batch_size": 128,  # int: the batch size of sample from the replay memory
@@ -172,8 +174,12 @@ def run(
     d_arg["wrapper"] = d_arg_physigym_wrapper
     d_arg["model"] = d_arg_physigym_model
     num_envs = d_arg["vectorization"]["num_envs"]
-    ghost_env = gym.make(**d_arg["model"])
 
+    model_cfg_ghost = d_arg["model"].copy()
+    del model_cfg_ghost["settingcells"]
+    del model_cfg_ghost["output_dir"]
+    ghost_env = gym.make(**model_cfg_ghost)
+    ghost_env = PhysiCellModelWrapper(ghost_env, **d_arg_physigym_wrapper)
     # gpu cpu
     if (d_arg["simulation"]["cuda"] and not torch.cuda.is_available()) or (
         not d_arg["simulation"]["cuda"] and torch.cuda.is_available()
@@ -217,7 +223,6 @@ def run(
         torch.manual_seed(d_arg_simulation["seed"])
         torch.backends.cudnn.deterministic = True
 
-    envs = vec_envs(d_arg)
     # d_arg_generation control the generation of initial states, you should not modify it, at your own risk
     # but you may change the number of tumor cells (n_tumor) and you may also change (n_cell_1)
     d_arg_generation = {
@@ -256,6 +261,8 @@ def run(
     }
 
     d_arg["generation"] = d_arg_generation
+
+    envs = vec_envs(d_arg)
 
     # Initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -297,7 +304,7 @@ def run(
     )
     del ghost_env
     r_discounted_cumulative_returns = np.zeros((num_envs))
-    o_observations = envs.reset(seed=d_arg["seed"])
+    o_observations = envs.reset()
 
     for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
         # sample the action space or learn
@@ -498,7 +505,7 @@ if __name__ == "__main__":
         "--seed",
         # type = str,
         nargs="?",
-        default="none",
+        default="1",
         help="set options random_seed in the settings.xml file and python.",
     )
     # observation_mode
@@ -506,7 +513,7 @@ if __name__ == "__main__":
         "--observation_mode",
         # type = str,
         nargs="?",
-        default="img_rgb",
+        default="scalars_substrates",
         help="different observation modes possible",
     )
     # render_mode
@@ -514,7 +521,7 @@ if __name__ == "__main__":
         "--render_mode",
         # type = str,
         nargs="?",
-        default="rgb_array",
+        default="None",
         help="render mode None, rgb_array, or human. observation mode scalars needs either render mode rgb_array or human.",
     )
     # max_time
@@ -522,7 +529,7 @@ if __name__ == "__main__":
         "--max_time_episode",
         type=float,
         nargs="?",
-        default=1440.0,
+        default=12900.0,
         help="set overall max_time in min in the settings.xml file.",
     )
     # total timesteps
@@ -530,7 +537,7 @@ if __name__ == "__main__":
         "--total_step_learn",
         type=int,
         nargs="?",
-        default=5,
+        default=int(1e6),
         help="set total time steps for the learing process to take.",
     )
     # thread
@@ -538,7 +545,7 @@ if __name__ == "__main__":
         "--thread",
         type=int,
         nargs="?",
-        default=8,
+        default=None,
         help="set parallel omp_num_threads in the settings.xml file.",
     )
     # gpu
@@ -546,7 +553,7 @@ if __name__ == "__main__":
         "--gpu",
         # type=bool,
         nargs="?",
-        default="false",
+        default="true",
         help="gpu for pytorch available?",
     )
     # name
@@ -602,10 +609,10 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--i_num_envs",
+        "--num_envs",
         type=int,
         nargs="?",
-        default=5,
+        default=8,
         help="number of parallelized environments",
     )
 
