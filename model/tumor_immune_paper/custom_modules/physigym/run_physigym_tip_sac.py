@@ -147,7 +147,9 @@ def run(
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
         # algoritm neural network I
         "buffer_size": int(3e5),  # int: the replay memory buffer size
-        "batch_size": 128,  # int: the batch size of sample from the replay memory
+        "batch_size": int(
+            64 * i_num_envs
+        ),  # int: the batch size of sample from the replay memory
         "learning_starts": 21900,  # 20[years] float: timestep to start learning (25e3)
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
@@ -364,10 +366,7 @@ def run(
 
         # learning
         if global_step > d_arg["rl"]["learning_starts"] // num_envs:
-            batch_list = [rb.sample() for _ in range(num_envs)]
-            data = {
-                k: torch.cat([b[k] for b in batch_list], dim=0) for k in batch_list[0]
-            }  # can be problematic num_envs*batch_size
+            data = rb.sample()
 
             with torch.no_grad():
                 next_state_actions, next_state_log_pi, _ = actor.get_action(
@@ -569,7 +568,7 @@ if __name__ == "__main__":
         "--wandb",
         # type=bool,
         nargs="?",
-        default="false",
+        default="true",
         help="tracking online with wandb? false with track locally with tensorboard.",
     )
     # entity
@@ -612,7 +611,7 @@ if __name__ == "__main__":
         "--num_envs",
         type=int,
         nargs="?",
-        default=8,
+        default=9,
         help="number of parallelized environments",
     )
 
