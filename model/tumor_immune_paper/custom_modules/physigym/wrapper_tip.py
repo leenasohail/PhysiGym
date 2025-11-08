@@ -1,0 +1,149 @@
+import gymnasium as gym
+from gymnasium.spaces import Box
+import numpy as np
+from initial_conditions_tip import create_csv
+import os
+import pandas as pd
+import shutil
+
+
+# ============================================================
+# Wrapper: PhysiCellModelWrapper
+# ============================================================
+class PhysiCellModelWrapper(gym.Wrapper):
+    def __init__(
+        self,
+        env: gym.Env,
+        list_variable_name: list[str] = ["drug_1"],
+        weight: float = 0.8,
+        frequency_save_data=256,
+    ):
+        """
+        Wraps a PhysiCell environment to use a flat continuous Box action space.
+        Reward = weighted sum between drug penalty and cancer cell signal.
+        """
+        super().__init__(env)
+
+        for variable_name in list_variable_name:
+            if not isinstance(variable_name, str):
+                raise ValueError(
+                    f"Expected variable_name to be str, got {type(variable_name).__name__}"
+                )
+
+        self.list_variable_name = list_variable_name
+        low = np.array(
+            [
+                env.action_space[variable_name].low[0]
+                for variable_name in list_variable_name
+            ]
+        )
+        high = np.array(
+            [
+                env.action_space[variable_name].high[0]
+                for variable_name in list_variable_name
+            ]
+        )
+        self._action_space = Box(low=low, high=high, dtype=np.float64)
+        self.weight = weight
+        self.cell_positions_folder = (
+            self.env.get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/folder")[0]
+            .text
+        )
+        self.cell_name_file = (
+            self.env.get_wrapper_attr("x_root")
+            .xpath("//initial_conditions/cell_positions/filename")[0]
+            .text
+        )
+        self.csv_path_init = os.path.join(
+            self.cell_positions_folder, self.cell_name_file
+        )
+        self.generation_cfg = None
+        self.output_dir = (
+            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[0].text
+        )
+        os.makedirs(self.output_dir, exist_ok=True)
+        self.frequency_save_data = frequency_save_data
+        self.list_data = []
+
+    @property
+    def action_space(self):
+        return self._action_space
+
+    def save_data(self):
+        self.output_dir_episode = os.path.join(
+            self.output_dir, f"episode{str(self.env.unwrapped.episode).zfill(8)}"
+        )
+        os.makedirs(self.output_dir_episode, exist_ok=True)
+        episode = self.env.unwrapped.episode
+        df = pd.DataFrame(self.list_data)
+        df.to_csv(os.path.join(self.output_dir_episode, "data.csv"), index=False)
+        dst_path = os.path.join(
+            self.output_dir_episode, os.path.basename(self.generation_cfg["csv_path"])
+        )
+        shutil.copy(self.generation_cfg["csv_path"], dst_path)
+        self.list_data = []
+        self.output_dir_episode = os.path.join(
+            self.output_dir, f"episode{str(episode).zfill(8)}"
+        )
+        if episode % self.frequency_save_data == 0:
+            os.makedirs(self.output_dir_episode, exist_ok=True)
+            # manipulate setting xml before reset
+            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
+                0
+            ].text = self.output_dir_episode
+            self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+                0
+            ].text = "true"
+            self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                0
+            ].text = "true"
+        else:
+            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
+                0
+            ].text = os.path.join(self.output_dir, "devnull")
+            self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+                0
+            ].text = "false"
+            self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                0
+            ].text = "false"
+
+    def step(self, action: np.ndarray):
+        d_action = {
+            variable_name: np.array([value])
+            for variable_name, value in zip(self.list_variable_name, action)
+        }
+
+        obs, r_cancer_cells, terminated, truncated, info = self.env.step(d_action)
+
+        r_drugs = np.mean(action)
+        info["action"] = d_action
+        info["step_episode"] = self.env.unwrapped.step_episode
+
+        reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+        reward = np.clip(reward, -1, 1)
+        if self.frequency_save_data is not None:
+            data = {
+                "step": self.env.unwrapped.step_episode,
+                "reward": reward,
+                "drug_1": action,
+                "r_drugs": r_drugs,
+                "r_cancer_cells": r_cancer_cells,
+                "number_tumor": info["number_tumor"],
+                "number_cell_1": info["number_cell_1"],
+                "number_cell_2": info["number_cell_2"],
+            }
+
+            self.list_data.append(data)
+
+        return obs, reward, terminated, truncated, info
+
+    def reset(self, seed=None, options={}, generation_cfg={}, **kwargs):
+        generation_cfg["csv_path"] = self.csv_path_init
+        if self.generation_cfg is None:
+            self.generation_cfg = generation_cfg
+        create_csv(**self.generation_cfg)
+        if self.frequency_save_data is not None:
+            self.save_data()
+        return self.env.reset(seed=seed, options=options, **kwargs)
