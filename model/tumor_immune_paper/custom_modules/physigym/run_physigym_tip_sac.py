@@ -89,8 +89,8 @@ def run(
     s_init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust (combine previous three modes)
     i_tumor=512,
     i_cell_1=128,
-    r_cell_2_fraction=0.5,  # fraction of cell_1 into cell_2
-    i_num_envs=8,
+    r_cell_2_fraction=0.05,  # fraction of cell_1 into cell_2
+    i_num_envs=6,
     s_frequency_save_data=64,
 ):
     d_arg_simulation = {
@@ -146,7 +146,7 @@ def run(
     d_arg_rl = {
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
         # algoritm neural network I
-        "buffer_size": int(3e5),  # int: the replay memory buffer size
+        "buffer_size": int(5e5),  # int: the replay memory buffer size
         "batch_size": int(
             64 * i_num_envs
         ),  # int: the batch size of sample from the replay memory
@@ -305,7 +305,8 @@ def run(
         is_graph=is_graph,
     )
     del ghost_env
-    r_discounted_cumulative_returns = np.zeros((num_envs))
+    total_discounted_cumulative_returns = np.zeros((num_envs))
+    discounted_cumulative_returns = np.zeros((num_envs))
     o_observations = envs.reset()
 
     for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
@@ -357,10 +358,10 @@ def run(
                 reward=r_rewards[i],
                 done=b_dones[i],
             )
-            r_discounted_cumulative_returns[i] += (
+            discounted_cumulative_returns[i] += (
                 r_rewards[i] * d_arg["rl"]["gamma"] ** (infos[i]["step_episode"])
             )
-        r_discounted_cumulative_returns *= 1 - b_dones
+
         # handle observation
         o_observations = o_observations_next
 
@@ -439,29 +440,34 @@ def run(
 
                         alpha = log_alpha.exp().item()
 
-            # record policy update to tensoboard
-            losses = {
-                "losses/min_qf_next_target": min_qf_next_target.mean().item(),
-                "losses/qf_loss": qf_loss.item() / 2.0,
-                "losses/actor_loss": actor_loss.item(),
-            }
+                # record policy update to tensoboard
+                losses = {
+                    "losses/min_qf_next_target": min_qf_next_target.mean().item(),
+                    "losses/qf_loss": qf_loss.item() / 2.0,
+                    "losses/actor_loss": actor_loss.item(),
+                }
 
-            if d_arg["simulation"]["wandb_track"]:
-                run.log(losses)
-            else:
-                for tag, value in losses.items():
-                    writer.add_scalar(
-                        tag=tag, scalar_value=value, global_step=global_step
-                    )
+                if d_arg["simulation"]["wandb_track"]:
+                    run.log(losses)
+                else:
+                    for tag, value in losses.items():
+                        writer.add_scalar(
+                            tag=tag, scalar_value=value, global_step=global_step
+                        )
 
         # recording episode to tensorbord
         scalars = {}
         for i in range(num_envs):
-            scalars[f"charts/env_{i}_discounted_cumulative_return"] = (
-                r_discounted_cumulative_returns[i]
-            )
+            if b_dones[i]:
+                scalars[f"charts/env_{i}_discounted_cumulative_return"] = (
+                    discounted_cumulative_returns[i]
+                )
+                total_discounted_cumulative_returns[i] = discounted_cumulative_returns[
+                    i
+                ]
+
         scalars["charts/mean_discounted_cumulative_return"] = np.mean(
-            r_discounted_cumulative_returns
+            total_discounted_cumulative_returns
         )
 
         if d_arg["simulation"]["wandb_track"]:
@@ -469,6 +475,8 @@ def run(
         else:
             for tag, value in scalars.items():
                 writer.add_scalar(tag, value, global_step)
+
+        discounted_cumulative_returns *= 1 - b_dones
 
     # finish
     envs.close()
@@ -611,7 +619,7 @@ if __name__ == "__main__":
         "--num_envs",
         type=int,
         nargs="?",
-        default=9,
+        default=10,
         help="number of parallelized environments",
     )
 
