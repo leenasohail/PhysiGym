@@ -150,7 +150,7 @@ def run(
         "batch_size": int(
             64 * i_num_envs
         ),  # int: the batch size of sample from the replay memory
-        "learning_starts": 21900,  # 20[years] float: timestep to start learning (25e3)
+        "learning_starts": 5000,  # 20[years] float: timestep to start learning (25e3)
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
         # algorithm neural network II
@@ -309,9 +309,9 @@ def run(
     discounted_cumulative_returns = np.zeros((num_envs))
     o_observations = envs.reset()
 
-    for global_step in range(d_arg["rl"]["total_timesteps"] // num_envs):
+    for global_step in range(d_arg["rl"]["total_timesteps"]):
         # sample the action space or learn
-        if global_step <= d_arg["rl"]["learning_starts"] // num_envs:
+        if global_step <= d_arg["rl"]["learning_starts"]:
             a_actions = np.array(
                 [envs.action_space.sample() for _ in range(num_envs)],
                 dtype=np.float32,
@@ -366,7 +366,7 @@ def run(
         o_observations = o_observations_next
 
         # learning
-        if global_step > d_arg["rl"]["learning_starts"] // num_envs:
+        if global_step > d_arg["rl"]["learning_starts"]:
             data = rb.sample()
 
             with torch.no_grad():
@@ -590,7 +590,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_mode",
         nargs="?",
-        default="robust",
+        default="circular_mode",
         help="type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)",
     )
     parser.add_argument(
@@ -611,7 +611,7 @@ if __name__ == "__main__":
         "--cell_2_fraction",
         type=float,
         nargs="?",
-        default=0.5,
+        default=0.0,
         help="fraction of cell_1 into cell_2 ie 0.5 means 50%",
     )
 
@@ -627,7 +627,7 @@ if __name__ == "__main__":
         "--s_frequency_save_data",
         type=int,
         nargs="?",
-        default=256,
+        default=None,
         help="each number of episode data is saved",
     )
 
