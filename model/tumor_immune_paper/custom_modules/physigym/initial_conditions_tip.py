@@ -5,6 +5,7 @@ from typing import Union
 import matplotlib.pyplot as plt
 import os
 
+
 ##################
 # Helper Functions
 ##################
@@ -127,54 +128,125 @@ def generate_population_circulars(
     return pd.concat([tumor_df, cell1_df], ignore_index=True)
 
 
+def generate_oriented_ellipse(n, r1, r2, center, angle=0.0, jitter=5.0):
+    """
+    Generate n points in an oriented ellipse with radii r1, r2, centered at `center`,
+    rotated by `angle` radians, with optional jitter.
+    """
+    angles = np.random.uniform(0, 2 * np.pi, n)
+    radii = np.sqrt(np.random.uniform(0, 1, n))
+    x = radii * r1 * np.cos(angles)
+    y = radii * r2 * np.sin(angles)
+
+    # Rotation
+    x_rot = x * np.cos(angle) - y * np.sin(angle)
+    y_rot = x * np.sin(angle) + y * np.cos(angle)
+
+    # Translate to center and add jitter
+    x_final = center[0] + x_rot + np.random.normal(0, jitter, n)
+    y_final = center[1] + y_rot + np.random.normal(0, jitter, n)
+
+    return x_final, y_final
+
+
+def latin_hypercube_centers_2d(bounds, n_centers, seed=None):
+    """
+    Generate n_centers 2D points using Latin Hypercube Sampling.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    (x_min, x_max), (y_min, y_max) = bounds
+
+    x_intervals = (
+        np.linspace(0, 1, n_centers, endpoint=False)
+        + np.random.rand(n_centers) / n_centers
+    )
+    y_intervals = (
+        np.linspace(0, 1, n_centers, endpoint=False)
+        + np.random.rand(n_centers) / n_centers
+    )
+    np.random.shuffle(y_intervals)
+
+    x_coords = x_min + x_intervals * (x_max - x_min)
+    y_coords = y_min + y_intervals * (y_max - y_min)
+
+    centers = np.stack([x_coords, y_coords], axis=1)
+    return centers
+
+
 def generate_asymmetric_population(
-    n_foci=3,
-    n_cells_per_tumor=200,
-    bounds=(-512, 512, -512, 512),
-    tumor_radii_range=((50, 120), (30, 80)),
-    jitter=10.0,
-    min_distance=100,
+    n_tumor_total,
+    n_cell_1,
+    x_min,
+    x_max,
+    y_min,
+    y_max,
+    n_tumors=3,
+    tumor_radii_range=((25, 50), (15, 40)),
+    jitter_tumor=5.0,
+    cell1_radius_scale=2.0,
+    cell1_jitter=10.0,
 ):
-    """Generate multiple asymmetric / elongated tumor foci."""
-    x_min, x_max, y_min, y_max = bounds
-    centers = []
+    """
+    Generate multiple asymmetric (oriented) tumors using oriented ellipses,
+    and surrounding cell_1 population.
+    """
 
-    attempts = 0
-    while len(centers) < n_foci and attempts < n_foci * 20:
-        cx = np.random.uniform(x_min, x_max)
-        cy = np.random.uniform(y_min, y_max)
-        if all(np.hypot(cx - c[0], cy - c[1]) >= min_distance for c in centers):
-            centers.append((cx, cy))
-        attempts += 1
+    # Tumor centers using LHS
+    centers = latin_hypercube_centers_2d(
+        bounds=((x_min, x_max), (y_min, y_max)), n_centers=n_tumors
+    )
 
-    dfs = []
+    tumor_dfs = []
+    n_per_tumor = n_tumor_total // n_tumors
+
     for cx, cy in centers:
+        # Sample ellipse radii
         r1 = np.random.uniform(*tumor_radii_range[0])
         r2 = np.random.uniform(*tumor_radii_range[1])
-        angle = np.random.uniform(0, 360)
-        x, y = generate_ellipse_points(
-            n_cells_per_tumor,
-            r1,
-            r2,
-            center=(cx, cy),
-            orientation_deg=angle,
-            jitter=jitter,
+        angle = np.random.uniform(0, 2 * np.pi)
+
+        # ---------------------------
+        # FIX 3: shift center inward
+        # ---------------------------
+        x_low = cx - r1
+        x_high = cx + r1
+        y_low = cy - r2
+        y_high = cy + r2
+
+        if x_low < x_min:
+            cx += x_min - x_low
+        if x_high > x_max:
+            cx -= x_high - x_max
+        if y_low < y_min:
+            cy += y_min - y_low
+        if y_high > y_max:
+            cy -= y_high - y_max
+
+        # Now generate ellipse points
+        x, y = generate_oriented_ellipse(
+            n_per_tumor, r1, r2, (cx, cy), angle, jitter_tumor
         )
-        dfs.append(
-            pd.DataFrame(
-                {
-                    "x": x,
-                    "y": y,
-                    "z": 0.0,
-                    "type": "tumor",
-                    "volume": "",
-                    "cycle entry": "",
-                    "custom:GFP": "",
-                    "custom:sample": "",
-                }
-            )
-        )
-    return pd.concat(dfs, ignore_index=True)
+
+        # Store
+        df = pd.DataFrame({"x": x, "y": y, "z": 0.0, "type": "tumor"})
+        tumor_dfs.append(df)
+
+    tumor_df = pd.concat(tumor_dfs, ignore_index=True)
+
+    # Surrounding cell_1 (hex/circular/random) - here simple circular ring
+    center_x = (x_min + x_max) / 2
+    center_y = (y_min + y_max) / 2
+    half_width = (x_max - x_min) / 2
+    half_height = (y_max - y_min) / 2
+    r_outer = max(half_width, half_height) * cell1_radius_scale
+
+    cell1_x = np.random.uniform(x_min, x_max, n_cell_1)
+    cell1_y = np.random.uniform(y_min, y_max, n_cell_1)
+    cell1_df = pd.DataFrame({"x": cell1_x, "y": cell1_y, "z": 0.0, "type": "cell_1"})
+
+    return pd.concat([tumor_df, cell1_df], ignore_index=True)
 
 
 ##################
@@ -238,7 +310,7 @@ def generate_cell_positions(
             "custom:sample": "",
         }
     )
-    drop_frac = np.random.uniform(0.25, 0.5)
+    drop_frac = np.random.uniform(0.45, 0.5)
     other_df = other_df.sample(frac=1 - drop_frac).reset_index(drop=True)
 
     # Cell_1
@@ -333,21 +405,15 @@ def create_csv(
         df = generate_cell_positions()
 
     elif init_mode == "asymmetric_mode":
-        n_foci = random.randint(3, 8)
-        tumor_df = generate_asymmetric_population(
-            n_foci=n_foci,
-            n_cells_per_tumor=n_tumor // n_foci,
-            bounds=(x_min, x_max, y_min, y_max),
+        df = generate_asymmetric_population(
+            n_tumor_total=n_tumor,
+            n_cell_1=n_cell_1,
+            x_min=x_min,
+            x_max=x_max,
+            y_min=y_min,
+            y_max=y_max,
+            n_tumors=random.randint(3, 12),
         )
-        cell1_df = pd.DataFrame(
-            {
-                "x": np.random.uniform(x_min, x_max, n_cell_1),
-                "y": np.random.uniform(y_min, y_max, n_cell_1),
-                "z": 0.0,
-                "type": "cell_1",
-            }
-        )
-        df = pd.concat([tumor_df, cell1_df], ignore_index=True)
 
     else:
         raise ValueError(f"Invalid init_mode: {init_mode}")
@@ -386,13 +452,15 @@ def generate_plot(df, path_title):
 ##################
 
 if __name__ == "__main__":
-    os.makedirs("./config_2", exist_ok=True)
+    name_folder = "config_test"
+    os.makedirs(f"./{name_folder}", exist_ok=True)
+    size = 256
     for i in range(20):
         create_csv(
-            x_min=-256,
-            x_max=256,
-            y_min=-256,
-            y_max=256,
+            x_min=-size,
+            x_max=size,
+            y_min=-size,
+            y_max=size,
             n_tumor=512,
             n_cell_1=128,
             range_jitter_tumor=[5, 15],
@@ -401,8 +469,9 @@ if __name__ == "__main__":
             range_frac_cell_1=[0.1, 0.4],
             range_r1=[0.1, 0.4],
             range_cell_dist=[1.5, 2.0],
-            csv_path=f"./config_2/df_{i}.csv",
-            init_mode=["asymmetric_mode", "hex_mode", "random_mode", "circular_mode"],
+            cell_2_fraction=None,
+            csv_path=f"./{name_folder}/df_{i}.csv",
+            init_mode=["asymmetric_mode", "hex_mode", "circular_mode"],
         )
-        df = pd.read_csv(f"./config_2/df_{i}.csv")
-        generate_plot(df, f"./config_2/cells_{i}")
+        df = pd.read_csv(f"./{name_folder}/df_{i}.csv")
+        generate_plot(df, f"./{name_folder}/cells_{i}")
