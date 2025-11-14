@@ -80,7 +80,7 @@ def run(
     s_observation_mode="scalars_cells_substrates",  # str: observation mode
     s_render_mode=None,  # render is none or rgb_array or human
     r_max_time_episode=12900.0,  #  8[d]=12900[min] = 8 * 3 = 24[steps]
-    i_total_step_learn=int(1e6),  # int: the total number of steps
+    i_total_step_learn=int(1e5),  # int: the total number of steps
     i_thread=None,  # int or None: number of threads
     b_gpu=False,  # bool: if using GPU
     s_name="vec_sac",  # str: the name of this experiment
@@ -89,7 +89,7 @@ def run(
     s_init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust (combine previous three modes)
     i_tumor=512,
     i_cell_1=128,
-    r_cell_2_fraction=0.05,  # fraction of cell_1 into cell_2
+    r_cell_2_fraction=None,  # fraction of cell_1 into cell_2
     i_num_envs=6,
     s_frequency_save_data=64,
 ):
@@ -146,7 +146,7 @@ def run(
     d_arg_rl = {
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
         # algoritm neural network I
-        "buffer_size": int(5e5),  # int: the replay memory buffer size
+        "buffer_size": int(7.5e5),  # int: the replay memory buffer size
         "batch_size": int(
             64 * i_num_envs
         ),  # int: the batch size of sample from the replay memory
@@ -191,7 +191,7 @@ def run(
         )
 
     # initialize tracking
-    s_run = f"{d_arg['simulation']['name']}_seed_{d_arg['simulation']['seed']}_observation_mode_{d_arg['model']['observation_mode']}_init_mode_{s_init_mode}_cell_2_fraction_{r_cell_2_fraction}_weight_{d_arg['wrapper']['weight']}_time_{int(time.time())}"
+    s_run = f"{d_arg['simulation']['name']}_seed_{d_arg['simulation']['seed']}_observation_mode_{d_arg['model']['observation_mode']}_init_mode_{s_init_mode}_weight_{d_arg['wrapper']['weight']}_time_{int(time.time())}"
     if d_arg["simulation"]["wandb_track"]:
         print("tracking: wandb ...")
         run = wandb.init(name=s_run, config=d_arg["simulation"], **d_arg["wandb"])
@@ -224,7 +224,8 @@ def run(
     else:
         torch.manual_seed(d_arg_simulation["seed"])
         torch.backends.cudnn.deterministic = True
-
+    if r_cell_2_fraction is None:
+        r_cell_2_fraction = [0.0, 0.25, 0.5, 0.75, 1.0]
     # d_arg_generation control the generation of initial states, you should not modify it, at your own risk
     # but you may change the number of tumor cells (n_tumor) and you may also change (n_cell_1)
     d_arg_generation = {
@@ -455,7 +456,7 @@ def run(
                             tag=tag, scalar_value=value, global_step=global_step
                         )
 
-        # recording episode to tensorbord
+        # recording episode to tensorboard
         scalars = {}
         for i in range(num_envs):
             if b_dones[i]:
@@ -465,10 +466,11 @@ def run(
                 total_discounted_cumulative_returns[i] = discounted_cumulative_returns[
                     i
                 ]
-
-        scalars["charts/mean_discounted_cumulative_return"] = np.mean(
-            total_discounted_cumulative_returns
-        )
+        if global_step > 200:
+            scalars["charts/mean_discounted_cumulative_return"] = np.mean(
+                total_discounted_cumulative_returns
+            )
+            scalars["charts/steps"] = global_step * num_envs
 
         if d_arg["simulation"]["wandb_track"]:
             run.log(scalars)
@@ -544,7 +546,7 @@ if __name__ == "__main__":
         "--total_step_learn",
         type=int,
         nargs="?",
-        default=int(1e6),
+        default=int(1.25e5),
         help="set total time steps for the learing process to take.",
     )
     # thread
@@ -589,10 +591,11 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--init_mode",
-        nargs="?",
-        default="circular_mode",
-        help="type of initialisation  random_mode, hex_mode, circular_mode and robust ( combine previous three modes)",
+        nargs="+",  # one or more values
+        default=["circular_mode", "hex_mode", "asymmetric_mode"],  # default is a list
+        help="type(s) of initialisation, e.g. circular_mode asymmetric_mode hex_mode",
     )
+
     parser.add_argument(
         "--tumor",
         type=int,
@@ -611,7 +614,7 @@ if __name__ == "__main__":
         "--cell_2_fraction",
         type=float,
         nargs="?",
-        default=0.0,
+        default=None,
         help="fraction of cell_1 into cell_2 ie 0.5 means 50%",
     )
 
