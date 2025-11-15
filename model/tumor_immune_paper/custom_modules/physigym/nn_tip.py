@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch_geometric.nn import GATConv, global_mean_pool
 from torch_geometric.data import Data, Batch
 import numpy as np
@@ -50,6 +51,22 @@ class ImpalaBlock(nn.Module):
         x = self.res2(x)
         return x
 
+class HadamaxBlock(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+
+        # First block
+        self.conv1a = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.conv1b = nn.Conv2d(in_channels, out_channels, 3, padding=1)
+        self.pool = nn.MaxPool2d(3, stride=2, padding=1)
+        self.activation = nn.Mish()
+
+    def forward(self, x):
+        # First block
+        x1 = self.activation(F.layer_norm(self.conv1a(x), self.conv1a(x).shape[1:]))
+        x2 = self.activation(F.layer_norm(self.conv1b(x), self.conv1b(x).shape[1:]))
+        x = self.pool(x1 * x2)
+        return x
 
 class GraphFeatureExtractor(nn.Module):
     def __init__(self, in_channels=-1, out_channels=32, heads=4, **kwargs):
@@ -73,7 +90,7 @@ class GraphFeatureExtractor(nn.Module):
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
-    def __init__(self, env):
+    def __init__(self, env, **kwargs):
         super().__init__()
 
         self.is_graph = False
@@ -94,13 +111,24 @@ class FeatureExtractor(nn.Module):
         else:
             self.is_image = len(obs_shape) == 3  # (C, H, W)
             if self.is_image:
-                layers = [
-                    PixelPreprocess(),
-                    ImpalaBlock(obs_shape[0], 16),
-                    ImpalaBlock(16, 32),
-                    ImpalaBlock(32, 32),
-                    nn.Flatten(),
-                ]
+                arch = kwargs.get("neural_architecture", "impala")
+                if arch == "impala"
+                    layers = [
+                        PixelPreprocess(),
+                        ImpalaBlock(obs_shape[0], 16),
+                        ImpalaBlock(16, 32),
+                        ImpalaBlock(32, 32),
+                        nn.Flatten(),
+                    ]
+                else:
+                    layers =  [
+                        PixelPreprocess(),
+                        HadamaxBlock(obs_shape[0], 16),
+                        HadamaxBlock(16, 32),
+                        HadamaxBlock(32, 32),
+                        nn.Flatten(),
+                    ]
+
                 self.feature_extractor = nn.Sequential(*layers)
                 self.feature_size = self._get_feature_size(obs_shape)
             else:
@@ -126,9 +154,9 @@ class FeatureExtractor(nn.Module):
 class QNetwork(nn.Module):
     """Critic network (Q-function)"""
 
-    def __init__(self, env):
+    def __init__(self, env, **kwargs):
         super().__init__()
-        self.feature_extractor = FeatureExtractor(env)
+        self.feature_extractor = FeatureExtractor(env, **kwargs)
 
         # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
@@ -152,9 +180,9 @@ class Actor(nn.Module):
     LOG_STD_MAX = 2
     LOG_STD_MIN = -5
 
-    def __init__(self, env):
+    def __init__(self, env, **kwargs):
         super().__init__()
-        self.feature_extractor = FeatureExtractor(env)
+        self.feature_extractor = FeatureExtractor(env, **kwargs)
         action_dim = np.prod(env.action_space.shape)
 
         # Fully connected layers
