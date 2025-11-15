@@ -64,8 +64,26 @@ class ReplayBuffer:
             self.buffer_index = (self.buffer_index + 1) % self.buffer_size
             self.full = self.full or self.buffer_index == 0
         else:
-            # Graph state and edge attributes handled externally
-            self.buffer.append((state, action, reward, next_state, done))
+            # Convert padded observation dict → GraphInstance
+            state_graph = self._dict_reduced(state)
+            next_state_graph = self._dict_reduced(next_state)
+
+            self.buffer.append((state_graph, action, reward, next_state_graph, done))
+
+    def _dict_reduced(self, obs):
+        """
+        Convert padded dict observation from SubprocVecEnv back
+        into a true variable-size graph for the replay buffer.
+        """
+        node_mask = obs["node_mask"] > 0.5
+        edge_mask = obs["edge_mask"] > 0.5
+
+        # Extract only valid nodes and edges
+        nodes = obs["node_features"][node_mask]  # shape: (N, node_dim)
+        edge_index = obs["edge_index"][:, edge_mask]  # shape: (2, E)
+        edges = obs["edge_attr"][edge_mask]  # shape: (E, edge_dim)
+
+        return {"nodes": nodes, "edge_links": edge_index, "edges": edges}
 
     def sample(self):
         if not self.is_graph:
@@ -108,15 +126,13 @@ class ReplayBuffer:
                 state.append(
                     Data(
                         x=torch.tensor(
-                            stati.nodes, dtype=torch.float, device=self.device
+                            stati["nodes"], dtype=torch.float, device=self.device
                         ),
                         edge_index=torch.tensor(
-                            stati.edge_links, dtype=torch.long, device=self.device
-                        )
-                        .t()
-                        .contiguous(),
+                            stati["edge_links"], dtype=torch.long, device=self.device
+                        ),
                         edge_attr=torch.tensor(
-                            stati.edges, dtype=torch.float, device=self.device
+                            stati["edges"], dtype=torch.float, device=self.device
                         ),
                     )
                 )
@@ -125,15 +141,15 @@ class ReplayBuffer:
                 next_state.append(
                     Data(
                         x=torch.tensor(
-                            next_stati.nodes, dtype=torch.float, device=self.device
+                            next_stati["nodes"], dtype=torch.float, device=self.device
                         ),
                         edge_index=torch.tensor(
-                            next_stati.edge_links, dtype=torch.long, device=self.device
-                        )
-                        .t()
-                        .contiguous(),
+                            next_stati["edge_links"],
+                            dtype=torch.long,
+                            device=self.device,
+                        ),
                         edge_attr=torch.tensor(
-                            next_stati.edges, dtype=torch.float, device=self.device
+                            next_stati["edges"], dtype=torch.float, device=self.device
                         ),
                     )
                 )
