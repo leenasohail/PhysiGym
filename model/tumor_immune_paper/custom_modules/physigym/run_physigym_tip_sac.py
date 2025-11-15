@@ -65,6 +65,42 @@ def flatten_dict(d, parent_key=""):
     return dict(items)
 
 
+def obs_to_pyg(obs, o_device):
+    # obs is a batch dict:
+    # node_features: (B, MAX_NODES, node_dim)
+    # edge_index:    (B, 2, MAX_EDGES)
+    # edge_attr:     (B, MAX_EDGES, edge_dim)
+    # node_mask:     (B, MAX_NODES)
+    # edge_mask:     (B, MAX_EDGES)
+
+    graphs = []
+    B = obs["node_features"].shape[0]
+
+    for i in range(B):
+        node_mask = obs["node_mask"][i] > 0.5
+        edge_mask = obs["edge_mask"][i] > 0.5
+
+        # Filter valid nodes
+        x = obs["node_features"][i][node_mask]
+
+        # Filter valid edges
+        edge_index = obs["edge_index"][i][:, edge_mask]
+        edge_attr = obs["edge_attr"][i][edge_mask]
+
+        # Build a normal PyG graph
+        g = Data(
+            x=torch.tensor(x, dtype=torch.float32),
+            edge_index=torch.tensor(edge_index, dtype=torch.long),
+            edge_attr=torch.tensor(edge_attr, dtype=torch.float32),
+            device=o_device,
+        )
+        g.batch = torch.full((x.shape[0],), i, dtype=torch.long)
+
+        graphs.append(g)
+
+    return Batch.from_data_list(graphs)
+
+
 ###################
 # Algorithm Logic #
 ###################
@@ -150,7 +186,7 @@ def run(
         "batch_size": int(
             64 * i_num_envs
         ),  # int: the batch size of sample from the replay memory
-        "learning_starts": 5000,  # 20[years] float: timestep to start learning (25e3)
+        "learning_starts": 2500,  # 20[years] float: timestep to start learning (25e3)
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
         # algorithm neural network II
@@ -320,30 +356,7 @@ def run(
 
         else:
             if is_graph:
-                data_list = []
-                for i in range(num_envs):
-                    data = Data(
-                        x=torch.tensor(
-                            o_observations.nodes[i],
-                            dtype=torch.float,
-                            device=o_device,
-                        ),
-                        edge_index=torch.tensor(
-                            o_observations.edge_links[i],
-                            dtype=torch.long,
-                            device=o_device,
-                        )
-                        .t()
-                        .contiguous(),
-                        edge_attr=torch.tensor(
-                            o_observations.edges[i],
-                            dtype=torch.float,
-                            device=o_device,
-                        ),
-                    )
-                    data_list.append(data)
-
-                x = Batch.from_data_list(data_list)
+                x = obs_to_pyg(o_observations, o_device)
             else:
                 x = torch.Tensor(o_observations).to(o_device)
             actions, _, _ = actor.get_action(x)
@@ -352,10 +365,20 @@ def run(
         # physigym step
         o_observations_next, r_rewards, b_dones, infos = envs.step(a_actions)
         for i in range(num_envs):
+            obs_i = (
+                {k: v[i] for k, v in o_observations.items()}
+                if is_graph
+                else o_observations[i]
+            )
+            next_obs_i = (
+                {k: v[i] for k, v in o_observations_next.items()}
+                if is_graph
+                else o_observations_next[i]
+            )
             rb.add(
-                state=o_observations[i],
+                state=obs_i,
                 action=a_actions[i],
-                next_state=o_observations_next[i],
+                next_state=next_obs_i,
                 reward=r_rewards[i],
                 done=b_dones[i],
             )
@@ -514,7 +537,7 @@ if __name__ == "__main__":
         "--seed",
         # type = str,
         nargs="?",
-        default="1",
+        default="5",
         help="set options random_seed in the settings.xml file and python.",
     )
     # observation_mode
@@ -522,7 +545,7 @@ if __name__ == "__main__":
         "--observation_mode",
         # type = str,
         nargs="?",
-        default="scalars_substrates",
+        default="graph_delaunay",
         help="different observation modes possible",
     )
     # render_mode
@@ -546,7 +569,7 @@ if __name__ == "__main__":
         "--total_step_learn",
         type=int,
         nargs="?",
-        default=int(1.25e5),
+        default=int(1.05e5),
         help="set total time steps for the learing process to take.",
     )
     # thread
@@ -570,7 +593,7 @@ if __name__ == "__main__":
         "--name",
         # type = str,
         nargs="?",
-        default="sac_experiment",
+        default="vec_sac",
         help="experiment name.",
     )
     # wandb tracking
@@ -592,7 +615,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_mode",
         nargs="+",  # one or more values
-        default=["circular_mode", "hex_mode", "asymmetric_mode"],  # default is a list
+        default=["circular_mode", "asymmetric_mode"],  # default is a list
         help="type(s) of initialisation, e.g. circular_mode asymmetric_mode hex_mode",
     )
 
@@ -622,7 +645,7 @@ if __name__ == "__main__":
         "--num_envs",
         type=int,
         nargs="?",
-        default=10,
+        default=2,
         help="number of parallelized environments",
     )
 

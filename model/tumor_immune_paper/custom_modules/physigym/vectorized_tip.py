@@ -195,7 +195,7 @@ if __name__ == "__main__":
                 "other_tissue": "red",
             },
             "figsize": (6, 6),
-            "observation_mode": "scalars",
+            "observation_mode": "graph_delaunay",
             "render_mode": None,
             "verbose": False,
             "img_rgb_grid_size_x": 64,
@@ -240,7 +240,7 @@ if __name__ == "__main__":
                 1.5,
                 2.0,
             ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
-            "init_mode": "robust",
+            "init_mode": ["circular_mode"],
             "cell_2_fraction": 0.3,
         },
     }
