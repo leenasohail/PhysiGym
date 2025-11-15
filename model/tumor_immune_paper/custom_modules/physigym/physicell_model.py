@@ -95,7 +95,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # check render mode
         if observation_mode == "img_rgb" and render_mode == None:
             render_mode = "rgb_array"
-
+        self.max_nodes = 2000  # ← choose based on your env
+        self.max_edges = 7500  # ← number of Delaunay edges worst case
+        self.node_dim = 1
+        self.edge_dim = 1
         # call super class init
         super().__init__(
             settingxml=settingxml,
@@ -240,18 +243,35 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     dtype=np.uint8,
                 )
         elif self.kwargs["observation_mode"] == "graph_delaunay":
-            node_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
-            edge_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
-            o_observation_space = spaces.Graph(
-                node_space=node_space, edge_space=edge_space
+            o_observation_space = spaces.Dict(
+                {
+                    "node_features": spaces.Box(
+                        low=0,
+                        high=1,
+                        shape=(self.max_nodes, self.node_dim),
+                        dtype=np.float32,
+                    ),
+                    "edge_index": spaces.Box(
+                        low=0,
+                        high=self.max_nodes,
+                        shape=(2, self.max_edges),
+                        dtype=np.int32,
+                    ),
+                    "edge_attr": spaces.Box(
+                        low=0,
+                        high=1,
+                        shape=(self.max_edges, self.edge_dim),
+                        dtype=np.float32,
+                    ),
+                    "node_mask": spaces.Box(
+                        low=0, high=1, shape=(self.max_nodes,), dtype=np.float32
+                    ),
+                    "edge_mask": spaces.Box(
+                        low=0, high=1, shape=(self.max_edges,), dtype=np.float32
+                    ),
+                }
             )
-
-        elif self.kwargs["observation_mode"] == "graph_neighbor":
-            node_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
-            edge_space = spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32)
-            o_observation_space = spaces.Graph(
-                node_space=node_space, edge_space=edge_space
-            )
+            # shape = (E, 1)
 
         else:
             raise ValueError(
@@ -470,60 +490,54 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     o_observation = np.concatenate([img_mc_cells, img_mc_substrates])
 
         elif self.kwargs["observation_mode"] == "graph_delaunay":
+            cell_type_indices = df_alive["type"].map(self.cell_type_to_id).to_numpy()
             df_alive.set_index("ID", inplace=True)
-            coords = df_alive.loc[:, ["x", "y"]].values
-            pairs = ty.build_delaunay(coords)
-            distances = ty.distance_neighbors(coords, pairs)
-            o_observation = GraphInstance(
-                nodes=(
-                    np.array(
-                        df_alive["type"].map(self.cell_type_to_id), dtype=np.float32
-                    )
-                    / (self.cell_type_count)
-                )[:, np.newaxis],
-                edge_links=pairs,
-                edges=np.array(
-                    (distances / (np.max([self.width, self.height, self.depth])))[
-                        :, np.newaxis
-                    ],
-                    dtype=np.float32,
-                ),
+            coords = df_alive[["x", "y"]].values
+
+            # Raw graph (variable size)
+            pairs = ty.build_delaunay(coords)  # shape = (E, 2)
+            distances = ty.distance_neighbors(coords, pairs)  # shape = (E,)
+
+            # Raw node features
+            node_features = (
+                df_alive["type"].map(self.cell_type_to_id).to_numpy(dtype=np.float32)
+                / self.cell_type_count
+            )[:, None]  # shape = (N, 1)
+
+            # Raw edge attributes
+            edge_attr = (distances / max(self.width, self.height, self.depth)).astype(
+                np.float32
             )
-        elif self.kwargs["observation_mode"] == "graph_neighbor":
-            df_alive.set_index("ID", inplace=True)
-            coords = df_alive.loc[:, ["x", "y"]].values
-            edge_links = np.array(physicell.get_graph("neighbor"))
-            id_to_pos = {id_: pos for pos, id_ in enumerate(df_alive.index)}
+            edge_attr = edge_attr[:, None]  # shape = (E, 1)
 
-            mask = np.isin(edge_links[:, 0], df_alive.index) & np.isin(
-                edge_links[:, 1], df_alive.index
+            N = node_features.shape[0]
+            E = pairs.shape[0]
+
+            # --- Pad nodes ---
+            padded_nodes = np.zeros((self.max_nodes, self.node_dim), dtype=np.float32)
+            padded_nodes[:N] = node_features
+
+            node_mask = np.zeros(self.max_nodes, dtype=np.float32)
+            node_mask[:N] = 1.0
+
+            # --- Pad edges ---
+            padded_edge_index = np.zeros((2, self.max_edges), dtype=np.int32)
+            padded_edge_index[:, :E] = pairs.T
+
+            padded_edge_attr = np.zeros(
+                (self.max_edges, self.edge_dim), dtype=np.float32
             )
-            edge_links = edge_links[mask]
-            # Convert IDs in edge_links to positional indices
-            edge_idx = np.vectorize(id_to_pos.get)(edge_links)
+            padded_edge_attr[:E] = edge_attr
 
-            # Get coordinates for both ends of each edge
-            p1 = coords[edge_idx[:, 0]]
-            p2 = coords[edge_idx[:, 1]]
-
-            # Compute Euclidean distances
-            distances = np.linalg.norm(p1 - p2, axis=1)
-
-            o_observation = GraphInstance(
-                nodes=(
-                    np.array(
-                        df_alive["type"].map(self.cell_type_to_id), dtype=np.float32
-                    )
-                    / (self.cell_type_count)
-                )[:, np.newaxis],
-                edge_links=edge_links,
-                edges=np.array(
-                    (distances / (np.max([self.width, self.height, self.depth])))[
-                        :, np.newaxis
-                    ],
-                    dtype=np.float32,
-                ),
-            )
+            edge_mask = np.zeros(self.max_edges, dtype=np.float32)
+            edge_mask[:E] = 1.0
+            o_observation = {
+                "node_features": padded_nodes,
+                "edge_index": padded_edge_index,
+                "edge_attr": padded_edge_attr,
+                "node_mask": node_mask,
+                "edge_mask": edge_mask,
+            }
 
         else:
             raise ValueError(
@@ -578,7 +592,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             truncated (the episode reached the max time limit).
         """
         # model dependent terminated processing logic goes here!
-        return True if (self.c_t == 0) or (self.c_t > 2**12) else False
+        return True if (self.c_t == 0) or (self.c_t > 1536) else False
 
     def get_reset_values(self):
         """
