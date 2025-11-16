@@ -627,7 +627,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--init_mode",
         nargs="+",  # one or more values
-        default=["circular_mode", "asymmetric_mode"],  # default is a list
+        default=[
+            "circular_mode",
+            "asymmetric_mode",
+            "connected_mst_mode",
+        ],  # default is a list
         help="type(s) of initialisation, e.g. circular_mode asymmetric_mode hex_mode",
     )
 

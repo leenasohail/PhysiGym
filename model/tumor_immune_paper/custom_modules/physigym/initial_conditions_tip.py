@@ -3,6 +3,7 @@ import pandas as pd
 import random
 from typing import Union
 import matplotlib.pyplot as plt
+from sklearn.neighbors import NearestNeighbors
 import os
 
 
@@ -249,11 +250,6 @@ def generate_asymmetric_population(
     return pd.concat([tumor_df, cell1_df], ignore_index=True)
 
 
-##################
-# Hex & Cell Positions
-##################
-
-
 def generate_hex_layers(cx, cy, max_radius, cell_radius):
     """Generate hexagonal lattice covering a circle of radius max_radius."""
     points = []
@@ -323,6 +319,54 @@ def generate_cell_positions(
     cell1_df = pd.DataFrame({"x": cell1_x, "y": cell1_y, "z": 0.0, "type": "cell_1"})
 
     return pd.concat([tumor_df, other_df, cell1_df], ignore_index=True)
+
+
+def generate_connected_tumor(
+    n_cells_total,
+    n_seeds=4,
+    x_min=-256,
+    x_max=256,
+    y_min=-256,
+    y_max=256,
+    jitter=5.0,
+    n_neighors=4,
+):
+    # Step 1: random seeds
+    seeds = np.random.uniform(x_min, x_max, size=(n_seeds, 2))
+
+    # Step 2: connect seeds using KNN edges (each seed to its nearest neighbor)
+    nbrs = NearestNeighbors(n_neighbors=n_neighors).fit(seeds)
+    distances, indices = nbrs.kneighbors(seeds)
+
+    edges = []
+    for i, neighbors in enumerate(indices):
+        # neighbor[0] is self, neighbor[1] is nearest neighbor
+        edges.append((i, neighbors[1]))
+
+    # Step 3: populate cells along edges
+    cells_per_edge = int(0.9 * n_cells_total) // len(edges)
+    tumor_cells = []
+
+    for i, j in edges:
+        start = seeds[i]
+        end = seeds[j]
+        xs = np.linspace(start[0], end[0], cells_per_edge)
+        ys = np.linspace(start[1], end[1], cells_per_edge)
+        line_points = np.stack([xs, ys], axis=1)
+        line_points += np.random.normal(0, jitter, size=line_points.shape)
+        tumor_cells.append(line_points)
+
+    tumor_cells = np.vstack(tumor_cells)
+    n_seed_cells = (n_cells_total - int(0.9 * n_cells_total)) // n_cells_total
+    # Step 4: optional: add small cluster around each seed
+    for seed in seeds:
+        seed_cells = seed + np.random.normal(0, jitter, size=(n_seed_cells, 2))
+        tumor_cells = np.vstack([tumor_cells, seed_cells])
+
+    df = pd.DataFrame(
+        {"x": tumor_cells[:, 0], "y": tumor_cells[:, 1], "z": 0.0, "type": "tumor"}
+    )
+    return df
 
 
 ##################
@@ -401,6 +445,30 @@ def create_csv(
         )
         df = pd.concat([tumor_df, cell1_df], ignore_index=True)
 
+    elif init_mode == "connected_mst_mode":
+        n_seeds = random.randint(5, 15)
+        df_tumor = generate_connected_tumor(
+            n_cells_total=n_tumor,
+            n_seeds=n_seeds,
+            x_min=x_min,
+            x_max=x_max,
+            y_min=y_min,
+            y_max=y_max,
+            n_neighors=n_seeds - 2,
+        )
+
+        # cell_1 randomly around the whole zone
+        cell1_df = pd.DataFrame(
+            {
+                "x": np.random.uniform(x_min, x_max, n_cell_1),
+                "y": np.random.uniform(y_min, y_max, n_cell_1),
+                "z": 0.0,
+                "type": "cell_1",
+            }
+        )
+
+        df = pd.concat([df_tumor, cell1_df], ignore_index=True)
+
     elif init_mode == "hex_mode":
         df = generate_cell_positions()
 
@@ -471,7 +539,7 @@ if __name__ == "__main__":
             range_cell_dist=[1.5, 2.0],
             cell_2_fraction=None,
             csv_path=f"./{name_folder}/df_{i}.csv",
-            init_mode=["asymmetric_mode", "hex_mode", "circular_mode"],
+            init_mode=["connected_mst_mode", "asymmetric_mode", "circular_mode"],
         )
         df = pd.read_csv(f"./{name_folder}/df_{i}.csv")
         generate_plot(df, f"./{name_folder}/cells_{i}")
