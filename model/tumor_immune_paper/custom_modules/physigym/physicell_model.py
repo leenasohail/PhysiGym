@@ -88,17 +88,18 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "img_mc_cells_substrates",
             "img_rgb",
             "graph_delaunay",
-            "graph_neighbor",
+            "graph_knn",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
 
         # check render mode
         if observation_mode == "img_rgb" and render_mode == None:
             render_mode = "rgb_array"
-        self.max_nodes = 2000  # ← choose based on your env
-        self.max_edges = 7500  # ← number of Delaunay edges worst case
+        self.max_nodes = 2000  #  choose based on your env
+        self.max_edges = 7500  #  number of Delaunay edges worst case
         self.node_dim = 1
         self.edge_dim = 1
+        self.k = 3  # number of connections k (knn)
         # call super class init
         super().__init__(
             settingxml=settingxml,
@@ -242,7 +243,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     ),
                     dtype=np.uint8,
                 )
-        elif self.kwargs["observation_mode"] == "graph_delaunay":
+        elif self.kwargs["observation_mode"] in ["graph_delaunay", "graph_knn"]:
             o_observation_space = spaces.Dict(
                 {
                     "node_features": spaces.Box(
@@ -489,13 +490,17 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 else:
                     o_observation = np.concatenate([img_mc_cells, img_mc_substrates])
 
-        elif self.kwargs["observation_mode"] == "graph_delaunay":
+        elif self.kwargs["observation_mode"] in ["graph_delaunay", "graph_knn"]:
             cell_type_indices = df_alive["type"].map(self.cell_type_to_id).to_numpy()
             df_alive.set_index("ID", inplace=True)
             coords = df_alive[["x", "y"]].values
 
             # Raw graph (variable size)
-            pairs = ty.build_delaunay(coords)  # shape = (E, 2)
+            pairs = (
+                ty.build_delaunay(coords)
+                if self.kwargs["observation_mode"] == "graph_delaunay"
+                else ty.build_knn(coords, k=self.k)
+            )  # shape = (E, 2)
             distances = ty.distance_neighbors(coords, pairs)  # shape = (E,)
 
             # Raw node features
