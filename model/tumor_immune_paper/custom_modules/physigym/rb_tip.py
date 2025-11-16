@@ -2,7 +2,7 @@ from collections import deque
 import random
 
 import torch
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 from tensordict import TensorDict
 
 import numpy as np
@@ -64,10 +64,8 @@ class ReplayBuffer:
             self.buffer_index = (self.buffer_index + 1) % self.buffer_size
             self.full = self.full or self.buffer_index == 0
         else:
-            # Convert padded observation dict → GraphInstance
             state_graph = self._dict_reduced(state)
             next_state_graph = self._dict_reduced(next_state)
-
             self.buffer.append((state_graph, action, reward, next_state_graph, done))
 
     def _dict_reduced(self, obs):
@@ -156,9 +154,9 @@ class ReplayBuffer:
 
             # Graphs remain Python objects (list of GraphInstances)
             return {
-                "state": state,
+                "state": Batch.from_data_list(state),
                 "action": action,
                 "reward": reward,
                 "done": done,
-                "next_state": next_state,
+                "next_state": Batch.from_data_list(next_state),
             }

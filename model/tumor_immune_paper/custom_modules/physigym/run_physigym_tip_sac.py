@@ -87,18 +87,21 @@ def obs_to_pyg(obs, o_device):
         edge_index = obs["edge_index"][i][:, edge_mask]
         edge_attr = obs["edge_attr"][i][edge_mask]
 
-        # Build a normal PyG graph
+        # Build a normal PyG graph (create tensors on CPU; we'll move the whole batch later)
         g = Data(
             x=torch.tensor(x, dtype=torch.float32),
             edge_index=torch.tensor(edge_index, dtype=torch.long),
             edge_attr=torch.tensor(edge_attr, dtype=torch.float32),
-            device=o_device,
         )
+        # Do NOT set device here — Batch.to(device) is simpler/safer
         g.batch = torch.full((x.shape[0],), i, dtype=torch.long)
 
         graphs.append(g)
 
-    return Batch.from_data_list(graphs)
+    batch = Batch.from_data_list(graphs)
+
+    # Move entire batch to the model device — this ensures data.x, edge_index, edge_attr, batch, etc. are on o_device
+    return batch.to(o_device)
 
 
 ###################
@@ -128,6 +131,7 @@ def run(
     r_cell_2_fraction=None,  # fraction of cell_1 into cell_2
     i_num_envs=6,
     s_frequency_save_data=64,
+    neural_architecture_image="impala",
 ):
     d_arg_simulation = {
         # basics
@@ -186,7 +190,7 @@ def run(
         "batch_size": int(
             64 * i_num_envs
         ),  # int: the batch size of sample from the replay memory
-        "learning_starts": 2500,  # 20[years] float: timestep to start learning (25e3)
+        "learning_starts": 1000,  # 20[years] float: timestep to start learning (25e3)
         "policy_frequency": 2,  # int: the frequency of training policy (delayed)
         "target_network_frequency": 1,  # int: the frequency of updates for the target nerworks (Denis Yarats" implementation delays this by 2.)
         # algorithm neural network II
@@ -305,11 +309,11 @@ def run(
 
     # Initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    actor = Actor(ghost_env).to(o_device)
-    qf1 = QNetwork(ghost_env).to(o_device)
-    qf2 = QNetwork(ghost_env).to(o_device)
-    qf1_target = QNetwork(ghost_env).to(o_device)
-    qf2_target = QNetwork(ghost_env).to(o_device)
+    actor = Actor(ghost_env, neural_architecture_image).to(o_device)
+    qf1 = QNetwork(ghost_env, neural_architecture_image).to(o_device)
+    qf2 = QNetwork(ghost_env, neural_architecture_image).to(o_device)
+    qf1_target = QNetwork(ghost_env, neural_architecture_image).to(o_device)
+    qf2_target = QNetwork(ghost_env, neural_architecture_image).to(o_device)
     q_optimizer = optim.Adam(
         list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["rl"]["q_lr"]
     )
@@ -343,7 +347,9 @@ def run(
     )
     del ghost_env
     total_discounted_cumulative_returns = np.zeros((num_envs))
+    total_cumulative_returns = np.zeros((num_envs))
     discounted_cumulative_returns = np.zeros((num_envs))
+    cumulative_returns = np.zeros((num_envs))
     o_observations = envs.reset()
 
     for global_step in range(d_arg["rl"]["total_timesteps"]):
@@ -363,7 +369,9 @@ def run(
             a_actions = actions.detach().cpu().numpy()
 
         # physigym step
-        o_observations_next, r_rewards, b_dones, infos = envs.step(a_actions)
+        o_observations_next, r_rewards, b_dones, infos = envs.step(
+            np.clip(a_actions, 0, 1)
+        )
         for i in range(num_envs):
             obs_i = (
                 {k: v[i] for k, v in o_observations.items()}
@@ -385,6 +393,7 @@ def run(
             discounted_cumulative_returns[i] += (
                 r_rewards[i] * d_arg["rl"]["gamma"] ** (infos[i]["step_episode"])
             )
+            cumulative_returns[i] += r_rewards[i]
 
         # handle observation
         o_observations = o_observations_next
@@ -392,7 +401,6 @@ def run(
         # learning
         if global_step > d_arg["rl"]["learning_starts"]:
             data = rb.sample()
-
             with torch.no_grad():
                 next_state_actions, next_state_log_pi, _ = actor.get_action(
                     data["next_state"]
@@ -489,10 +497,13 @@ def run(
                 total_discounted_cumulative_returns[i] = discounted_cumulative_returns[
                     i
                 ]
+                total_cumulative_returns = cumulative_returns[i]
+
         if global_step > 200:
             scalars["charts/mean_discounted_cumulative_return"] = np.mean(
                 total_discounted_cumulative_returns
             )
+            scalars["charts/mean_cumulative_return"] = np.mean(total_cumulative_returns)
             scalars["charts/steps"] = global_step * num_envs
 
         if d_arg["simulation"]["wandb_track"]:
@@ -502,6 +513,7 @@ def run(
                 writer.add_scalar(tag, value, global_step)
 
         discounted_cumulative_returns *= 1 - b_dones
+        cumulative_returns *= 1 - b_dones
 
     # finish
     envs.close()
@@ -545,7 +557,7 @@ if __name__ == "__main__":
         "--observation_mode",
         # type = str,
         nargs="?",
-        default="graph_delaunay",
+        default="img_mc_cells",
         help="different observation modes possible",
     )
     # render_mode
@@ -645,7 +657,7 @@ if __name__ == "__main__":
         "--num_envs",
         type=int,
         nargs="?",
-        default=2,
+        default=10,
         help="number of parallelized environments",
     )
 
@@ -655,6 +667,14 @@ if __name__ == "__main__":
         nargs="?",
         default=None,
         help="each number of episode data is saved",
+    )
+
+    parser.add_argument(
+        "--neural_architecture_image",
+        type=str,
+        nargs="?",
+        default="impala",
+        help="neural architecture for image it is else impala or hadamax",
     )
 
     # parse arguments
@@ -681,4 +701,5 @@ if __name__ == "__main__":
         i_cell_1=args.cell_1,
         r_cell_2_fraction=args.cell_2_fraction,
         s_frequency_save_data=args.s_frequency_save_data,
+        neural_architecture_image=args.neural_architecture_image,
     )
