@@ -369,9 +369,7 @@ def run(
             a_actions = actions.detach().cpu().numpy()
 
         # physigym step
-        o_observations_next, r_rewards, b_dones, infos = envs.step(
-            np.clip(a_actions, 0, 1)
-        )
+        o_observations_next, r_rewards, b_dones, infos = envs.step(a_actions)
         for i in range(num_envs):
             obs_i = (
                 {k: v[i] for k, v in o_observations.items()}
@@ -557,7 +555,7 @@ if __name__ == "__main__":
         "--observation_mode",
         # type = str,
         nargs="?",
-        default="img_mc_cells",
+        default="img_mc_cells_substrates",
         help="different observation modes possible",
     )
     # render_mode
