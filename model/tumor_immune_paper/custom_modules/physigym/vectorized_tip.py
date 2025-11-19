@@ -28,6 +28,32 @@ from wrapper_tip import PhysiCellModelWrapper
 
 
 # ============================================================
+# Global Thread Splitting
+# ============================================================
+def configure_thread_splitting(rl_threads: int):
+    """
+    Configure threads globally for the RL side (PyTorch) and
+    leave remaining threads for the PhysiCell simulations.
+    """
+    import torch
+
+    total = psutil.cpu_count(logical=True)
+    rl_threads = max(1, rl_threads)
+    rl_threads = min(rl_threads, total - 1)
+
+    # RL / PyTorch threading
+    torch.set_num_threads(rl_threads)
+    os.environ["OMP_NUM_THREADS"] = str(rl_threads)
+    os.environ["MKL_NUM_THREADS"] = str(rl_threads)
+    os.environ["OPENBLAS_NUM_THREADS"] = str(rl_threads)
+
+    print(f"[ThreadSplit] RL threads = {rl_threads} / {total} total cores")
+    print(f"[ThreadSplit] Remaining = {total - rl_threads} for PhysiCell envs")
+
+    return rl_threads, total - rl_threads
+
+
+# ============================================================
 # Helper: CPU affinity per environment
 # ============================================================
 def assign_cpu_affinity(env_id: int, threads_per_env: int):
@@ -135,7 +161,11 @@ def vec_envs(cfg: dict):
 # Runner
 # ============================================================
 def run_vectorized(cfg: dict):
-    num_envs = cfg["vectorization"]["num_envs"]
+    vect_cfg = cfg["vectorization"]
+    num_envs = vect_cfg["num_envs"]
+    rl_threads, remaining_threads = configure_thread_splitting(vect_cfg["rl_threads"])
+    threads_per_env = max(1, remaining_threads // num_envs)
+    cfg["vectorization"]["threads_per_env"] = threads_per_env
     envs = vec_envs(cfg)
 
     obs = envs.reset()
@@ -169,7 +199,7 @@ if __name__ == "__main__":
     parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
     parser.add_argument("-m", "--max_time", type=float, default=1440.0)
     parser.add_argument("-n", "--num_envs", type=int, default=10)
-    parser.add_argument("-t", "--threads", type=int, default=None)
+    parser.add_argument("-t", "--rl_threads", type=int, default=20)
     parser.add_argument("-s", "--seed", type=int, default=3)
     args = parser.parse_args()
 
@@ -181,7 +211,7 @@ if __name__ == "__main__":
         },
         "vectorization": {
             "num_envs": args.num_envs,
-            "threads_per_env": args.threads,
+            "rl_threads": args.rl_threads,
         },
         "model": {
             "id": "physigym/ModelPhysiCellEnv-v0",
@@ -195,7 +225,7 @@ if __name__ == "__main__":
                 "other_tissue": "red",
             },
             "figsize": (6, 6),
-            "observation_mode": "graph_delaunay",
+            "observation_mode": "graph_knn",
             "render_mode": None,
             "verbose": False,
             "img_rgb_grid_size_x": 64,

@@ -120,7 +120,6 @@ def run(
     s_render_mode=None,  # render is none or rgb_array or human
     r_max_time_episode=12900.0,  #  8[d]=12900[min] = 8 * 3 = 24[steps]
     i_total_step_learn=int(1e5),  # int: the total number of steps
-    i_thread=None,  # int or None: number of threads
     b_gpu=False,  # bool: if using GPU
     s_name="vec_sac",  # str: the name of this experiment
     b_wandb=False,  # bool: track with wandb, if false local tensorboard
@@ -132,6 +131,7 @@ def run(
     i_num_envs=6,
     s_frequency_save_data=64,
     neural_architecture_image="impala",
+    rl_threads=2,
 ):
     d_arg_simulation = {
         # basics
@@ -186,7 +186,7 @@ def run(
     d_arg_rl = {
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
         # algoritm neural network I
-        "buffer_size": int(7.5e5),  # int: the replay memory buffer size
+        "buffer_size": int(5e5),  # int: the replay memory buffer size
         "batch_size": int(
             64 * i_num_envs
         ),  # int: the batch size of sample from the replay memory
@@ -204,7 +204,7 @@ def run(
     }
     d_arg_vect = {
         "num_envs": i_num_envs,
-        "threads_per_env": i_thread,
+        "rl_threads": rl_threads,
     }
 
     # all in one
@@ -582,14 +582,6 @@ if __name__ == "__main__":
         default=int(1.05e5),
         help="set total time steps for the learing process to take.",
     )
-    # thread
-    parser.add_argument(
-        "--thread",
-        type=int,
-        nargs="?",
-        default=None,
-        help="set parallel omp_num_threads in the settings.xml file.",
-    )
     # gpu
     parser.add_argument(
         "--gpu",
@@ -659,7 +651,7 @@ if __name__ == "__main__":
         "--num_envs",
         type=int,
         nargs="?",
-        default=10,
+        default=5,
         help="number of parallelized environments",
     )
 
@@ -679,6 +671,14 @@ if __name__ == "__main__":
         help="neural architecture for image it is else impala or hadamax",
     )
 
+    parser.add_argument(
+        "--rl_threads",
+        type=int,
+        nargs="?",
+        default=2,
+        help="number of threads dedicated to the reinforcement learning algorithm",
+    )
+
     # parse arguments
     args = parser.parse_args()
     print(args)
@@ -692,7 +692,6 @@ if __name__ == "__main__":
         s_render_mode=None if args.render_mode.lower() == "none" else args.render_mode,
         r_max_time_episode=args.max_time_episode,
         i_total_step_learn=args.total_step_learn,
-        i_thread=args.thread,
         i_num_envs=args.num_envs,
         b_gpu=True if args.gpu.lower().startswith("t") else False,
         s_name=args.name,
@@ -704,4 +703,5 @@ if __name__ == "__main__":
         r_cell_2_fraction=args.cell_2_fraction,
         s_frequency_save_data=args.s_frequency_save_data,
         neural_architecture_image=args.neural_architecture_image,
+        rl_threads=args.rl_threads,
     )
