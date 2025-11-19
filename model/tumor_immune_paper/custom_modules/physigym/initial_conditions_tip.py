@@ -450,10 +450,10 @@ def create_csv(
         df_tumor = generate_connected_tumor(
             n_cells_total=n_tumor,
             n_seeds=n_seeds,
-            x_min=x_min,
-            x_max=x_max,
-            y_min=y_min,
-            y_max=y_max,
+            x_min=int(x_min * 0.9),
+            x_max=int(x_max * 0.9),
+            y_min=int(y_min * 0.9),
+            y_max=int(y_max * 0.9),
             n_neighors=n_seeds - 2,
         )
 
@@ -476,10 +476,10 @@ def create_csv(
         df = generate_asymmetric_population(
             n_tumor_total=n_tumor,
             n_cell_1=n_cell_1,
-            x_min=x_min,
-            x_max=x_max,
-            y_min=y_min,
-            y_max=y_max,
+            x_min=int(x_min * 0.9),
+            x_max=int(x_max * 0.9),
+            y_min=int(y_min * 0.9),
+            y_max=int(y_max * 0.9),
             n_tumors=random.randint(3, 12),
         )
 
@@ -520,7 +520,7 @@ def generate_plot(df, path_title):
 ##################
 
 if __name__ == "__main__":
-    name_folder = "config_test"
+    name_folder = "config_connected_mst_mode"
     os.makedirs(f"./{name_folder}", exist_ok=True)
     size = 256
     for i in range(20):
@@ -539,7 +539,7 @@ if __name__ == "__main__":
             range_cell_dist=[1.5, 2.0],
             cell_2_fraction=None,
             csv_path=f"./{name_folder}/df_{i}.csv",
-            init_mode=["connected_mst_mode", "asymmetric_mode", "circular_mode"],
+            init_mode=["connected_mst_mode"],
         )
         df = pd.read_csv(f"./{name_folder}/df_{i}.csv")
         generate_plot(df, f"./{name_folder}/cells_{i}")
