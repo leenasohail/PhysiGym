@@ -56,10 +56,10 @@ def configure_thread_splitting(rl_threads: int):
 # ============================================================
 # Helper: CPU affinity per environment
 # ============================================================
-def assign_cpu_affinity(env_id: int, threads_per_env: int):
+def assign_cpu_affinity(env_id: int, threads_per_env: int, offset_threads: int):
     os.environ["OMP_NUM_THREADS"] = str(threads_per_env)
     total_cores = psutil.cpu_count(logical=True)
-    start = env_id * threads_per_env
+    start = env_id * threads_per_env + offset_threads
     end = min(start + threads_per_env, total_cores)
     core_list = list(range(start, end))
     try:
@@ -103,9 +103,10 @@ def make_physigym_env(env_id: int, cfg: dict):
     if model_cfg_copy["output_dir"] is None:
         model_cfg_copy["output_dir"] = "output"
     del model_cfg_copy["settingcells"]
+    rl_threads = vect_cfg["rl_threads"]
 
     def _init():
-        assign_cpu_affinity(env_id, threads_per_env)
+        assign_cpu_affinity(env_id, threads_per_env, offset_threads=rl_threads)
 
         # Modify XML for this env
         tree = etree.parse(env_xml)
@@ -142,13 +143,10 @@ def vec_envs(cfg: dict):
     vect_cfg = cfg["vectorization"]
     sim_cfg = cfg["simulation"]
     num_envs = vect_cfg["num_envs"]
-    threads_per_env = vect_cfg.get("threads_per_env")
+    rl_threads, remaining_threads = configure_thread_splitting(vect_cfg["rl_threads"])
     total_cores = psutil.cpu_count(logical=True)
-
-    if threads_per_env is None:
-        threads_per_env = max(1, total_cores // num_envs)
-        vect_cfg["threads_per_env"] = threads_per_env
-
+    threads_per_env = (total_cores - rl_threads) // num_envs
+    cfg["vectorization"]["threads_per_env"] = threads_per_env
     print(f"[INFO] Detected {total_cores} cores")
     print(f"[INFO] Launching {num_envs} envs × {threads_per_env} threads each")
 
@@ -162,15 +160,14 @@ def vec_envs(cfg: dict):
 # ============================================================
 def run_vectorized(cfg: dict):
     vect_cfg = cfg["vectorization"]
+    sim_cfg = cfg["simulation"]
     num_envs = vect_cfg["num_envs"]
-    rl_threads, remaining_threads = configure_thread_splitting(vect_cfg["rl_threads"])
-    threads_per_env = max(1, remaining_threads // num_envs)
-    cfg["vectorization"]["threads_per_env"] = threads_per_env
+
     envs = vec_envs(cfg)
 
     obs = envs.reset()
     time_1 = time.time()
-    for t in range(50):
+    for t in range(50000):
         actions = np.array(
             [envs.action_space.sample() for _ in range(num_envs)],
             dtype=np.float32,
@@ -178,8 +175,6 @@ def run_vectorized(cfg: dict):
         # actions = np.random.uniform(low=0, high=1, size=(num_envs, 1))
         obs, rewards, dones, infos = envs.step(actions)
         print(f"[Step {t}] rewards = {rewards}")
-        if np.any(dones):
-            print(f"[INFO] Envs done: {np.where(dones)[0]}")
 
     envs.close()
     print("[INFO] Simulation complete.")
@@ -198,8 +193,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
     parser.add_argument("-m", "--max_time", type=float, default=1440.0)
-    parser.add_argument("-n", "--num_envs", type=int, default=10)
-    parser.add_argument("-t", "--rl_threads", type=int, default=20)
+    parser.add_argument("-n", "--num_envs", type=int, default=8)
+    parser.add_argument("-t", "--rl_threads", type=int, default=4)
     parser.add_argument("-s", "--seed", type=int, default=3)
     args = parser.parse_args()
 
@@ -225,7 +220,7 @@ if __name__ == "__main__":
                 "other_tissue": "red",
             },
             "figsize": (6, 6),
-            "observation_mode": "graph_knn",
+            "observation_mode": "img_mc_cells_substrates",
             "render_mode": None,
             "verbose": False,
             "img_rgb_grid_size_x": 64,
@@ -270,7 +265,7 @@ if __name__ == "__main__":
                 1.5,
                 2.0,
             ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
-            "init_mode": ["circular_mode"],
+            "init_mode": ["circular_mode", "asymmetric_mode", "connected_mst_mode"],
             "cell_2_fraction": 0.3,
         },
     }
