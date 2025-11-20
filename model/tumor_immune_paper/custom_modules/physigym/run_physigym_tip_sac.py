@@ -186,7 +186,7 @@ def run(
     d_arg_rl = {
         "total_timesteps": i_total_step_learn,  # int: the total number of steps
         # algoritm neural network I
-        "buffer_size": int(5e5),  # int: the replay memory buffer size
+        "buffer_size": int(1e5),  # int: the replay memory buffer size
         "batch_size": int(
             64 * i_num_envs
         ),  # int: the batch size of sample from the replay memory
@@ -489,9 +489,8 @@ def run(
         scalars = {}
         for i in range(num_envs):
             if b_dones[i]:
-                scalars[f"charts/env_{i}_discounted_cumulative_return"] = (
-                    discounted_cumulative_returns[i]
-                )
+                # scalars[f"charts/env_{i}_discounted_cumulative_return"] = discounted_cumulative_returns[i]
+                # scalars[f"charts/env_{i}_cumulative_return"] = cumulative_returns[i]
                 total_discounted_cumulative_returns[i] = discounted_cumulative_returns[
                     i
                 ]
@@ -675,7 +674,7 @@ if __name__ == "__main__":
         "--rl_threads",
         type=int,
         nargs="?",
-        default=2,
+        default=5,
         help="number of threads dedicated to the reinforcement learning algorithm",
     )
 
