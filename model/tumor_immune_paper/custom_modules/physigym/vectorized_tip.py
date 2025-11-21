@@ -105,6 +105,9 @@ def make_physigym_env(env_id: int, cfg: dict):
     del model_cfg_copy["settingcells"]
     rl_threads = vect_cfg["rl_threads"]
 
+    master_seed = seed if seed is not None else 0
+    rng = np.random.default_rng(master_seed)
+
     def _init():
         assign_cpu_affinity(env_id, threads_per_env, offset_threads=rl_threads)
 
@@ -123,6 +126,9 @@ def make_physigym_env(env_id: int, cfg: dict):
         ].text = f"cells_{env_id}.csv"
         tree.write(env_xml, pretty_print=True)
         model_cfg_copy["settingxml"] = env_xml
+
+        env_seed = int(rng.integers(0, 2**32 - 1)) + env_id
+
         del model_cfg_copy["output_dir"]
         if env_id != 0:
             wrapper_cfg["frequency_save_data"] = None
@@ -132,7 +138,8 @@ def make_physigym_env(env_id: int, cfg: dict):
         env = PhysiCellModelWrapper(env, **wrapper_cfg)
 
         if seed is not None:
-            env.reset(seed=seed + env_id, generation_cfg=generation_cfg)
+            generation_cfg["seed"] = env_seed
+            env.reset(seed=env_seed, generation_cfg=generation_cfg)
 
         return env
 
@@ -267,7 +274,6 @@ if __name__ == "__main__":
             ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
             "init_mode": ["circular_mode", "asymmetric_mode", "connected_mst_mode"],
             "cell_2_fraction": 0.3,
-            "seed": 2,
         },
     }
 
