@@ -121,9 +121,13 @@ class PhysiCellModelWrapper(gym.Wrapper):
         info["action"] = d_action
         info["step_episode"] = self.env.unwrapped.step_episode
 
-        reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells - 100 * terminated*(self.env.unwrapped.c_t !=0)
+        reward = (
+            -(1 - self.weight) * r_drugs
+            + self.weight * r_cancer_cells
+            - 100 * terminated * (self.env.unwrapped.c_t != 0)
+        )
 
-        #reward = np.clip(reward, -1,1)
+        # reward = np.clip(reward, -1,1)
         if self.frequency_save_data is not None:
             data = {
                 "step": self.env.unwrapped.step_episode,
@@ -144,6 +148,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         generation_cfg["csv_path"] = self.csv_path_init
         if self.generation_cfg is None:
             self.generation_cfg = generation_cfg
+        self.generation_cfg["seed"] += self.env.unwrapped.episode
         create_csv(**self.generation_cfg)
         if self.frequency_save_data is not None:
             self.save_data()

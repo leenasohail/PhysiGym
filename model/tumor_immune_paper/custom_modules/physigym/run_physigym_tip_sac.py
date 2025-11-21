@@ -301,6 +301,7 @@ def run(
         ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
         "init_mode": s_init_mode,
         "cell_2_fraction": r_cell_2_fraction,
+        "seed": d_arg_simulation["seed"],
     }
 
     d_arg["generation"] = d_arg_generation

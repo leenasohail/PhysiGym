@@ -267,6 +267,7 @@ if __name__ == "__main__":
             ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
             "init_mode": ["circular_mode", "asymmetric_mode", "connected_mst_mode"],
             "cell_2_fraction": 0.3,
+            "seed": 2,
         },
     }
 
