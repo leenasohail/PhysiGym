@@ -471,6 +471,7 @@ def run(
                         alpha = log_alpha.exp().item()
 
                 # record policy update to tensoboard
+                """
                 losses = {
                     "losses/min_qf_next_target": min_qf_next_target.mean().item(),
                     "losses/qf_loss": qf_loss.item() / 2.0,
@@ -484,6 +485,7 @@ def run(
                         writer.add_scalar(
                             tag=tag, scalar_value=value, global_step=global_step
                         )
+                """
 
         # recording episode to tensorboard
         scalars = {}
@@ -554,7 +556,7 @@ if __name__ == "__main__":
         "--observation_mode",
         # type = str,
         nargs="?",
-        default="img_mc_cells_substrates",
+        default="scalars_cells_substrates",
         help="different observation modes possible",
     )
     # render_mode
@@ -578,7 +580,7 @@ if __name__ == "__main__":
         "--total_step_learn",
         type=int,
         nargs="?",
-        default=int(1.05e5),
+        default=int(5e4),
         help="set total time steps for the learing process to take.",
     )
     # gpu
@@ -650,7 +652,7 @@ if __name__ == "__main__":
         "--num_envs",
         type=int,
         nargs="?",
-        default=5,
+        default=7,
         help="number of parallelized environments",
     )
 
@@ -674,7 +676,7 @@ if __name__ == "__main__":
         "--rl_threads",
         type=int,
         nargs="?",
-        default=5,
+        default=4,
         help="number of threads dedicated to the reinforcement learning algorithm",
     )
 
