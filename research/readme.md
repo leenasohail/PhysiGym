@@ -1,25 +1,3 @@
-# Problem of Memory
-If too many environments run in parallel, the RAM may not be sufficient, which can lead to memory issues such as `bad::malloc`.
-
-# Problem of Speed
-There is competition between threads used by the RL algorithm, threads used by the different environments, and threads used by PyTorch, which can reduce performance.
-
-# Vectorization 
-Previously, vectorization could not be applied to Graphs, but this has been resolved by modifying the Graph part of our code.
-
-# New State Space Added (DONE)
-- KNN integration thanks to Tysserand.
-
-# New Initial Conditions Added (DONE)
-
-## Asymmetric Mode
-Random cluster of cancer cells:  
-![async_mode_1.png](async_mode_1.png) ![async_mode_8.png](async_mode_8.png) ![async_mode_15.png](async_mode_15.png)
-
-## Connected MST Mode
-Pick N random points, build a graph using KNN, and then connect linked nodes with cancer cells along the edges:  
-![connected_mst_mode_8.png](connected_mst_mode_8.png) ![connected_mst_mode_12.png](connected_mst_mode_12.png) ![connected_mst_mode_16.png](connected_mst_mode_16.png)
-
 # Vec + SAC
 
 ## Acceleration Thanks to Async SAC ( HAVE TO WORK ON IT)
@@ -35,6 +13,7 @@ As we know, the simulator should run without any interruptions and feed the repl
 
 
 # My Plan
-- Be more careful about the allocation of threads between the vectorized PhysiCell environments and the RL algorithm, PyTorch, and Replay Buffer. The code should be updated so that the first three threads are assigned to the RL algorithm, PyTorch, and Replay Buffer.  
+- Putting test env for instance the last env
+- Adding a distribution of initial conditions
 - Make the code more similar to Async SAC, inspiration from the two articles above.
 - Add PPO.
