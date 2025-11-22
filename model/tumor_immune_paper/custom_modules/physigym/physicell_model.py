@@ -110,8 +110,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             verbose=verbose,
             # **kwargs
             observation_mode=observation_mode,
-            img_rgb_grid_size_x=img_mc_grid_size_x,
-            img_rgb_grid_size_y=img_mc_grid_size_y,
+            img_rgb_grid_size_x=img_rgb_grid_size_x,
+            img_rgb_grid_size_y=img_rgb_grid_size_y,
             img_mc_grid_size_x=img_mc_grid_size_x,
             img_mc_grid_size_y=img_mc_grid_size_y,
             normalization_factor=normalization_factor,
