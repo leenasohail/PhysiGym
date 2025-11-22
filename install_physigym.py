@@ -30,6 +30,7 @@ import sys
 # const
 s_root = "../PhysiCell/"  # absolute or relative path to physicell root folder
 
+
 # function
 def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
     """
@@ -44,17 +45,27 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
     """
 
     # check for PhysiCell root folder
-    s_root = s_root.replace("\\","/")
+    s_root = s_root.replace("\\", "/")
     if not s_root.endswith("/"):
         s_root = s_root + "/"
     if not (os.path.isdir(s_root)):
-        sys.exit(f"Error @ install_pcuserproj : no PhysiCell root directory found at '{s_root}'.")
+        sys.exit(
+            f"Error @ install_pcuserproj : no PhysiCell root directory found at '{s_root}'."
+        )
 
     # check if model specified
-    if (ls_model == ["all"]):
-        ls_model = sorted([s_file for s_file in os.listdir("model/") if os.path.isdir(f"model/{s_file}")])
-    if (len(ls_model) == 0):
-        sys.exit(f"Error @ install_pcuserproj : no model specified for installation '{ls_model}'.")
+    if ls_model == ["all"]:
+        ls_model = sorted(
+            [
+                s_file
+                for s_file in os.listdir("model/")
+                if os.path.isdir(f"model/{s_file}")
+            ]
+        )
+    if len(ls_model) == 0:
+        sys.exit(
+            f"Error @ install_pcuserproj : no model specified for installation '{ls_model}'."
+        )
 
     # install models
     for s_model in ls_model:
@@ -67,8 +78,10 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
 
         # check for PhysiCell user_projects project folder
         s_path_prj = f"{s_root}user_projects/{s_prj}/"
-        if ((not b_force) and os.path.exists(s_path_prj)):
-            sys.exit(f"Error @ install_pcuserproj : {s_path_prj} already exists!\nUse the command line -f or --force argument to overwrite the existing project with this {s_prj} template project.")
+        if (not b_force) and os.path.exists(s_path_prj):
+            sys.exit(
+                f"Error @ install_pcuserproj : {s_path_prj} already exists!\nUse the command line -f or --force argument to overwrite the existing project with this {s_prj} template project."
+            )
 
         # erase possibly old model
         print(f"erase {s_path_prj} ...")
@@ -100,11 +113,18 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
                     src=f"{s_path_model}custom_modules/{s_file}",
                     dst=f"{s_path_prj}custom_modules/",
                 )
-            elif os.path.isdir(f"{s_path_model}custom_modules/{s_file}") and not (s_file in {"extending","physigym"}):
-                shutil.copytree(src=f"{s_path_model}custom_modules/{s_file}/", dst=f"{s_path_prj}custom_modules/{s_file}/")
+            elif os.path.isdir(f"{s_path_model}custom_modules/{s_file}") and not (
+                s_file in {"extending", "physigym"}
+            ):
+                shutil.copytree(
+                    src=f"{s_path_model}custom_modules/{s_file}/",
+                    dst=f"{s_path_prj}custom_modules/{s_file}/",
+                )
 
         # copy files to the user_project"s custom_modules extending folder
-        print(f"copy from: {s_path_model}custom_modules/extending/physicellmodule.cpp ...")
+        print(
+            f"copy from: {s_path_model}custom_modules/extending/physicellmodule.cpp ..."
+        )
         shutil.copy(
             src=f"{s_path_model}custom_modules/extending/physicellmodule.cpp",
             dst=f"{s_path_prj}custom_modules/extending/",
@@ -119,11 +139,16 @@ def install_pcuserproj(ls_model=[], b_force=False, s_root=s_root):
             )
 
         # copy the user_project"s img folder
-        print(f"copy from: {s_path_model}img/ ...")
-        shutil.copytree(src=f"{s_path_model}img/", dst=f"{s_path_prj}img/")
+        try:
+            print(f"copy from: {s_path_model}img/ ...")
+            shutil.copytree(src=f"{s_path_model}img/", dst=f"{s_path_prj}img/")
+        except:
+            print(
+                f"There is no {s_path_model}img/, in the future to add one image to present the model could be nice ​😉"
+            )
 
     # going home
-    print("ok!")
+    print("ok 👍​!")
 
 
 # run
@@ -132,34 +157,34 @@ if __name__ == "__main__":
 
     # argv
     parser = argparse.ArgumentParser(
-        prog = f"install physigym models",
-        description = f"script to copy the physigym PhysiCell user_projects into the correct folder structure.",
-        epilog = f"afterwards the project can be built, run, and further developed within Physicell as usual.",
+        prog=f"install physigym models",
+        description=f"script to copy the physigym PhysiCell user_projects into the correct folder structure.",
+        epilog=f"afterwards the project can be built, run, and further developed within Physicell as usual.",
     )
     # s_model
     parser.add_argument(
         "model",
-        nargs = "+",
-        #default = ["template"],
-        help = "model to be installed. have to match one or more folder names under ./model. all will install all models under ./model."
+        nargs="+",
+        # default = ["template"],
+        help="model to be installed. have to match one or more folder names under ./model. all will install all models under ./model.",
     )
     # b_force
     parser.add_argument(
-        "-f", "--force",
-        #type = bool,
-        #nargs = 0,
+        "-f",
+        "--force",
+        # type = bool,
+        # nargs = 0,
         action=argparse.BooleanOptionalAction,
-        #default = False,
-        help = ""
+        # default = False,
+        help="",
     )
 
     # parse arguments
     args = parser.parse_args()
-    #print(args)
+    # print(args)
 
     # processing
     install_pcuserproj(
-        ls_model = args.model,
-        b_force = args.force,
+        ls_model=args.model,
+        b_force=args.force,
     )
-

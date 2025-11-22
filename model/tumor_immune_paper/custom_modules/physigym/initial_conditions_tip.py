@@ -7,6 +7,11 @@ from sklearn.neighbors import NearestNeighbors
 import os
 
 
+def set_global_seed(seed: int):
+    np.random.seed(seed)
+    random.seed(seed)
+
+
 ##################
 # Helper Functions
 ##################
@@ -390,7 +395,13 @@ def create_csv(
     csv_path,
     init_mode,
     cell_2_fraction=None,
+    seed=42,
 ):
+    if seed is not None:
+        set_global_seed(seed)
+    else:
+        set_global_seed(42)
+
     if isinstance(init_mode, list):
         init_mode = random.choice(init_mode)
     if cell_2_fraction is None:
@@ -540,6 +551,7 @@ if __name__ == "__main__":
             cell_2_fraction=None,
             csv_path=f"./{name_folder}/df_{i}.csv",
             init_mode=["connected_mst_mode"],
+            seed=32 + i,
         )
         df = pd.read_csv(f"./{name_folder}/df_{i}.csv")
         generate_plot(df, f"./{name_folder}/cells_{i}")
