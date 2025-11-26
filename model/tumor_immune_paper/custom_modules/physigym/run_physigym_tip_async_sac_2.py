@@ -21,6 +21,7 @@ from rb_tip import ReplayBuffer
 from wrapper_tip import PhysiCellModelWrapper
 from torch_geometric.data import Data, Batch
 
+
 # --------------------------------------------------------------
 # Helper: convert dict-of-arrays → PyG Batch (same as your original)
 # --------------------------------------------------------------
@@ -94,13 +95,7 @@ def actor_process(policy_queue, sample_queue, d_arg, ghost_env):
                 o = obs[i]
                 no = next_obs[i]
 
-            sample_queue.put((
-                o,
-                actions[i],
-                float(rewards[i]),
-                no,
-                bool(dones[i])
-            ))
+            sample_queue.put((o, actions[i], float(rewards[i]), no, bool(dones[i])))
 
         obs = next_obs
         time.sleep(0.0001)  # prevent 100% CPU
@@ -112,7 +107,9 @@ def actor_process(policy_queue, sample_queue, d_arg, ghost_env):
 def run_async_sac(d_arg):
     mp.set_start_method("spawn", force=True)
 
-    device = torch.device("cuda" if d_arg["simulation"]["cuda"] and torch.cuda.is_available() else "cpu")
+    device = torch.device(
+        "cuda" if d_arg["simulation"]["cuda"] and torch.cuda.is_available() else "cpu"
+    )
     print(f"Using device: {device}")
 
     # Ghost env to get shapes / spaces
@@ -125,13 +122,21 @@ def run_async_sac(d_arg):
     d_arg["is_graph"] = is_graph
 
     # Networks
-    actor = Actor(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(device)
-    qf1 = QNetwork(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(device)
-    qf2 = QNetwork(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(device)
+    actor = Actor(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(
+        device
+    )
+    qf1 = QNetwork(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(
+        device
+    )
+    qf2 = QNetwork(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(
+        device
+    )
     qf1_target = deepcopy(qf1).to(device)
     qf2_target = deepcopy(qf2).to(device)
 
-    q_optimizer = optim.Adam(list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["rl"]["q_lr"])
+    q_optimizer = optim.Adam(
+        list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["rl"]["q_lr"]
+    )
     actor_optimizer = optim.Adam(actor.parameters(), lr=d_arg["rl"]["policy_lr"])
 
     # Alpha (entropy)
@@ -151,7 +156,7 @@ def run_async_sac(d_arg):
         is_graph=is_graph,
     )
 
-        # === ONLY ONE ACTOR PROCESS ===
+    # === ONLY ONE ACTOR PROCESS ===
     policy_queue = mp.Queue(maxsize=10)
     sample_queue = mp.Queue(maxsize=30000)
 
@@ -159,10 +164,9 @@ def run_async_sac(d_arg):
     actor_proc = mp.Process(
         target=actor_process,
         args=(policy_queue, sample_queue, d_arg, ghost_env),
-        daemon=True
+        daemon=True,
     )
     actor_proc.start()
-
 
     # Send initial policy
     policy_queue.put(actor.state_dict())
@@ -188,9 +192,8 @@ def run_async_sac(d_arg):
                 samples_collected += 1
             except:
                 break
-
-        if len_rb = len(rb)
-        if len_rb < max(5000, d_arg["rl"]["batch_size"]):
+        len_rb = len(rb)
+        if len_rb < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
             time.sleep(0.1)
             continue
 
@@ -203,7 +206,12 @@ def run_async_sac(d_arg):
             q1_next = qf1_target(batch.next_state, next_actions)
             q2_next = qf2_target(batch.next_state, next_actions)
             min_q_next = torch.min(q1_next, q2_next) - alpha * next_log_pi
-            next_q = batch.reward.flatten() + (1 - batch.done.flatten()) * d_arg["rl"]["gamma"] * min_q_next.squeeze()
+            next_q = (
+                batch.reward.flatten()
+                + (1 - batch.done.flatten())
+                * d_arg["rl"]["gamma"]
+                * min_q_next.squeeze()
+            )
 
         q1 = qf1(batch.state, batch.action).view(-1)
         q2 = qf2(batch.state, batch.action).view(-1)
@@ -230,7 +238,9 @@ def run_async_sac(d_arg):
                 actor_optimizer.step()
 
                 if d_arg["rl"]["autotune"]:
-                    alpha_loss = (-log_alpha.exp() * (log_pi + target_entropy).detach()).mean()
+                    alpha_loss = (
+                        -log_alpha.exp() * (log_pi + target_entropy).detach()
+                    ).mean()
                     alpha_optim.zero_grad()
                     alpha_loss.backward()
                     alpha_optim.step()
@@ -254,14 +264,18 @@ def run_async_sac(d_arg):
         # Logging
         if global_step % 2000 == 0:
             fps = global_step / (time.time() - start_time)
-            print(f"Step {global_step//1000}k | Buffer {len_rb//1000}k | FPS {fps:.1f}")
+            print(
+                f"Step {global_step // 1000}k | Buffer {len_rb // 1000}k | FPS {fps:.1f}"
+            )
 
             log_dict = {
                 "train/step": global_step,
                 "train/fps": fps,
                 "train/buffer_size": len_rb,
                 "losses/qf_loss": qf_loss.item(),
-                "losses/actor_loss": actor_loss.item() if 'actor_loss' in locals() else 0,
+                "losses/actor_loss": actor_loss.item()
+                if "actor_loss" in locals()
+                else 0,
                 "losses/alpha": alpha,
             }
             writer.add_scalar("charts/fps", fps, global_step)
@@ -284,6 +298,7 @@ def run_async_sac(d_arg):
 # --------------------------------------------------------------
 if __name__ == "__main__":
     import multiprocessing as mp
+
     try:
         mp.set_start_method("spawn", force=True)
     except RuntimeError:
@@ -297,10 +312,14 @@ if __name__ == "__main__":
     )
 
     # === All your original arguments ===
-    parser.add_argument("--settingxml", nargs="?", default="config/PhysiCell_settings.xml")
+    parser.add_argument(
+        "--settingxml", nargs="?", default="config/PhysiCell_settings.xml"
+    )
     parser.add_argument("--settingcells", nargs="?", default="cells.csv")
     parser.add_argument("--seed", nargs="?", default="5")
-    parser.add_argument("--observation_mode", nargs="?", default="graph_neighbor")  # change default if you want
+    parser.add_argument(
+        "--observation_mode", nargs="?", default="graph_neighbor"
+    )  # change default if you want
     parser.add_argument("--render_mode", nargs="?", default="None")
     parser.add_argument("--max_time_episode", type=float, nargs="?", default=12900.0)
     parser.add_argument("--total_step_learn", type=int, nargs="?", default=int(2e6))
@@ -308,15 +327,25 @@ if __name__ == "__main__":
     parser.add_argument("--name", nargs="?", default="async_sac_tip")
     parser.add_argument("--wandb", nargs="?", default="true")
     parser.add_argument("--entity", nargs="?", default="corporate-manu-sureli")
-    parser.add_argument("--init_mode", nargs='+', default=['circular_mode', 'asymmetric_mode', 'connected_mst_mode'])
+    parser.add_argument(
+        "--init_mode",
+        nargs="+",
+        default=["circular_mode", "asymmetric_mode", "connected_mst_mode"],
+    )
     parser.add_argument("--tumor", type=int, nargs="?", default=512)
     parser.add_argument("--cell_1", type=int, nargs="?", default=128)
     parser.add_argument("--cell_2_fraction", type=float, nargs="?", default=None)
-    parser.add_argument("--num_envs", type=int, nargs="?", default=7)           # total parallel PhysiCell instances
+    parser.add_argument(
+        "--num_envs", type=int, nargs="?", default=7
+    )  # total parallel PhysiCell instances
     parser.add_argument("--s_frequency_save_data", type=int, nargs="?", default=64)
-    parser.add_argument("--neural_architecture_image", type=str, nargs="?", default="impala")
+    parser.add_argument(
+        "--neural_architecture_image", type=str, nargs="?", default="impala"
+    )
     parser.add_argument("--rl_threads", type=int, nargs="?", default=4)
-    parser.add_argument("--num_actors", type=int, nargs="?", default=None)       # optional: override auto-detect
+    parser.add_argument(
+        "--num_actors", type=int, nargs="?", default=None
+    )  # optional: override auto-detect
 
     args = parser.add_argument("--buffer_size", type=int, nargs="?", default=int(1e6))
     parser.add_argument("--batch_size_multiplier", type=int, nargs="?", default=64)
@@ -356,7 +385,12 @@ if __name__ == "__main__":
         "settingxml": args.settingxml,
         "settingcells": args.settingcells,
         "output_dir": None,
-        "cell_type_cmap": {"tumor": "yellow", "cell_1": "green", "cell_2": "navy", "other_tissue": "red"},
+        "cell_type_cmap": {
+            "tumor": "yellow",
+            "cell_1": "green",
+            "cell_2": "navy",
+            "other_tissue": "red",
+        },
         "figsize": (6, 6),
         "observation_mode": args.observation_mode,
         "render_mode": s_render_mode,
@@ -377,7 +411,7 @@ if __name__ == "__main__":
     d_arg_rl = {
         "total_timesteps": args.total_step_learn,
         "buffer_size": args.buffer_size,
-        "batch_size": args.batch_size_multiplier * args.num_envs,   # e.g. 64 × num_envs
+        "batch_size": args.batch_size_multiplier * args.num_envs,  # e.g. 64 × num_envs
         "learning_starts": 5000,
         "policy_frequency": 2,
         "target_network_frequency": 1,
