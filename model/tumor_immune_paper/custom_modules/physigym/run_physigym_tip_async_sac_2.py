@@ -427,7 +427,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_envs", type=int, nargs="?", default=7
     )  # total parallel PhysiCell instances
-    parser.add_argument("--s_frequency_save_data", type=int, nargs="?", default=64)
+    parser.add_argument("--s_frequency_save_data", type=int, nargs="?", default=None)
     parser.add_argument(
         "--neural_architecture_image", type=str, nargs="?", default="impala"
     )
@@ -494,7 +494,7 @@ if __name__ == "__main__":
     d_arg_physigym_wrapper = {
         "list_variable_name": ["drug_1"],
         "weight": 0.8,
-        "frequency_save_data": args.s_frequency_save_data or 64,
+        "frequency_save_data": args.s_frequency_save_data or None,
     }
 
     d_arg_rl = {
