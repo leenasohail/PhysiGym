@@ -21,6 +21,9 @@ from rb_tip import ReplayBuffer
 from wrapper_tip import PhysiCellModelWrapper
 from torch_geometric.data import Data, Batch
 
+from multiprocessing import Event, Queue
+import queue
+
 
 # --------------------------------------------------------------
 # Helper: convert dict-of-arrays → PyG Batch (same as your original)
@@ -51,54 +54,114 @@ def obs_to_pyg(obs_dict, device):
 # --------------------------------------------------------------
 # Actor process – runs PhysiCell envs and pushes transitions
 # --------------------------------------------------------------
-def actor_process(policy_queue, sample_queue, d_arg, ghost_env):
+def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Event):
     # One actor → one process → runs ALL vectorized envs
     seed = d_arg["simulation"]["seed"] or 0
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
+    model_cfg = d_arg["model"].copy()
+    del model_cfg["settingcells"], model_cfg["output_dir"]
+    ghost_env = gym.make(**model_cfg)
+    ghost_env = PhysiCellModelWrapper(ghost_env, **d_arg["wrapper"])
 
     envs = vec_envs(d_arg)  # ← This already creates N parallel PhysiCell instances
     is_graph = "graph" in d_arg["model"]["observation_mode"]
 
-    actor = Actor(ghost_env, d_arg.get("neural_architecture_image", "impala")).cpu()
-    actor.eval()
-
+    actor_local = Actor(
+        ghost_env, d_arg.get("neural_architecture_image", "impala")
+    ).cpu()
+    actor_local.eval()
+    episode_returns = np.zeros(envs.num_envs, dtype=np.float64)
+    episode_lengths = np.zeros(envs.num_envs, dtype=np.int32)
+    local_step = 0
+    del ghost_env
     obs = envs.reset()
 
-    while True:
-        # Update policy (non-blocking)
+    while not stop_event.is_set():
+        # Try to fetch a new policy (non-blocking)
         try:
-            while not policy_queue.empty():
-                new_params = policy_queue.get_nowait()
-                actor.load_state_dict(new_params)
-        except:
+            while True:
+                new_params = actor_queue.get_nowait()
+                # load params safely
+                try:
+                    actor_local.load_state_dict(new_params)
+                except Exception:
+                    # if state_dict was saved on CUDA, map_location might be required
+                    actor_local.load_state_dict(
+                        {k: v.cpu() for k, v in new_params.items()}
+                    )
+        except queue.Empty:
             pass
 
+        # Inference
         with torch.no_grad():
             if is_graph:
                 pyg_batch = obs_to_pyg(obs, "cpu")
-                actions, _, _ = actor.get_action(pyg_batch)
+                actions_tensor, _, _ = actor_local.get_action(pyg_batch)
             else:
                 x = torch.from_numpy(obs).cpu()
-                actions, _, _ = actor.get_action(x)
-            actions = actions.cpu().numpy()
+                actions_tensor, _, _ = actor_local.get_action(x)
+            actions = actions_tensor.cpu().numpy()
 
+        # Step envs
         next_obs, rewards, dones, infos = envs.step(actions)
 
-        # Push ALL transitions from the vectorized batch
+        # Bookkeeping per-env
+        episode_returns += rewards.astype(np.float64)
+        episode_lengths += 1
+        local_step += 1
+
+        # Push transitions (vectorized batch -> individual transitions)
         for i in range(envs.num_envs):
             if is_graph:
                 o = {k: v[i] for k, v in obs.items()}
                 no = {k: v[i] for k, v in next_obs.items()}
             else:
-                o = obs[i]
-                no = next_obs[i]
+                o = obs[i].copy() if isinstance(obs[i], np.ndarray) else obs[i]
+                no = (
+                    next_obs[i].copy()
+                    if isinstance(next_obs[i], np.ndarray)
+                    else next_obs[i]
+                )
 
-            sample_queue.put((o, actions[i], float(rewards[i]), no, bool(dones[i])))
+            # send stats if episode ended
+            if dones[i]:
+                stats = {
+                    "episode_return": float(episode_returns[i]),
+                    "episode_length": int(episode_lengths[i]),
+                    "step": int(local_step),
+                    "timestamp": time.time(),
+                }
+                try:
+                    stats_queue.put_nowait(stats)
+                except queue.Full:
+                    # drop a stat if main can't keep up
+                    pass
+
+                # reset counters for that env (envs.reset() should also have reset it internally)
+                episode_returns[i] = 0.0
+                episode_lengths[i] = 0
+
+            # send sample; use non-blocking to avoid actor stall
+            try:
+                sample_queue.put_nowait(
+                    (o, actions[i], float(rewards[i]), no, bool(dones[i]))
+                )
+            except queue.Full:
+                # if sample queue is full, drop sample (or implement backpressure)
+                # dropping occasionally is safer than blocking the actor indefinitely
+                pass
 
         obs = next_obs
-        time.sleep(0.0001)  # prevent 100% CPU
+        # small sleep to reduce busy loop (tunable)
+        time.sleep(0.0001)
+
+    # Clean up envs before process exit
+    try:
+        envs.close()
+    except Exception:
+        pass
 
 
 # --------------------------------------------------------------
@@ -112,9 +175,10 @@ def run_async_sac(d_arg):
     )
     print(f"Using device: {device}")
 
-    # Ghost env to get shapes / spaces
+    # Ghost env to get shapes / spaces (only used in main process)
     model_cfg = d_arg["model"].copy()
-    del model_cfg["settingcells"], model_cfg["output_dir"]
+    model_cfg.pop("settingcells", None)
+    model_cfg.pop("output_dir", None)
     ghost_env = gym.make(**model_cfg)
     ghost_env = PhysiCellModelWrapper(ghost_env, **d_arg["wrapper"])
 
@@ -141,12 +205,12 @@ def run_async_sac(d_arg):
 
     # Alpha (entropy)
     if d_arg["rl"]["autotune"]:
-        target_entropy = -np.prod(ghost_env.action_space.shape)
+        target_entropy = -float(np.prod(ghost_env.action_space.shape))
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
         alpha_optim = optim.Adam([log_alpha], lr=d_arg["rl"]["q_lr"])
         alpha = log_alpha.exp().item()
     else:
-        alpha = d_arg["rl"]["alpha"]
+        alpha = float(d_arg["rl"]["alpha"])
 
     # Replay buffer
     rb = ReplayBuffer(
@@ -156,141 +220,166 @@ def run_async_sac(d_arg):
         is_graph=is_graph,
     )
 
-    # === ONLY ONE ACTOR PROCESS ===
-    policy_queue = mp.Queue(maxsize=10)
+    # Process communication
+    actor_queue = mp.Queue(maxsize=10)
     sample_queue = mp.Queue(maxsize=30000)
+    stats_queue = mp.Queue(maxsize=1000)
+    stop_event = mp.Event()
 
-    # Start exactly ONE actor process
+    # Start actor process (single actor)
     actor_proc = mp.Process(
         target=actor_process,
-        args=(policy_queue, sample_queue, d_arg, ghost_env),
+        args=(actor_queue, sample_queue, stats_queue, d_arg, stop_event),
         daemon=True,
     )
     actor_proc.start()
 
-    # Send initial policy
-    policy_queue.put(actor.state_dict())
+    # send initial policy
+    try:
+        actor_queue.put_nowait({k: v.cpu() for k, v in actor.state_dict().items()})
+    except queue.Full:
+        actor_queue.put({k: v.cpu() for k, v in actor.state_dict().items()})
 
     # Logging
     run_name = f"{d_arg['simulation']['name']}__{int(time.time())}"
     writer = SummaryWriter(f"runs/{run_name}")
     if d_arg["simulation"]["wandb_track"]:
-        wandb.init(project="SAC_ASYNC_TIP", name=run_name, config=d_arg)
+        wandb.init(
+            project=d_arg["wandb"]["project"] if "wandb" in d_arg else "SAC_ASYNC_TIP",
+            name=run_name,
+            config=d_arg,
+        )
 
-    global_step = 0
-    start_time = time.time()
+    step = 0
+    tau = d_arg["rl"]["tau"]
 
     print("Starting training loop...")
-    while global_step < d_arg["rl"]["total_timesteps"]:
-        # Collect samples
-        samples_collected = 0
-        while samples_collected < 2048 and not sample_queue.empty():
-            try:
-                obs, act, rew, next_obs, done = sample_queue.get_nowait()
-                rb.add(obs, act, next_obs, rew, done)
-                global_step += 1
-                samples_collected += 1
-            except:
-                break
-        len_rb = len(rb)
-        if len_rb < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
-            time.sleep(0.1)
-            continue
+    try:
+        while step < d_arg["rl"]["total_timesteps"]:
+            # 1) Drain sample_queue into replay buffer until we've reached learning_starts
+            drained = 0
+            while not sample_queue.empty():
+                try:
+                    state, action, reward, next_state, done = sample_queue.get_nowait()
+                except queue.Empty:
+                    break
+                rb.add(state, action, reward, next_state, done)
+                drained += 1
+                step += 1
 
-        # Sample batch and train
-        batch = rb.sample()
+            # 2) Log any stats reported by actors
+            while not stats_queue.empty():
+                try:
+                    stat = stats_queue.get_nowait()
+                except queue.Empty:
+                    break
+                return_val = stat["episode_return"]
+                length = stat["episode_length"]
+                log_dict = {
+                    "episode/return": return_val,
+                    "episode/length": length,
+                    "train/step": step,
+                }
+                writer.add_scalar("episode/return", return_val, step)
+                writer.add_scalar("episode/length", length, step)
+                if d_arg["simulation"]["wandb_track"]:
+                    wandb.log(log_dict, step=step)
 
-        # SAC update
-        with torch.no_grad():
-            next_actions, next_log_pi, _ = actor.get_action(batch.next_state)
-            q1_next = qf1_target(batch.next_state, next_actions)
-            q2_next = qf2_target(batch.next_state, next_actions)
-            min_q_next = torch.min(q1_next, q2_next) - alpha * next_log_pi
-            next_q = (
-                batch.reward.flatten()
-                + (1 - batch.done.flatten())
-                * d_arg["rl"]["gamma"]
-                * min_q_next.squeeze()
-            )
+            # If not enough samples yet, wait a little and continue
+            if len(rb) < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
+                time.sleep(0.1)
+                continue
+            K = 3
+            for _ in range(K):
+                # 3) Sample batch and do SAC updates
+                batch = rb.sample()
 
-        q1 = qf1(batch.state, batch.action).view(-1)
-        q2 = qf2(batch.state, batch.action).view(-1)
-        qf1_loss = F.mse_loss(q1, next_q)
-        qf2_loss = F.mse_loss(q2, next_q)
-        qf_loss = qf1_loss + qf2_loss
+                # compute targets
+                with torch.no_grad():
+                    next_actions, next_log_pi, _ = actor.get_action(batch.next_state)
+                    q1_next = qf1_target(batch.next_state, next_actions)
+                    q2_next = qf2_target(batch.next_state, next_actions)
+                    min_q_next = torch.min(q1_next, q2_next) - alpha * next_log_pi
+                    next_q = (
+                        batch.reward.flatten()
+                        + (1 - batch.done.flatten())
+                        * d_arg["rl"]["gamma"]
+                        * min_q_next.squeeze()
+                    )
 
-        q_optimizer.zero_grad()
-        qf_loss.backward()
-        q_optimizer.step()
+                q1 = qf1(batch.state, batch.action).view(-1)
+                q2 = qf2(batch.state, batch.action).view(-1)
+                qf1_loss = F.mse_loss(q1, next_q)
+                qf2_loss = F.mse_loss(q2, next_q)
+                qf_loss = qf1_loss + qf2_loss
 
-        # Policy & alpha update
-        if global_step % d_arg["rl"]["policy_frequency"] == 0:
-            for _ in range(d_arg["rl"]["policy_frequency"]):
-                actions, log_pi, _ = actor.get_action(batch.state)
-                q1_pi = qf1(batch.state, actions)
-                q2_pi = qf2(batch.state, actions)
-                min_q_pi = torch.min(q1_pi, q2_pi)
+                q_optimizer.zero_grad()
+                qf_loss.backward()
+                q_optimizer.step()
 
-                actor_loss = (alpha * log_pi - min_q_pi).mean()
+                # Policy & alpha update
+                if step % d_arg["rl"]["policy_frequency"] == 0:
+                    for _ in range(d_arg["rl"]["policy_frequency"]):
+                        actions, log_pi, _ = actor.get_action(batch.state)
+                        q1_pi = qf1(batch.state, actions)
+                        q2_pi = qf2(batch.state, actions)
+                        min_q_pi = torch.min(q1_pi, q2_pi)
+                        actor_loss = (alpha * log_pi - min_q_pi).mean()
 
-                actor_optimizer.zero_grad()
-                actor_loss.backward()
-                actor_optimizer.step()
+                        actor_optimizer.zero_grad()
+                        actor_loss.backward()
+                        actor_optimizer.step()
 
-                if d_arg["rl"]["autotune"]:
-                    alpha_loss = (
-                        -log_alpha.exp() * (log_pi + target_entropy).detach()
-                    ).mean()
-                    alpha_optim.zero_grad()
-                    alpha_loss.backward()
-                    alpha_optim.step()
-                    alpha = log_alpha.exp().item()
+                        if d_arg["rl"]["autotune"]:
+                            alpha_loss = (
+                                -log_alpha.exp() * (log_pi + target_entropy).detach()
+                            ).mean()
+                            alpha_optim.zero_grad()
+                            alpha_loss.backward()
+                            alpha_optim.step()
+                            alpha = log_alpha.exp().item()
 
-        # Target network soft update
-        if global_step % d_arg["rl"]["target_network_frequency"] == 0:
-            tau = d_arg["rl"]["tau"]
-            for p, p_t in zip(qf1.parameters(), qf1_target.parameters()):
-                p_t.data.copy_(tau * p.data + (1 - tau) * p_t.data)
-            for p, p_t in zip(qf2.parameters(), qf2_target.parameters()):
-                p_t.data.copy_(tau * p.data + (1 - tau) * p_t.data)
+                # Soft-update targets periodically (frequency param controls how often)
+                if step % d_arg["rl"]["target_network_frequency"] == 0:
+                    for param, target_param in zip(
+                        qf1.parameters(), qf1_target.parameters()
+                    ):
+                        target_param.data.copy_(
+                            tau * param.data + (1.0 - tau) * target_param.data
+                        )
+                    for param, target_param in zip(
+                        qf2.parameters(), qf2_target.parameters()
+                    ):
+                        target_param.data.copy_(
+                            tau * param.data + (1.0 - tau) * target_param.data
+                        )
 
-        # Send new policy to actors
-        if global_step % 1000 == 0:
-            try:
-                policy_queue.put_nowait(actor.state_dict())
-            except:
-                pass
+            # Periodically send new policy to actors
+            if step % 2000 == 0:
+                try:
+                    actor_queue.put_nowait(
+                        {k: v.cpu() for k, v in actor.state_dict().items()}
+                    )
+                except queue.Full:
+                    # if actor queue full, skip this update (actor will pick up later)
+                    pass
 
-        # Logging
-        if global_step % 2000 == 0:
-            fps = global_step / (time.time() - start_time)
-            print(
-                f"Step {global_step // 1000}k | Buffer {len_rb // 1000}k | FPS {fps:.1f}"
-            )
+    except KeyboardInterrupt:
+        print("Interrupted by user — shutting down.")
+    finally:
+        # Ask actor process to stop, wait and terminate if necessary
+        stop_event.set()
+        actor_proc.join(timeout=5.0)
+        if actor_proc.is_alive():
+            actor_proc.terminate()
+            actor_proc.join(timeout=1.0)
 
-            log_dict = {
-                "train/step": global_step,
-                "train/fps": fps,
-                "train/buffer_size": len_rb,
-                "losses/qf_loss": qf_loss.item(),
-                "losses/actor_loss": actor_loss.item()
-                if "actor_loss" in locals()
-                else 0,
-                "losses/alpha": alpha,
-            }
-            writer.add_scalar("charts/fps", fps, global_step)
-            if d_arg["simulation"]["wandb_track"]:
-                wandb.log(log_dict)
-            else:
-                for k, v in log_dict.items():
-                    writer.add_scalar(k, v, global_step)
+        # Close writer / wandb
+        writer.close()
+        if d_arg["simulation"]["wandb_track"]:
+            wandb.finish()
 
-    print("Training finished!")
-    for p in processes:
-        p.terminate()
-    writer.close()
-    if d_arg["simulation"]["wandb_track"]:
-        wandb.finish()
+        print("Training finished and cleaned up.")
 
 
 # --------------------------------------------------------------
