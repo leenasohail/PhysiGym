@@ -11,15 +11,18 @@ import torch
 import torch.multiprocessing as mp
 import torch.optim as optim
 import torch.nn.functional as F
-import wandb
 from torch.utils.tensorboard import SummaryWriter
+from torch_geometric.data import Data, Batch
+import wandb
+
+import tqdm
 
 # Your project imports
 from vectorized_tip import vec_envs
 from nn_tip import Actor, QNetwork
 from rb_tip import ReplayBuffer
 from wrapper_tip import PhysiCellModelWrapper
-from torch_geometric.data import Data, Batch
+
 
 from multiprocessing import Event, Queue
 import queue
@@ -250,12 +253,11 @@ def run_async_sac(d_arg):
             config=d_arg,
         )
 
-    step = 0
     tau = d_arg["rl"]["tau"]
 
     print("Starting training loop...")
     try:
-        while step < d_arg["rl"]["total_timesteps"]:
+        for step in tqdm(range(d_arg["rl"]["total_timesteps"])):
             # 1) Drain sample_queue into replay buffer until we've reached learning_starts
             drained = 0
             while not sample_queue.empty():
@@ -265,7 +267,6 @@ def run_async_sac(d_arg):
                     break
                 rb.add(state, action, reward, next_state, done)
                 drained += 1
-                step += 1
 
             # 2) Log any stats reported by actors
             while not stats_queue.empty():
