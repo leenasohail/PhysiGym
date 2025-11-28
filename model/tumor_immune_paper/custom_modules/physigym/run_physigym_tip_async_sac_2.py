@@ -57,7 +57,9 @@ def obs_to_pyg(obs_dict, device):
 # --------------------------------------------------------------
 # Actor process – runs PhysiCell envs and pushes transitions
 # --------------------------------------------------------------
-def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Event, dummy_state):
+def actor_process(
+    actor_queue, sample_queue, stats_queue, d_arg, stop_event: Event, dummy_state
+):
     # One actor → one process → runs ALL vectorized envs
     seed = d_arg["simulation"]["seed"] or 0
     torch.manual_seed(seed)
@@ -166,7 +168,6 @@ def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Eve
 # Main learner + async runner
 # --------------------------------------------------------------
 def run_async_sac(d_arg, init_obs):
-
     mp.set_start_method("spawn", force=True)
 
     device = torch.device(
@@ -190,8 +191,6 @@ def run_async_sac(d_arg, init_obs):
         dummy_state = obs_to_pyg([init_obs])
     else:
         dummy_state = torch.Tensor(init_obs).to(device).unsqueeze(0)
-
-
 
     with torch.no_grad():
         if is_graph:
@@ -234,22 +233,30 @@ def run_async_sac(d_arg, init_obs):
     sample_queue = mp.Queue(maxsize=30000)
     stats_queue = mp.Queue(maxsize=1000)
     stop_event = mp.Event()
-    
+
     # Start actor process (single actor)
     actor_proc = mp.Process(
-    target=actor_process,
-    args=(actor_queue, sample_queue, stats_queue, d_arg, stop_event, dummy_state.cpu()),
-    daemon=False,  # MUST be False so this process can spawn SubprocVecEnv children
+        target=actor_process,
+        args=(
+            actor_queue,
+            sample_queue,
+            stats_queue,
+            d_arg,
+            stop_event,
+            dummy_state.cpu(),
+        ),
+        daemon=False,  # MUST be False so this process can spawn SubprocVecEnv children
     )
 
     actor_proc.start()
 
     # send initial policy
     try:
-        actor_queue.put_nowait({k: v.detach().cpu() for k, v in actor.state_dict().items()})
+        actor_queue.put_nowait(
+            {k: v.detach().cpu() for k, v in actor.state_dict().items()}
+        )
     except queue.Full:
         actor_queue.put({k: v.detach().cpu() for k, v in actor.state_dict().items()})
-
 
     # Logging
     run_name = f"{d_arg['simulation']['name']}__{int(time.time())}"
@@ -366,7 +373,9 @@ def run_async_sac(d_arg, init_obs):
             # Periodically send new policy to actors
             if step % 2000 == 0:
                 try:
-                    actor_queue.put_nowait({k: v.detach().cpu() for k, v in actor.state_dict().items()})
+                    actor_queue.put_nowait(
+                        {k: v.detach().cpu() for k, v in actor.state_dict().items()}
+                    )
 
                 except queue.Full:
                     # if actor queue full, skip this update (actor will pick up later)
@@ -544,17 +553,17 @@ if __name__ == "__main__":
         "action_space_shape": ghost_env.action_space.shape,
         "observation_space_shape": ghost_env.observation_space.shape,
         "observation_mode": ghost_env.unwrapped.kwargs["observation_mode"],
-        "node_feature_dim":getattr(ghost_env.observation_space, "node_feature_dim", None),
+        "node_feature_dim": getattr(
+            ghost_env.observation_space, "node_feature_dim", None
+        ),
         "x_min": ghost_env.unwrapped.x_min,
         "x_max": ghost_env.unwrapped.x_max,
         "y_min": ghost_env.unwrapped.y_min,
         "y_max": ghost_env.unwrapped.y_max,
-        "action_space_high":ghost_env.action_space.high,
-        "action_space_low":ghost_env.action_space.low,
-        "observation_space_dtype":ghost_env.observation_space.dtype,
-        "is_graph" : True if "graph" in d_arg["model"]["observation_mode"] else False,
-
-
+        "action_space_high": ghost_env.action_space.high,
+        "action_space_low": ghost_env.action_space.low,
+        "observation_space_dtype": ghost_env.observation_space.dtype,
+        "is_graph": True if "graph" in d_arg["model"]["observation_mode"] else False,
     }
     d_arg_generation = {
         "x_min": ghost_env.unwrapped.x_min,
@@ -578,7 +587,7 @@ if __name__ == "__main__":
     if args.num_actors:
         d_arg["num_actors"] = args.num_actors
     d_arg_generation["seed"] = d_arg_simulation["seed"]
-    init_obs , _ = ghost_env.reset(seed=d_arg_simulation["seed"])
+    init_obs, _ = ghost_env.reset(seed=d_arg_simulation["seed"])
     ghost_env.close()
     del ghost_env
     # === LAUNCH! ===
