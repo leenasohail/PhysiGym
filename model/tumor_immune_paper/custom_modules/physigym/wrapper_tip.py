@@ -43,7 +43,9 @@ class PhysiCellModelWrapper(gym.Wrapper):
                 for variable_name in list_variable_name
             ]
         )
-        self._action_space = Box(low=low, high=high, dtype=np.float64)
+        dtype = env.action_space[list_variable_name[0]].dtype
+
+        self._action_space = Box(low=low, high=high, dtype=dtype)
         self.weight = weight
         self.cell_positions_folder = (
             self.env.get_wrapper_attr("x_root")
