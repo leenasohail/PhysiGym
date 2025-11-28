@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.data import Data, Batch
 import wandb
 
-import tqdm
+from tqdm import tqdm
 
 # Your project imports
 from vectorized_tip import vec_envs
@@ -57,28 +57,23 @@ def obs_to_pyg(obs_dict, device):
 # --------------------------------------------------------------
 # Actor process – runs PhysiCell envs and pushes transitions
 # --------------------------------------------------------------
-def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Event):
+def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Event, dummy_state):
     # One actor → one process → runs ALL vectorized envs
     seed = d_arg["simulation"]["seed"] or 0
     torch.manual_seed(seed)
     np.random.seed(seed)
     random.seed(seed)
-    model_cfg = d_arg["model"].copy()
-    del model_cfg["settingcells"], model_cfg["output_dir"]
-    ghost_env = gym.make(**model_cfg)
-    ghost_env = PhysiCellModelWrapper(ghost_env, **d_arg["wrapper"])
-
     envs = vec_envs(d_arg)  # ← This already creates N parallel PhysiCell instances
-    is_graph = "graph" in d_arg["model"]["observation_mode"]
-
+    d_arg_env = d_arg["env"]
     actor_local = Actor(
-        ghost_env, d_arg.get("neural_architecture_image", "impala")
+        d_arg["env"], d_arg.get("neural_architecture_image", "impala")
     ).cpu()
+    with torch.no_grad():
+        _, _, _ = actor_local(dummy_state)
     actor_local.eval()
     episode_returns = np.zeros(envs.num_envs, dtype=np.float64)
     episode_lengths = np.zeros(envs.num_envs, dtype=np.int32)
     local_step = 0
-    del ghost_env
     obs = envs.reset()
 
     while not stop_event.is_set():
@@ -99,7 +94,7 @@ def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Eve
 
         # Inference
         with torch.no_grad():
-            if is_graph:
+            if d_arg_env["is_graph"]:
                 pyg_batch = obs_to_pyg(obs, "cpu")
                 actions_tensor, _, _ = actor_local.get_action(pyg_batch)
             else:
@@ -117,7 +112,7 @@ def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Eve
 
         # Push transitions (vectorized batch -> individual transitions)
         for i in range(envs.num_envs):
-            if is_graph:
+            if d_arg_env["is_graph"]:
                 o = {k: v[i] for k, v in obs.items()}
                 no = {k: v[i] for k, v in next_obs.items()}
             else:
@@ -170,34 +165,42 @@ def actor_process(actor_queue, sample_queue, stats_queue, d_arg, stop_event: Eve
 # --------------------------------------------------------------
 # Main learner + async runner
 # --------------------------------------------------------------
-def run_async_sac(d_arg):
+def run_async_sac(d_arg, init_obs):
+
     mp.set_start_method("spawn", force=True)
 
     device = torch.device(
         "cuda" if d_arg["simulation"]["cuda"] and torch.cuda.is_available() else "cpu"
     )
     print(f"Using device: {device}")
-
-    # Ghost env to get shapes / spaces (only used in main process)
-    model_cfg = d_arg["model"].copy()
-    model_cfg.pop("settingcells", None)
-    model_cfg.pop("output_dir", None)
-    ghost_env = gym.make(**model_cfg)
-    ghost_env = PhysiCellModelWrapper(ghost_env, **d_arg["wrapper"])
-
-    is_graph = "graph" in d_arg["model"]["observation_mode"]
-    d_arg["is_graph"] = is_graph
+    d_arg_env = d_arg["env"]
+    is_graph = d_arg_env["is_graph"]
 
     # Networks
-    actor = Actor(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(
+    actor = Actor(d_arg_env, d_arg.get("neural_architecture_image", "impala")).to(
         device
     )
-    qf1 = QNetwork(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(
+    qf1 = QNetwork(d_arg_env, d_arg.get("neural_architecture_image", "impala")).to(
         device
     )
-    qf2 = QNetwork(ghost_env, d_arg.get("neural_architecture_image", "impala")).to(
+    qf2 = QNetwork(d_arg_env, d_arg.get("neural_architecture_image", "impala")).to(
         device
     )
+    if is_graph:
+        dummy_state = obs_to_pyg([init_obs])
+    else:
+        dummy_state = torch.Tensor(init_obs).to(device).unsqueeze(0)
+
+
+
+    with torch.no_grad():
+        if is_graph:
+            actions_tensor, _, _ = actor.get_action(dummy_state)
+        else:
+            actions_tensor, _, _ = actor.get_action(dummy_state)
+        _ = qf1(dummy_state, actions_tensor)
+        _ = qf2(dummy_state, actions_tensor)
+
     qf1_target = deepcopy(qf1).to(device)
     qf2_target = deepcopy(qf2).to(device)
 
@@ -208,7 +211,7 @@ def run_async_sac(d_arg):
 
     # Alpha (entropy)
     if d_arg["rl"]["autotune"]:
-        target_entropy = -float(np.prod(ghost_env.action_space.shape))
+        target_entropy = -float(np.prod(d_arg_env["action_space_shape"]))
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
         alpha_optim = optim.Adam([log_alpha], lr=d_arg["rl"]["q_lr"])
         alpha = log_alpha.exp().item()
@@ -217,9 +220,12 @@ def run_async_sac(d_arg):
 
     # Replay buffer
     rb = ReplayBuffer(
+        state_dim=d_arg_env["observation_space_shape"],
+        action_dim=d_arg_env["action_space_shape"],
+        device=device,
         buffer_size=d_arg["rl"]["buffer_size"],
         batch_size=d_arg["rl"]["batch_size"],
-        device=device,
+        state_type=d_arg_env["observation_space_dtype"],
         is_graph=is_graph,
     )
 
@@ -228,20 +234,22 @@ def run_async_sac(d_arg):
     sample_queue = mp.Queue(maxsize=30000)
     stats_queue = mp.Queue(maxsize=1000)
     stop_event = mp.Event()
-
+    
     # Start actor process (single actor)
     actor_proc = mp.Process(
-        target=actor_process,
-        args=(actor_queue, sample_queue, stats_queue, d_arg, stop_event),
-        daemon=True,
+    target=actor_process,
+    args=(actor_queue, sample_queue, stats_queue, d_arg, stop_event, dummy_state.cpu()),
+    daemon=False,  # MUST be False so this process can spawn SubprocVecEnv children
     )
+
     actor_proc.start()
 
     # send initial policy
     try:
-        actor_queue.put_nowait({k: v.cpu() for k, v in actor.state_dict().items()})
+        actor_queue.put_nowait({k: v.detach().cpu() for k, v in actor.state_dict().items()})
     except queue.Full:
-        actor_queue.put({k: v.cpu() for k, v in actor.state_dict().items()})
+        actor_queue.put({k: v.detach().cpu() for k, v in actor.state_dict().items()})
+
 
     # Logging
     run_name = f"{d_arg['simulation']['name']}__{int(time.time())}"
@@ -358,9 +366,8 @@ def run_async_sac(d_arg):
             # Periodically send new policy to actors
             if step % 2000 == 0:
                 try:
-                    actor_queue.put_nowait(
-                        {k: v.cpu() for k, v in actor.state_dict().items()}
-                    )
+                    actor_queue.put_nowait({k: v.detach().cpu() for k, v in actor.state_dict().items()})
+
                 except queue.Full:
                     # if actor queue full, skip this update (actor will pick up later)
                     pass
@@ -408,7 +415,7 @@ if __name__ == "__main__":
     parser.add_argument("--settingcells", nargs="?", default="cells.csv")
     parser.add_argument("--seed", nargs="?", default="5")
     parser.add_argument(
-        "--observation_mode", nargs="?", default="graph_neighbor"
+        "--observation_mode", nargs="?", default="graph_knn"
     )  # change default if you want
     parser.add_argument("--render_mode", nargs="?", default="None")
     parser.add_argument("--max_time_episode", type=float, nargs="?", default=12900.0)
@@ -517,7 +524,6 @@ if __name__ == "__main__":
         "num_envs": args.num_envs,
         "rl_threads": args.rl_threads,
     }
-
     # === Final d_arg ===
     d_arg = {
         "simulation": d_arg_simulation,
@@ -534,7 +540,22 @@ if __name__ == "__main__":
     del model_cfg_ghost["settingcells"], model_cfg_ghost["output_dir"]
     ghost_env = gym.make(**model_cfg_ghost)
     ghost_env = PhysiCellModelWrapper(ghost_env, **d_arg["wrapper"])
+    d_arg_env = {
+        "action_space_shape": ghost_env.action_space.shape,
+        "observation_space_shape": ghost_env.observation_space.shape,
+        "observation_mode": ghost_env.unwrapped.kwargs["observation_mode"],
+        "node_feature_dim":getattr(ghost_env.observation_space, "node_feature_dim", None),
+        "x_min": ghost_env.unwrapped.x_min,
+        "x_max": ghost_env.unwrapped.x_max,
+        "y_min": ghost_env.unwrapped.y_min,
+        "y_max": ghost_env.unwrapped.y_max,
+        "action_space_high":ghost_env.action_space.high,
+        "action_space_low":ghost_env.action_space.low,
+        "observation_space_dtype":ghost_env.observation_space.dtype,
+        "is_graph" : True if "graph" in d_arg["model"]["observation_mode"] else False,
 
+
+    }
     d_arg_generation = {
         "x_min": ghost_env.unwrapped.x_min,
         "x_max": ghost_env.unwrapped.x_max,
@@ -552,10 +573,13 @@ if __name__ == "__main__":
         "cell_2_fraction": r_cell_2_fraction,
     }
     d_arg["generation"] = d_arg_generation
-
+    d_arg["env"] = d_arg_env
     # Optional: override number of actor processes
     if args.num_actors:
         d_arg["num_actors"] = args.num_actors
-
+    d_arg_generation["seed"] = d_arg_simulation["seed"]
+    init_obs , _ = ghost_env.reset(seed=d_arg_simulation["seed"])
+    ghost_env.close()
+    del ghost_env
     # === LAUNCH! ===
-    run_async_sac(d_arg)
+    run_async_sac(d_arg=d_arg, init_obs=init_obs)
