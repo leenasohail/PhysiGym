@@ -71,7 +71,7 @@ def actor_process(
         d_arg["env"], d_arg.get("neural_architecture_image", "impala")
     ).cpu()
     with torch.no_grad():
-        _, _, _ = actor_local(dummy_state)
+        _, _, _ = actor_local.get_action(dummy_state)
     actor_local.eval()
     episode_returns = np.zeros(envs.num_envs, dtype=np.float64)
     episode_lengths = np.zeros(envs.num_envs, dtype=np.int32)
@@ -188,7 +188,12 @@ def run_async_sac(d_arg, init_obs):
         device
     )
     if is_graph:
-        dummy_state = obs_to_pyg([init_obs])
+        graph = Data(
+            x=torch.tensor(init_obs["node_features"], dtype=torch.float32),
+            edge_index=torch.tensor(init_obs["edge_index"], dtype=torch.long),
+            edge_attr=torch.tensor(init_obs["edge_attr"], dtype=torch.float32),
+        )
+        dummy_state = Batch.from_data_list([graph]).to(device)
     else:
         dummy_state = torch.Tensor(init_obs).to(device).unsqueeze(0)
 
@@ -587,7 +592,9 @@ if __name__ == "__main__":
     if args.num_actors:
         d_arg["num_actors"] = args.num_actors
     d_arg_generation["seed"] = d_arg_simulation["seed"]
-    init_obs, _ = ghost_env.reset(seed=d_arg_simulation["seed"])
+    init_obs, _ = ghost_env.reset(
+        seed=d_arg_simulation["seed"], generation_cfg=d_arg_generation
+    )
     ghost_env.close()
     del ghost_env
     # === LAUNCH! ===
