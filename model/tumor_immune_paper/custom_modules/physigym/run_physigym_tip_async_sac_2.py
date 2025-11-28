@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 # Your project imports
 from vectorized_tip import vec_envs
-from nn_tip import Actor, QNetwork
+from nn_tip_async import Actor, QNetwork
 from rb_tip import ReplayBuffer
 from wrapper_tip import PhysiCellModelWrapper
 
@@ -277,7 +277,9 @@ def run_async_sac(d_arg, init_obs):
 
     print("Starting training loop...")
     try:
-        for step in tqdm(range(d_arg["rl"]["total_timesteps"])):
+        pbar = tqdm(range(d_arg["rl"]["total_timesteps"]))
+        for step in pbar:
+            pbar.set_postfix({"rb": len(rb)})
             # 1) Drain sample_queue into replay buffer until we've reached learning_starts
             drained = 0
             while not sample_queue.empty():
@@ -305,7 +307,7 @@ def run_async_sac(d_arg, init_obs):
                 writer.add_scalar("episode/length", length, step)
                 if d_arg["simulation"]["wandb_track"]:
                     wandb.log(log_dict, step=step)
-
+            print(len(rb))
             # If not enough samples yet, wait a little and continue
             if len(rb) < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
                 time.sleep(0.1)
@@ -314,22 +316,26 @@ def run_async_sac(d_arg, init_obs):
             for _ in range(K):
                 # 3) Sample batch and do SAC updates
                 batch = rb.sample()
-
+                next_state = batch["next_state"]
+                state = batch["state"]
+                action = batch["action"]
+                done = batch["done"]
+                reward = batch["reward"]
                 # compute targets
                 with torch.no_grad():
-                    next_actions, next_log_pi, _ = actor.get_action(batch.next_state)
-                    q1_next = qf1_target(batch.next_state, next_actions)
-                    q2_next = qf2_target(batch.next_state, next_actions)
+                    next_actions, next_log_pi, _ = actor.get_action(next_state)
+                    q1_next = qf1_target(next_state, next_actions)
+                    q2_next = qf2_target(next_state, next_actions)
                     min_q_next = torch.min(q1_next, q2_next) - alpha * next_log_pi
                     next_q = (
-                        batch.reward.flatten()
-                        + (1 - batch.done.flatten())
+                        reward.flatten()
+                        + (1 - done.flatten())
                         * d_arg["rl"]["gamma"]
                         * min_q_next.squeeze()
                     )
 
-                q1 = qf1(batch.state, batch.action).view(-1)
-                q2 = qf2(batch.state, batch.action).view(-1)
+                q1 = qf1(state, action).view(-1)
+                q2 = qf2(state, action).view(-1)
                 qf1_loss = F.mse_loss(q1, next_q)
                 qf2_loss = F.mse_loss(q2, next_q)
                 qf_loss = qf1_loss + qf2_loss
@@ -341,9 +347,9 @@ def run_async_sac(d_arg, init_obs):
                 # Policy & alpha update
                 if step % d_arg["rl"]["policy_frequency"] == 0:
                     for _ in range(d_arg["rl"]["policy_frequency"]):
-                        actions, log_pi, _ = actor.get_action(batch.state)
-                        q1_pi = qf1(batch.state, actions)
-                        q2_pi = qf2(batch.state, actions)
+                        actions, log_pi, _ = actor.get_action(state)
+                        q1_pi = qf1(state, actions)
+                        q2_pi = qf2(state, actions)
                         min_q_pi = torch.min(q1_pi, q2_pi)
                         actor_loss = (alpha * log_pi - min_q_pi).mean()
 
