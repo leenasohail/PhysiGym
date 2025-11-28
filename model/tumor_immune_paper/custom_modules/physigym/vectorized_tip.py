@@ -171,10 +171,11 @@ def run_vectorized(cfg: dict):
     num_envs = vect_cfg["num_envs"]
 
     envs = vec_envs(cfg)
+    from tqdm import tqdm
 
     obs = envs.reset()
     time_1 = time.time()
-    for t in range(50000):
+    for t in tqdm(range(100)):
         actions = np.array(
             [envs.action_space.sample() for _ in range(num_envs)],
             dtype=np.float32,
