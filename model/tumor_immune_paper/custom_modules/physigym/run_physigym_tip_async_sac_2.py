@@ -73,8 +73,9 @@ def actor_process(
     with torch.no_grad():
         _, _, _ = actor_local.get_action(dummy_state)
     actor_local.eval()
-    episode_returns = np.zeros(envs.num_envs, dtype=np.float64)
-    episode_lengths = np.zeros(envs.num_envs, dtype=np.int32)
+    num_envs = envs.num_envs
+    episode_returns = np.zeros(num_envs, dtype=np.float64)
+    episode_lengths = np.zeros(num_envs, dtype=np.int32)
     local_step = 0
     obs = envs.reset()
 
@@ -93,16 +94,22 @@ def actor_process(
                     )
         except queue.Empty:
             pass
+        if local_step <= d_arg["rl"]["learning_starts"]:
+            actions = np.array(
+                [envs.action_space.sample() for _ in range(num_envs)],
+                dtype=np.float32,
+            )
 
-        # Inference
-        with torch.no_grad():
-            if d_arg_env["is_graph"]:
-                pyg_batch = obs_to_pyg(obs, "cpu")
-                actions_tensor, _, _ = actor_local.get_action(pyg_batch)
-            else:
-                x = torch.from_numpy(obs).cpu()
-                actions_tensor, _, _ = actor_local.get_action(x)
-            actions = actions_tensor.cpu().numpy()
+        else:
+            # Inference
+            with torch.no_grad():
+                if d_arg_env["is_graph"]:
+                    pyg_batch = obs_to_pyg(obs, "cpu")
+                    actions_tensor, _, _ = actor_local.get_action(pyg_batch)
+                else:
+                    x = torch.from_numpy(obs).cpu()
+                    actions_tensor, _, _ = actor_local.get_action(x)
+                actions = actions_tensor.cpu().numpy()
 
         # Step envs
         next_obs, rewards, dones, infos = envs.step(actions)
@@ -234,7 +241,7 @@ def run_async_sac(d_arg, init_obs):
     )
 
     # Process communication
-    actor_queue = mp.Queue(maxsize=10)
+    actor_queue = mp.Queue(maxsize=5)
     sample_queue = mp.Queue(maxsize=30000)
     stats_queue = mp.Queue(maxsize=1000)
     stop_event = mp.Event()
@@ -382,7 +389,7 @@ def run_async_sac(d_arg, init_obs):
                         )
 
             # Periodically send new policy to actors
-            if step % 2000 == 0:
+            if step % 1000 == 0:
                 try:
                     actor_queue.put_nowait(
                         {k: v.detach().cpu() for k, v in actor.state_dict().items()}
