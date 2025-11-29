@@ -1,4 +1,3 @@
-# run_physigym_tip_sac_async.py
 import argparse
 import os
 import random
@@ -61,6 +60,7 @@ def actor_process(
     actor_queue, sample_queue, stats_queue, d_arg, stop_event: Event, dummy_state
 ):
     # One actor → one process → runs ALL vectorized envs
+    begin_time = time.time()
     seed = d_arg["simulation"]["seed"] or 0
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -138,7 +138,7 @@ def actor_process(
                     "episode_return": float(episode_returns[i]),
                     "episode_length": int(episode_lengths[i]),
                     "step": int(local_step),
-                    "timestamp": time.time(),
+                    "timestamp": time.time() - begin_time,
                 }
                 try:
                     stats_queue.put_nowait(stats)
@@ -274,7 +274,7 @@ def run_async_sac(d_arg, init_obs):
     run_name = f"{d_arg['simulation']['name']}__{int(time.time())}"
     writer = SummaryWriter(f"runs/{run_name}")
     if d_arg["simulation"]["wandb_track"]:
-        wandb.init(
+        run = wandb.init(
             project=d_arg["wandb"]["project"] if "wandb" in d_arg else "SAC_ASYNC_TIP",
             name=run_name,
             config=d_arg,
@@ -286,9 +286,9 @@ def run_async_sac(d_arg, init_obs):
     try:
         pbar = tqdm(range(d_arg["rl"]["total_timesteps"]))
         for step in pbar:
+            drained = 0
             pbar.set_postfix({"rb": len(rb)})
             # 1) Drain sample_queue into replay buffer until we've reached learning_starts
-            drained = 0
             while not sample_queue.empty():
                 try:
                     state, action, reward, next_state, done = sample_queue.get_nowait()
@@ -306,15 +306,18 @@ def run_async_sac(d_arg, init_obs):
                 return_val = stat["episode_return"]
                 length = stat["episode_length"]
                 log_dict = {
-                    "episode/return": return_val,
-                    "episode/length": length,
-                    "train/step": step,
+                    "charts/return": return_val,
+                    "charts/length": length,
+                    "charts/step": stat["step"],
+                    "charts/timestamp": stat["timestamp"],
                 }
-                writer.add_scalar("episode/return", return_val, step)
-                writer.add_scalar("episode/length", length, step)
+                if d_arg["simulation"]["wandb_track"]:
+                    run.log(log_dict)
+                else:
+                    for tag, value in log_dict.items():
+                        writer.add_scalar(tag, value, step)
                 if d_arg["simulation"]["wandb_track"]:
                     wandb.log(log_dict, step=step)
-            print(len(rb))
             # If not enough samples yet, wait a little and continue
             if len(rb) < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
                 time.sleep(0.1)
