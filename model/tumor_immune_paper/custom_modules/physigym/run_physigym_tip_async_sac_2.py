@@ -75,7 +75,6 @@ def actor_process(
     actor_local.eval()
     num_envs = envs.num_envs
     episode_returns = np.zeros(num_envs, dtype=np.float64)
-    episode_lengths = np.zeros(num_envs, dtype=np.int32)
     episode_discounted_returns = np.zeros(num_envs, dtype=np.float64)
     local_step = 0
     obs = envs.reset()
@@ -115,7 +114,7 @@ def actor_process(
         # Step envs
         next_obs, rewards, dones, infos = envs.step(actions)
         info_step_episode = np.array(
-            [infos[i]["step_episode"]] for i in range(num_envs)
+            [infos[i]["step_episode"] for i in range(num_envs)]
         )
         # Bookkeeping per-env
         episode_returns += rewards.astype(np.float64)
@@ -278,7 +277,9 @@ def run_async_sac(d_arg, init_obs):
 
     # Logging
     run_name = f"{d_arg['simulation']['name']}__{int(time.time())}"
-    writer = SummaryWriter(f"runs/{run_name}")
+    writer = SummaryWriter(
+        f"runs/{run_name}_{d_arg['simulation']['seed']}_{d_arg['model']['observation_mode']}"
+    )
     if d_arg["simulation"]["wandb_track"]:
         run = wandb.init(
             project=d_arg["wandb"]["project"] if "wandb" in d_arg else "SAC_ASYNC_TIP",
@@ -454,7 +455,7 @@ if __name__ == "__main__":
     )  # change default if you want
     parser.add_argument("--render_mode", nargs="?", default="None")
     parser.add_argument("--max_time_episode", type=float, nargs="?", default=12900.0)
-    parser.add_argument("--total_step_learn", type=int, nargs="?", default=int(2e6))
+    parser.add_argument("--total_step_learn", type=int, nargs="?", default=int(5e4))
     parser.add_argument("--gpu", nargs="?", default="true")
     parser.add_argument("--name", nargs="?", default="async_sac_tip")
     parser.add_argument("--wandb", nargs="?", default="true")
