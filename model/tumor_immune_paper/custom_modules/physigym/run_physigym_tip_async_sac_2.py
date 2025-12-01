@@ -76,6 +76,7 @@ def actor_process(
     num_envs = envs.num_envs
     episode_returns = np.zeros(num_envs, dtype=np.float64)
     episode_lengths = np.zeros(num_envs, dtype=np.int32)
+    episode_discounted_returns = np.zeros(num_envs, dtype=np.float64)
     local_step = 0
     obs = envs.reset()
 
@@ -113,10 +114,14 @@ def actor_process(
 
         # Step envs
         next_obs, rewards, dones, infos = envs.step(actions)
-
+        info_step_episode = np.array(
+            [infos[i]["step_episode"]] for i in range(num_envs)
+        )
         # Bookkeeping per-env
         episode_returns += rewards.astype(np.float64)
-        episode_lengths += 1
+        episode_discounted_returns += d_arg["rl"]["gamma"] ** (
+            info_step_episode
+        ) * rewards.astype(np.float64)
         local_step += 1
 
         # Push transitions (vectorized batch -> individual transitions)
@@ -136,7 +141,8 @@ def actor_process(
             if dones[i]:
                 stats = {
                     "episode_return": float(episode_returns[i]),
-                    "episode_length": int(episode_lengths[i]),
+                    "episode_discounted_return": float(episode_discounted_returns[i]),
+                    "episode_length": int(infos[i]["step_episode"]),
                     "step": int(local_step),
                     "timestamp": time.time() - begin_time,
                 }
@@ -148,7 +154,7 @@ def actor_process(
 
                 # reset counters for that env (envs.reset() should also have reset it internally)
                 episode_returns[i] = 0.0
-                episode_lengths[i] = 0
+                episode_discounted_returns[i] = 0
 
             # send sample; use non-blocking to avoid actor stall
             try:
@@ -303,11 +309,10 @@ def run_async_sac(d_arg, init_obs):
                     stat = stats_queue.get_nowait()
                 except queue.Empty:
                     break
-                return_val = stat["episode_return"]
-                length = stat["episode_length"]
                 log_dict = {
-                    "charts/return": return_val,
-                    "charts/length": length,
+                    "charts/return": stat["episode_return"],
+                    "charts/discounted_return": stat["episode_discounted_return"],
+                    "charts/length": stat["episode_length"],
                     "charts/step": stat["step"],
                     "charts/timestamp": stat["timestamp"],
                 }
