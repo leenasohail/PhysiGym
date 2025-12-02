@@ -276,10 +276,8 @@ def run_async_sac(d_arg, init_obs):
         actor_queue.put({k: v.detach().cpu() for k, v in actor.state_dict().items()})
 
     # Logging
-    run_name = f"{d_arg['simulation']['name']}__{int(time.time())}"
-    writer = SummaryWriter(
-        f"runs/{run_name}_{d_arg['simulation']['seed']}_{d_arg['model']['observation_mode']}"
-    )
+    run_name = f"{d_arg['simulation']['name']}_{d_arg['simulation']['seed']}_{d_arg['model']['observation_mode']}_{int(time.time())}"
+    writer = SummaryWriter(f"runs/{run_name}")
     if d_arg["simulation"]["wandb_track"]:
         run = wandb.init(
             project=d_arg["wandb"]["project"] if "wandb" in d_arg else "SAC_ASYNC_TIP",
@@ -291,12 +289,17 @@ def run_async_sac(d_arg, init_obs):
 
     print("Starting training loop...")
     try:
-        pbar = tqdm(range(d_arg["rl"]["total_timesteps"]))
-        for step in pbar:
-            drained = 0
+        total = d_arg["rl"]["total_timesteps"]
+        pbar = tqdm(total=total)
+
+        drained = 0
+        while drained < total:
+            pbar.update(drained - pbar.n)
+
+            # Update postfix info
             pbar.set_postfix({"rb": len(rb)})
             # 1) Drain sample_queue into replay buffer until we've reached learning_starts
-            while not sample_queue.empty():
+            while not sample_queue.empty() and drained < total:
                 try:
                     state, action, reward, next_state, done = sample_queue.get_nowait()
                 except queue.Empty:
@@ -321,11 +324,11 @@ def run_async_sac(d_arg, init_obs):
                     run.log(log_dict)
                 else:
                     for tag, value in log_dict.items():
-                        writer.add_scalar(tag, value, step)
+                        writer.add_scalar(tag, value, drained)
                 if d_arg["simulation"]["wandb_track"]:
-                    wandb.log(log_dict, step=step)
+                    wandb.log(log_dict, step=drained)
             # If not enough samples yet, wait a little and continue
-            if len(rb) < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
+            if drained < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
                 time.sleep(0.1)
                 continue
             K = 3
@@ -361,7 +364,7 @@ def run_async_sac(d_arg, init_obs):
                 q_optimizer.step()
 
                 # Policy & alpha update
-                if step % d_arg["rl"]["policy_frequency"] == 0:
+                if drained % d_arg["rl"]["policy_frequency"] == 0:
                     for _ in range(d_arg["rl"]["policy_frequency"]):
                         actions, log_pi, _ = actor.get_action(state)
                         q1_pi = qf1(state, actions)
@@ -383,7 +386,7 @@ def run_async_sac(d_arg, init_obs):
                             alpha = log_alpha.exp().item()
 
                 # Soft-update targets periodically (frequency param controls how often)
-                if step % d_arg["rl"]["target_network_frequency"] == 0:
+                if drained % d_arg["rl"]["target_network_frequency"] == 0:
                     for param, target_param in zip(
                         qf1.parameters(), qf1_target.parameters()
                     ):
@@ -398,7 +401,7 @@ def run_async_sac(d_arg, init_obs):
                         )
 
             # Periodically send new policy to actors
-            if step % 1000 == 0:
+            if drained % 1000 == 0:
                 try:
                     actor_queue.put_nowait(
                         {k: v.detach().cpu() for k, v in actor.state_dict().items()}
@@ -451,11 +454,12 @@ if __name__ == "__main__":
     parser.add_argument("--settingcells", nargs="?", default="cells.csv")
     parser.add_argument("--seed", nargs="?", default="5")
     parser.add_argument(
-        "--observation_mode", nargs="?", default="graph_knn"
+        "--observation_mode", nargs="?", default="scalars_cells_substrates"
     )  # change default if you want
     parser.add_argument("--render_mode", nargs="?", default="None")
     parser.add_argument("--max_time_episode", type=float, nargs="?", default=12900.0)
-    parser.add_argument("--total_step_learn", type=int, nargs="?", default=int(5e4))
+    parser.add_argument("--learning_starts", type=int, nargs="?", default=int(50))
+    parser.add_argument("--total_timesteps", type=int, nargs="?", default=int(4e4))
     parser.add_argument("--gpu", nargs="?", default="true")
     parser.add_argument("--name", nargs="?", default="async_sac_tip")
     parser.add_argument("--wandb", nargs="?", default="true")
@@ -481,7 +485,7 @@ if __name__ == "__main__":
     )  # optional: override auto-detect
 
     args = parser.add_argument("--buffer_size", type=int, nargs="?", default=int(1e6))
-    parser.add_argument("--batch_size_multiplier", type=int, nargs="?", default=64)
+    parser.add_argument("--batch_size_multiplier", type=int, nargs="?", default=2)
 
     args = parser.parse_args()
     print("Arguments:", args)
@@ -542,10 +546,10 @@ if __name__ == "__main__":
     }
 
     d_arg_rl = {
-        "total_timesteps": args.total_step_learn,
+        "total_timesteps": args.total_timesteps,
         "buffer_size": args.buffer_size,
         "batch_size": args.batch_size_multiplier * args.num_envs,  # e.g. 64 × num_envs
-        "learning_starts": 5000,
+        "learning_starts": args.learning_starts,
         "policy_frequency": 2,
         "target_network_frequency": 1,
         "autotune": True,
