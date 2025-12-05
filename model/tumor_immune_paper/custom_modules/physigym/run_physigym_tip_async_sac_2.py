@@ -1,3 +1,4 @@
+# run_physigym_tip_sac_async.py
 import argparse
 import os
 import random
@@ -18,7 +19,7 @@ from tqdm import tqdm
 
 # Your project imports
 from vectorized_tip import vec_envs
-from nn_tip_async import Actor, QNetwork
+from nn_tip import Actor, QNetwork
 from rb_tip import ReplayBuffer
 from wrapper_tip import PhysiCellModelWrapper
 
@@ -190,15 +191,9 @@ def run_async_sac(d_arg, init_obs):
     is_graph = d_arg_env["is_graph"]
 
     # Networks
-    actor = Actor(d_arg_env, d_arg.get("neural_architecture_image", "impala")).to(
-        device
-    )
-    qf1 = QNetwork(d_arg_env, d_arg.get("neural_architecture_image", "impala")).to(
-        device
-    )
-    qf2 = QNetwork(d_arg_env, d_arg.get("neural_architecture_image", "impala")).to(
-        device
-    )
+    actor = Actor(d_arg_env, d_arg["neural_architecture_image"]).to(device)
+    qf1 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(device)
+    qf2 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(device)
     if is_graph:
         graph = Data(
             x=torch.tensor(init_obs["node_features"], dtype=torch.float32),
@@ -247,7 +242,7 @@ def run_async_sac(d_arg, init_obs):
 
     # Process communication
     actor_queue = mp.Queue(maxsize=5)
-    sample_queue = mp.Queue(maxsize=30000)
+    sample_queue = mp.Queue(maxsize=1000)
     stats_queue = mp.Queue(maxsize=1000)
     stop_event = mp.Event()
 
@@ -293,8 +288,9 @@ def run_async_sac(d_arg, init_obs):
         pbar = tqdm(total=total)
 
         drained = 0
-        while drained < total:
-            pbar.update(drained - pbar.n)
+        learning_steps = 0
+        while learning_steps < total:
+            pbar.update(learning_steps - pbar.n)
 
             # Update postfix info
             pbar.set_postfix({"rb": len(rb)})
@@ -331,6 +327,8 @@ def run_async_sac(d_arg, init_obs):
             if drained < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
                 time.sleep(0.1)
                 continue
+            else:
+                learning_steps += 1
             K = 3
             for _ in range(K):
                 # 3) Sample batch and do SAC updates
@@ -401,7 +399,7 @@ def run_async_sac(d_arg, init_obs):
                         )
 
             # Periodically send new policy to actors
-            if drained % 1000 == 0:
+            if learning_steps % 256 == 0:
                 try:
                     actor_queue.put_nowait(
                         {k: v.detach().cpu() for k, v in actor.state_dict().items()}
@@ -454,12 +452,12 @@ if __name__ == "__main__":
     parser.add_argument("--settingcells", nargs="?", default="cells.csv")
     parser.add_argument("--seed", nargs="?", default="5")
     parser.add_argument(
-        "--observation_mode", nargs="?", default="scalars_cells_substrates"
+        "--observation_mode", nargs="?", default="img_mc_cells"
     )  # change default if you want
     parser.add_argument("--render_mode", nargs="?", default="None")
     parser.add_argument("--max_time_episode", type=float, nargs="?", default=12900.0)
-    parser.add_argument("--learning_starts", type=int, nargs="?", default=int(50))
-    parser.add_argument("--total_timesteps", type=int, nargs="?", default=int(4e4))
+    parser.add_argument("--learning_starts", type=int, nargs="?", default=int(5000))
+    parser.add_argument("--total_timesteps", type=int, nargs="?", default=int(6e4))
     parser.add_argument("--gpu", nargs="?", default="true")
     parser.add_argument("--name", nargs="?", default="async_sac_tip")
     parser.add_argument("--wandb", nargs="?", default="true")
@@ -485,7 +483,7 @@ if __name__ == "__main__":
     )  # optional: override auto-detect
 
     args = parser.add_argument("--buffer_size", type=int, nargs="?", default=int(1e6))
-    parser.add_argument("--batch_size_multiplier", type=int, nargs="?", default=2)
+    parser.add_argument("--batch_size_multiplier", type=int, nargs="?", default=64)
 
     args = parser.parse_args()
     print("Arguments:", args)
