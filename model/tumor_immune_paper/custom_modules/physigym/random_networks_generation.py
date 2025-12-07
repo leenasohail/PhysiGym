@@ -7,12 +7,10 @@ import shutil
 
 from math import sqrt
 from scipy.ndimage import gaussian_filter
-from scipy.spatial.distance import pdist, squareform
 from scipy.stats import binned_statistic
-from scipy.spatial import Delaunay
 from scipy.optimize import curve_fit
 from scipy.stats import zscore
-
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 
@@ -43,32 +41,6 @@ def coords_to_pairs(coords):
 
 
 ######################################################### USING FUNCTION #################################################################
-
-
-def build_edges_from_positions(positions):
-    """
-    Build a graph from spatial coordinates using Delaunay triangulation.
-
-    Parameters
-    ----------
-    positions : ndarray
-        Nx2 array of cell positions.
-
-    Returns
-    -------
-    DataFrame
-        Edge table with columns ['source', 'target'].
-    """
-    tri = Delaunay(positions)
-    edges = set()
-    for simplex in tri.simplices:
-        for i in range(3):
-            for j in range(i + 1, 3):
-                a, b = simplex[i], simplex[j]
-                edges.add(tuple(sorted((a, b))))
-    edge_list = list(edges)
-    edge_df = pd.DataFrame(edge_list, columns=["source", "target"])
-    return edge_df
 
 
 def generate_correlated_field(
@@ -407,13 +379,11 @@ def generate_synthetic_network_potts_field(
     """
     # === Compute the correlation length ===
 
-    shape = (domain_size[1], domain_size[0])
-
     tqdm.write(f"Correlation Lentgh Estimated = {correlation_length}")
 
     # === Generate Fields ===
 
-    fields = generate_balanced_fields(shape, cell_types, correlation_length)
+    fields = generate_balanced_fields(domain_size, cell_types, correlation_length)
 
     # === Generate random point and compute score by using fields ===
 
@@ -469,11 +439,7 @@ def generate_synthetic_network_potts_field(
     xs_final = xs[keep_indices]
     ys_final = ys[keep_indices]
     assigned_types = np.array(assigned_types)[keep_indices]
-
-    lattice_indices = build_lattice_indices(xs_final, ys_final, shape)
-    positions = np.vstack((xs_final, ys_final)).T
-    edges = build_edges_from_positions(positions)
-
+    """
     updated_labels = gibbs_sampling_potts_field(
         labels_init=assigned_types,
         fields=fields,
@@ -487,20 +453,17 @@ def generate_synthetic_network_potts_field(
         verbose=verbose,
         apply_gibbs=gibbs_sampling,
     )
+    """
 
-    nodes = pd.DataFrame(
+    df_cells = pd.DataFrame(
         {
-            "CellID": range(len(xs_final)),
             "X_position": xs_final,
             "Y_position": ys_final,
-            "Phenotypes": updated_labels,
+            "Phenotypes": assigned_types,
         }
     )
 
-    positions = nodes[["X_position", "Y_position"]].values
-    edges = build_edges_from_positions(positions)
-
-    return nodes, edges, fields
+    return df_cells
 
 
 ######################################################### MAIN #################################################################
@@ -519,7 +482,7 @@ def main():
     """
 
     global panel
-    max_dist_domain = (domain_size[0] ** 2 + domain_size[1] ** 2) ** (1 / 2)
+    # max_dist_domain = (domain_size[0] ** 2 + domain_size[1] ** 2) ** (1 / 2)
     np.random.seed(SEED)
 
     ################################### Import Data ###########################
@@ -530,7 +493,7 @@ def main():
     mixmat_inital = None
 
     ################################### RUN ###################################
-    nodes, edges, fields = generate_synthetic_network_potts_field(
+    df_cells = generate_synthetic_network_potts_field(
         correlation_length=0.8,
         n_cells=nb_cells,
         domain_size=domain_size,
@@ -545,11 +508,37 @@ def main():
         verbose=True,
         gibbs_sampling=True,
     )
+    df_cells["PhenotypeID"] = df_cells["Phenotypes"].astype("category").cat.codes
+
+    plt.figure(figsize=(8, 8))
+
+    scatter = plt.scatter(
+        df_cells["X_position"],
+        df_cells["Y_position"],
+        c=df_cells["PhenotypeID"],
+        cmap="tab10",  # Pick a nice categorical colormap
+        alpha=0.8,
+        s=20,
+    )
+
+    plt.xlabel("X Position")
+    plt.ylabel("Y Position")
+    plt.title("Cell Positions by Phenotype")
+
+    # Add legend mapped to phenotype categories
+    handles, labels = scatter.legend_elements(prop="colors", alpha=0.8)
+    plt.legend(handles, labels, title="Phenotypes")
+
+    plt.gca().set_aspect("equal")
+    print("Done")
+    plt.show()
 
 
 if __name__ == "__main__":
     # === Global parameter ===
-    SEED = 42
+    import random
+
+    SEED = random.randint(0, 100)
     RUN_TEST = False
     FIELD_PLOT = False
 
@@ -559,8 +548,8 @@ if __name__ == "__main__":
     verbose = True
 
     # === Network parameter ===
-    nb_cells = 10000
-    domain_size = (5000, 5000)
+    nb_cells = 512 + 128
+    domain_size = (512, 512)
 
     # === Pott parameter ===
     J = 1.0
