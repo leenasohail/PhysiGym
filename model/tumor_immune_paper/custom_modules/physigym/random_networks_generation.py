@@ -494,13 +494,13 @@ def main():
 
     ################################### RUN ###################################
     df_cells = generate_synthetic_network_potts_field(
-        correlation_length=0.8,
+        correlation_length=0.01,
         n_cells=nb_cells,
         domain_size=domain_size,
         target_proportions=target_proportions,
         cell_types=cell_types,
         mixmat=mixmat_inital,
-        randomness_rate=0.8,
+        randomness_rate=0.1,
         beta=1.0,
         J=1.0,
         oversample_factor=10,
