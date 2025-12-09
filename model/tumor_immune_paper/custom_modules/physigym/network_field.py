@@ -7,9 +7,6 @@ import shutil
 
 from math import sqrt
 from scipy.ndimage import gaussian_filter
-from scipy.stats import binned_statistic
-from scipy.optimize import curve_fit
-from scipy.stats import zscore
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
@@ -42,10 +39,9 @@ def generate_correlated_field(
 
 def generate_balanced_fields(
     shape,
-    cell_types,
-    correlation_length,
+    dict_correlation_length,
     amplitude=1.0,
-    local_noise_level=0.0,
+    local_noise_level=0.3,
 ):
     """
     Génère un champ global spatialement corrélé + un bruit local filtré pour chaque type.
@@ -73,133 +69,98 @@ def generate_balanced_fields(
 
     fields = {}
 
-    # === Génère un champ global corrélé ===
-    base_field = generate_correlated_field(shape, correlation_length)
-
-    for ct in cell_types:
+    for key in dict_correlation_length.keys():
+        correlation_length = dict_correlation_length[key]
         # === Génère un bruit local filtré ===
         local_noise = np.random.randn(*shape)
         filtered_noise = gaussian_filter(local_noise, sigma=correlation_length / 3)
 
         # === Champ final : base + bruit doux ===
-        final_field = amplitude * (base_field + local_noise_level * filtered_noise)
-        fields[ct] = final_field
+        final_field = amplitude * (
+            generate_correlated_field(shape, correlation_length)
+            + local_noise_level * filtered_noise
+        )
+        min_final_field = np.min(final_field)
+        max_final_field = np.max(final_field)
+        fields[key] = (max_final_field - final_field) / (
+            max_final_field - min_final_field
+        )
 
     return fields
 
 
-def generate_synthetic_network_potts_field(
-    correlation_length,
-    n_cells,
-    domain_size,
-    target_proportions,
-    randomness_rate=0.2,
-    oversample_factor=10,
-):
+def plot_field(fields, cell_types, name_folder):
     """
-    Generate a synthetic spatial network of cells using correlated fields.
+    Plot a field image for each cell type using matplotlib.
 
     Parameters
     ----------
-    nodes_initial : DataFrame
-        Input nodes from real data, with coordinates and phenotype info.
-    X_col : str
-        Name of the column containing X coordinates in nodes_initial.
-    Y_col : str
-        Name of the column containing Y coordinates in nodes_initial.
-    label_col : str
-        Name of the column containing phenotypes / cell types in nodes_initial.
-    n_cells : int
-        Desired number of cells in the synthetic network.
-    domain_size : tuple
-        Size of the spatial domain (width, height).
+    fields : dict
+        Dictionary {cell_type: 2D field array}.
     cell_types : list
-        List of all possible cell types.
-    randomness_rate : float
-        Fraction of cells chosen according to the correlated fields.
-        0.0 -> choix entièrement aléatoire.
-        1.0 -> choix entièrement guidé par les champs.
-    oversample_factor : int
-        Multiplicative factor used to generate candidate positions.
-    output_csv_path : str
-        Path where the CSV file will be saved. If None, no file is written.
-
-    Returns
-    -------
-    df_positions : DataFrame
-        DataFrame with columns ['X_position', 'Y_position', 'Phenotypes'].
+        List of cell type names.
+    name_folder : str
+        name_folder for saving the figure.
     """
 
+    n_types = len(cell_types)
+    fig_fields, axes_fields = plt.subplots(1, n_types, figsize=(4 * n_types, 4))
+    if n_types == 1:
+        axes_fields = [axes_fields]
+    for ax, ct in zip(axes_fields, cell_types):
+        im = ax.imshow(fields[ct], cmap="viridis")
+        ax.set_title(f"Correlated Field: {ct}")
+        ax.axis("off")
+        fig_fields.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    plt.tight_layout()
+    plt.savefig(f"{name_folder}.png", dpi=300)
+
+
+def weighted_pick(arr, threshold, n=1):
+    # mask only the values above threshold
+    mask = arr > threshold
+
+    # get coordinates of valid pixels
+    coords = np.argwhere(mask)
+
+    # get the corresponding probabilities
+    probs = arr[mask].astype(float)
+
+    # normalize probabilities to sum to 1
+    probs /= probs.sum()
+
+    # weighted choice
+    idx = np.random.choice(len(coords), size=n, p=probs, replace=False)
+
+    return coords[idx]
+
+
+def generate_synthetic_network_potts_field(
+    dict_correlation_length,
+    domain_size,
+    cell_types,
+    number_cells,
+    name_folder,
+    dict_threshold,
+    amplitude=1,
+):
     # === Generate Fields ===
-    fields = generate_balanced_fields(domain_size, cell_types, correlation_length)
-
-    # === Generate random points and compute scores from fields ===
-    n_points = n_cells * oversample_factor
-    xs = np.random.randint(0, domain_size[0], size=n_points)
-    ys = np.random.randint(0, domain_size[1], size=n_points)
-
-    # scores[i, j] = valeur du champ du type j au point i
-    scores = np.vstack([fields[ct][ys, xs] for ct in cell_types]).T
-
-    assigned_types = np.full(n_points, fill_value=None, dtype=object)
-    target_counts = {ct: int(p * n_cells) for ct, p in target_proportions.items()}
-    remaining_indices = set(range(n_points))
-
-    # === Assignation des types cellule par cellule ===
-    for i, ct in enumerate(tqdm(cell_types, desc="[PROCESS] Cell Assignation")):
-        count = target_counts.get(ct, 0)
-        if not remaining_indices or count == 0:
-            continue
-
-        subset = np.array(list(remaining_indices))
-        raw_scores = scores[subset, i]
-
-        # Mise à l'échelle pour obtenir des probabilités positives
-        min_score = raw_scores.min()
-        scaled_scores = raw_scores - min_score
-
-        if scaled_scores.sum() == 0:
-            probabilities = np.ones_like(scaled_scores) / len(scaled_scores)
-        else:
-            probabilities = scaled_scores / scaled_scores.sum()
-
-        # Choix guidé par le champ
-        num_main = int(count * randomness_rate)
-        num_random = count - num_main
-
-        num_main = min(num_main, len(subset))
-        chosen_main = np.random.choice(
-            subset,
-            size=num_main,
-            replace=False,
-            p=probabilities if num_main > 0 else None,
+    fields = generate_balanced_fields(
+        shape=domain_size,
+        dict_correlation_length=dict_correlation_length,
+        amplitude=amplitude,
+    )
+    plot_field(fields=fields, cell_types=cell_types, name_folder=name_folder)
+    xs_final = []
+    ys_final = []
+    phenotypes_final = []
+    for ct in cell_types:
+        coords = weighted_pick(
+            fields[ct], threshold=dict_threshold[ct], n=number_cells[ct]
         )
-
-        # Choix aléatoire de bruit
-        remaining_for_noise = list(set(subset) - set(chosen_main))
-        if len(remaining_for_noise) < num_random:
-            num_random = len(remaining_for_noise)
-
-        if num_random > 0:
-            chosen_noise = np.random.choice(
-                remaining_for_noise, size=num_random, replace=False
-            )
-            chosen_indices = np.concatenate([chosen_main, chosen_noise])
-        else:
-            chosen_indices = chosen_main
-
-        assigned_types[chosen_indices] = ct
-        remaining_indices -= set(chosen_indices)
-
-    assigned_types = np.array(assigned_types)
-    keep_indices = np.where(assigned_types != None)[0]
-
-    if len(keep_indices) > n_cells:
-        keep_indices = keep_indices[:n_cells]
-
-    xs_final = xs[keep_indices]
-    ys_final = ys[keep_indices]
-    phenotypes_final = assigned_types[keep_indices]
+        xs_final.extend(coords[:, 0])  # extend, not append
+        ys_final.extend(coords[:, 1])
+        phenotypes_final.extend([ct] * len(coords))  # repeat ct for each cell
 
     df_cells = pd.DataFrame(
         {
@@ -212,21 +173,25 @@ def generate_synthetic_network_potts_field(
     return df_cells
 
 
-def network_field(n_cells, target_proportions, cell_types, path, i):
-    np.random.seed(np.random.randint(0, 1000))
-    correlation_length = 100
-    randomness_rate = np.random.uniform(0.001, 0.99)
-    beta = np.random.uniform(0.01, 5)
-    J = np.random.uniform(0.01, 5)
-    n_iter = np.random.randint(1, 20)
+def network_field(
+    number_cells,
+    cell_types,
+    name_folder,
+    i,
+    dict_correlation_length,
+    dict_threshold,
+    amplitude,
+):
+    np.random.seed(np.random.randint(0, 1000) + i)
 
     df_cells = generate_synthetic_network_potts_field(
-        correlation_length=correlation_length,
-        n_cells=n_cells,
+        dict_correlation_length=dict_correlation_length,
+        number_cells=number_cells,
         domain_size=domain_size,
-        target_proportions=target_proportions,
-        randomness_rate=0.00,
-        oversample_factor=10,
+        cell_types=cell_types,
+        amplitude=amplitude,
+        name_folder=f"./{name_folder}/field_{i}",
+        dict_threshold=dict_threshold,
     )
     df_cells = df_cells.rename(columns={"Phenotypes": "type"})
     df_cells.to_csv(f"./{name_folder}/df_{i}.csv", index=False)
@@ -264,9 +229,12 @@ if __name__ == "__main__":
     # === Network parameter ===
     n_cells = 512 + 128
     domain_size = (512, 512)
-    target_proportions = {"cell_1": 512 / (n_cells), "tumor": 128 / (n_cells)}
-    cell_types = list(target_proportions.keys())
+    number_cells = {"cell_1": 512, "tumor": 128}
+    cell_types = list(number_cells.keys())
     name_folder = "config_network_field"
+    dict_correlation_length = {"tumor": 50, "cell_1": 5}
+    dict_threshold = {"tumor": 0.75, "cell_1": 0.55}
+    amplitude = 1
     os.makedirs(f"./{name_folder}", exist_ok=True)
 
     from multiprocessing import Pool, cpu_count
@@ -274,14 +242,16 @@ if __name__ == "__main__":
 
     def wrapper(i):
         return network_field(
-            n_cells,
-            target_proportions,
+            number_cells,
             cell_types,
             name_folder,
             i,
+            dict_correlation_length,
+            dict_threshold,
+            amplitude,
         )
 
-    N = 100
+    N = 10
     num_workers = cpu_count()  # or set manually
 
     with Pool(num_workers) as p:
