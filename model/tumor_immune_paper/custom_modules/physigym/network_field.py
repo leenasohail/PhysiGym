@@ -229,11 +229,11 @@ if __name__ == "__main__":
     # === Network parameter ===
     n_cells = 512 + 128
     domain_size = (512, 512)
-    number_cells = {"cell_1": 512, "tumor": 128}
+    number_cells = {"tumor": 512, "cell_1": 128}
     cell_types = list(number_cells.keys())
     name_folder = "config_network_field"
-    dict_correlation_length = {"tumor": 50, "cell_1": 5}
-    dict_threshold = {"tumor": 0.75, "cell_1": 0.55}
+    dict_correlation_length = {"tumor": 50, "cell_1": 25}
+    dict_threshold = {"tumor": 0.65, "cell_1": 0.55}
     amplitude = 1
     os.makedirs(f"./{name_folder}", exist_ok=True)
 
