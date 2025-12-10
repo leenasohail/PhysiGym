@@ -24,9 +24,10 @@ from rb_tip import ReplayBuffer
 from wrapper_tip import PhysiCellModelWrapper
 
 
-from multiprocessing import Event, Queue
+from torch.multiprocessing import Event, Queue
 import queue
-
+torch.cuda._lazy_init()
+mp.set_start_method("spawn", force=True)
 
 # --------------------------------------------------------------
 # Helper: convert dict-of-arrays → PyG Batch (same as your original)
@@ -191,9 +192,15 @@ def run_async_sac(d_arg, init_obs):
     is_graph = d_arg_env["is_graph"]
 
     # Networks
-    actor = Actor(d_arg_env, d_arg["neural_architecture_image"]).to(device)
-    qf1 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(device)
-    qf2 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(device)
+    actor = Actor(d_arg_env, d_arg["neural_architecture_image"]).to(
+        device
+    )
+    qf1 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(
+        device
+    )
+    qf2 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(
+        device
+    )
     if is_graph:
         graph = Data(
             x=torch.tensor(init_obs["node_features"], dtype=torch.float32),
@@ -328,7 +335,7 @@ def run_async_sac(d_arg, init_obs):
                 time.sleep(0.1)
                 continue
             else:
-                learning_steps += 1
+                learning_steps +=1
             K = 3
             for _ in range(K):
                 # 3) Sample batch and do SAC updates
@@ -431,12 +438,6 @@ def run_async_sac(d_arg, init_obs):
 # Entry point
 # --------------------------------------------------------------
 if __name__ == "__main__":
-    import multiprocessing as mp
-
-    try:
-        mp.set_start_method("spawn", force=True)
-    except RuntimeError:
-        pass
 
     print("Starting asynchronous SAC for PhysiGym...")
 
