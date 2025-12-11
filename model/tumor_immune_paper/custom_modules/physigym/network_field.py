@@ -117,7 +117,6 @@ def generate_synthetic_network_field(
     x_max,
     y_min,
     y_max,
-    name_folder,
     amplitude=1,
     save=False,
 ):
@@ -132,8 +131,10 @@ def generate_synthetic_network_field(
     ys_final = []
     phenotypes_final = []
     n_types = len(list(params.keys()))
-    if save:
-        fig, axes = plt.subplots(n_types, 2, figsize=(10, 5 * n_types))
+    fig, axes = (
+        plt.subplots(n_types, 2, figsize=(10, 5 * n_types)) if save else None,
+        None,
+    )
 
     # Handle case of single row
     if n_types == 1:
@@ -170,14 +171,10 @@ def generate_synthetic_network_field(
         data={
             "X_position": xs_final,
             "Y_position": ys_final,
-            "Phenotypes": phenotypes_final,
+            "type": phenotypes_final,
         }
     )
     df_cells[["X_position", "Y_position"]] -= 256, 256
-    if name_folder is not None:
-        plt.tight_layout()
-        plt.savefig(f"{name_folder}_all.png", dpi=300)
-        plt.close(fig)
 
     return df_cells
 
@@ -199,11 +196,9 @@ def network_field(
         y_min=y_min,
         y_max=y_max,
         amplitude=amplitude,
-        name_folder=f"./{name_folder}/field_{i}",
         save=False,
     )
 
-    df_cells = df_cells.rename(columns={"Phenotypes": "type"})
     df_cells.to_csv(f"./{name_folder}/df_{i}.csv", index=False)
     df_cells["PhenotypeID"] = df_cells["type"].astype("category").cat.codes
 
