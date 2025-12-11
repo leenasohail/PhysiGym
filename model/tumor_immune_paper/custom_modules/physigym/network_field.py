@@ -9,6 +9,9 @@ from math import sqrt
 from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import matplotlib
+
+matplotlib.use("Agg")
 
 
 def generate_correlated_field(
@@ -89,33 +92,6 @@ def generate_balanced_fields(
     return fields
 
 
-def plot_field(fields, cell_types, name_folder):
-    """
-    Plot a field image for each cell type using matplotlib.
-
-    Parameters
-    ----------
-    fields : dict
-        Dictionary {cell_type: 2D field array}.
-    cell_types : list
-        List of cell type names.
-    name_folder : str
-        name_folder for saving the figure.
-    """
-
-    n_types = len(cell_types)
-    fig_fields, axes_fields = plt.subplots(1, n_types, figsize=(4 * n_types, 4))
-    if n_types == 1:
-        axes_fields = [axes_fields]
-    for ax, ct in zip(axes_fields, cell_types):
-        im = ax.imshow(fields[ct], cmap="viridis")
-        ax.set_title(f"Correlated Field: {ct}")
-        ax.axis("off")
-        fig_fields.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
-    plt.tight_layout()
-    plt.savefig(f"{name_folder}.png", dpi=300)
-
-
 def weighted_pick(arr, threshold, n=1):
     # mask only the values above threshold
     mask = arr > threshold
@@ -135,7 +111,7 @@ def weighted_pick(arr, threshold, n=1):
     return coords[idx]
 
 
-def generate_synthetic_network_potts_field(
+def generate_synthetic_network_field(
     dict_correlation_length,
     domain_size,
     cell_types,
@@ -150,25 +126,51 @@ def generate_synthetic_network_potts_field(
         dict_correlation_length=dict_correlation_length,
         amplitude=amplitude,
     )
-    plot_field(fields=fields, cell_types=cell_types, name_folder=name_folder)
     xs_final = []
     ys_final = []
     phenotypes_final = []
-    for ct in cell_types:
-        coords = weighted_pick(
-            fields[ct], threshold=dict_threshold[ct], n=number_cells[ct]
-        )
-        xs_final.extend(coords[:, 0])  # extend, not append
-        ys_final.extend(coords[:, 1])
+
+    n_types = len(cell_types)
+    fig, axes = plt.subplots(n_types, 2, figsize=(10, 5 * n_types))
+
+    # Handle case of single row
+    if n_types == 1:
+        axes = np.array([axes])
+
+    for row_idx, ct in enumerate(cell_types):
+        field = fields[ct]
+        coords = weighted_pick(field, threshold=dict_threshold[ct], n=number_cells[ct])
+        xs = coords[:, 0]
+        ys = coords[:, 1]
+        # ========== LEFT: FIELD ==========
+        ax_field = axes[row_idx, 0]
+        im = ax_field.imshow(field, cmap="viridis")
+        ax_field.set_title(f"Field: {ct}")
+        ax_field.axis("off")
+        fig.colorbar(im, ax=ax_field, fraction=0.046, pad=0.04)
+
+        # ========== RIGHT: SCATTER CELLS ==========
+        ax_scatter = axes[row_idx, 1]
+        ax_scatter.scatter(ys, domain_size[1] - xs, s=10, alpha=0.8)
+        ax_scatter.set_title(f"Cells: {ct}")
+        ax_scatter.set_xlabel("X")
+        ax_scatter.set_ylabel("Y")
+        ax_scatter.set_aspect("equal")
+
+        xs_final.extend(xs)  # extend, not append
+        ys_final.extend(ys)
         phenotypes_final.extend([ct] * len(coords))  # repeat ct for each cell
 
     df_cells = pd.DataFrame(
-        {
+        data={
             "X_position": xs_final,
             "Y_position": ys_final,
             "Phenotypes": phenotypes_final,
         }
     )
+    plt.tight_layout()
+    plt.savefig(f"{name_folder}_all.png", dpi=300)
+    plt.close(fig)
 
     return df_cells
 
@@ -183,8 +185,7 @@ def network_field(
     amplitude,
 ):
     np.random.seed(np.random.randint(0, 1000) + i)
-
-    df_cells = generate_synthetic_network_potts_field(
+    df_cells = generate_synthetic_network_field(
         dict_correlation_length=dict_correlation_length,
         number_cells=number_cells,
         domain_size=domain_size,
@@ -193,6 +194,7 @@ def network_field(
         name_folder=f"./{name_folder}/field_{i}",
         dict_threshold=dict_threshold,
     )
+
     df_cells = df_cells.rename(columns={"Phenotypes": "type"})
     df_cells.to_csv(f"./{name_folder}/df_{i}.csv", index=False)
     df_cells["PhenotypeID"] = df_cells["type"].astype("category").cat.codes
@@ -222,9 +224,6 @@ def network_field(
 
 if __name__ == "__main__":
     # === Global parameter ===
-    import random
-
-    SEED = random.randint(0, 100)
 
     # === Network parameter ===
     n_cells = 512 + 128
@@ -232,8 +231,8 @@ if __name__ == "__main__":
     number_cells = {"tumor": 512, "cell_1": 128}
     cell_types = list(number_cells.keys())
     name_folder = "config_network_field"
-    dict_correlation_length = {"tumor": 50, "cell_1": 25}
-    dict_threshold = {"tumor": 0.65, "cell_1": 0.55}
+    dict_correlation_length = {"tumor": 100, "cell_1": 50}
+    dict_threshold = {"tumor": 0.55, "cell_1": 0.65}
     amplitude = 1
     os.makedirs(f"./{name_folder}", exist_ok=True)
 
