@@ -15,7 +15,7 @@ matplotlib.use("Agg")
 
 
 def generate_correlated_field(
-    shape,
+    domain_size,
     correlation_length,
 ):
     """
@@ -34,15 +34,15 @@ def generate_correlated_field(
         2D correlated scalar field.
     """
 
-    noise = np.random.randn(*shape)
+    noise = np.random.randn(*domain_size)
     sigma = correlation_length / sqrt(2)
     field = gaussian_filter(noise, sigma=sigma, mode="reflect")
     return field
 
 
 def generate_balanced_fields(
-    shape,
-    dict_correlation_length,
+    domain_size,
+    params,
     amplitude=1.0,
     local_noise_level=0.3,
 ):
@@ -72,15 +72,15 @@ def generate_balanced_fields(
 
     fields = {}
 
-    for key in dict_correlation_length.keys():
-        correlation_length = dict_correlation_length[key]
+    for key in params.keys():
+        correlation_length = params[key]["correlation_length"]
         # === Génère un bruit local filtré ===
-        local_noise = np.random.randn(*shape)
+        local_noise = np.random.randn(*domain_size)
         filtered_noise = gaussian_filter(local_noise, sigma=correlation_length / 3)
 
         # === Champ final : base + bruit doux ===
         final_field = amplitude * (
-            generate_correlated_field(shape, correlation_length)
+            generate_correlated_field(domain_size, correlation_length)
             + local_noise_level * filtered_noise
         )
         min_final_field = np.min(final_field)
@@ -112,50 +112,55 @@ def weighted_pick(arr, threshold, n=1):
 
 
 def generate_synthetic_network_field(
-    dict_correlation_length,
-    domain_size,
-    cell_types,
-    number_cells,
+    params,
+    x_min,
+    x_max,
+    y_min,
+    y_max,
     name_folder,
-    dict_threshold,
     amplitude=1,
+    save=False,
 ):
+    domain_size = (x_max - x_min, y_max - y_min)
     # === Generate Fields ===
     fields = generate_balanced_fields(
-        shape=domain_size,
-        dict_correlation_length=dict_correlation_length,
+        domain_size=domain_size,
+        params=params,
         amplitude=amplitude,
     )
     xs_final = []
     ys_final = []
     phenotypes_final = []
-
-    n_types = len(cell_types)
-    fig, axes = plt.subplots(n_types, 2, figsize=(10, 5 * n_types))
+    n_types = len(list(params.keys()))
+    if save:
+        fig, axes = plt.subplots(n_types, 2, figsize=(10, 5 * n_types))
 
     # Handle case of single row
     if n_types == 1:
         axes = np.array([axes])
 
-    for row_idx, ct in enumerate(cell_types):
+    for row_idx, ct in enumerate(list(params.keys())):
         field = fields[ct]
-        coords = weighted_pick(field, threshold=dict_threshold[ct], n=number_cells[ct])
+        coords = weighted_pick(
+            field, threshold=params[ct]["threshold"], n=params[ct]["number_cells"]
+        )
         xs = coords[:, 0]
         ys = coords[:, 1]
-        # ========== LEFT: FIELD ==========
-        ax_field = axes[row_idx, 0]
-        im = ax_field.imshow(field, cmap="viridis")
-        ax_field.set_title(f"Field: {ct}")
-        ax_field.axis("off")
-        fig.colorbar(im, ax=ax_field, fraction=0.046, pad=0.04)
+        if save:
+            # ========== LEFT: FIELD ==========
+            ax_field = axes[row_idx, 0]
+            im = ax_field.imshow(field, cmap="viridis")
+            ax_field.set_title(f"Field: {ct}")
+            ax_field.axis("off")
+            fig.colorbar(im, ax=ax_field, fraction=0.046, pad=0.04)
 
-        # ========== RIGHT: SCATTER CELLS ==========
-        ax_scatter = axes[row_idx, 1]
-        ax_scatter.scatter(ys, domain_size[1] - xs, s=10, alpha=0.8)
-        ax_scatter.set_title(f"Cells: {ct}")
-        ax_scatter.set_xlabel("X")
-        ax_scatter.set_ylabel("Y")
-        ax_scatter.set_aspect("equal")
+            # ========== RIGHT: SCATTER CELLS ==========
+            ax_scatter = axes[row_idx, 1]
+            ax_scatter.scatter(ys, domain_size[1] - xs, s=10, alpha=0.8)
+            ax_scatter.set_title(f"Cells: {ct}")
+            ax_scatter.set_xlabel("X")
+            ax_scatter.set_ylabel("Y")
+            ax_scatter.set_aspect("equal")
 
         xs_final.extend(xs)  # extend, not append
         ys_final.extend(ys)
@@ -168,31 +173,35 @@ def generate_synthetic_network_field(
             "Phenotypes": phenotypes_final,
         }
     )
-    plt.tight_layout()
-    plt.savefig(f"{name_folder}_all.png", dpi=300)
-    plt.close(fig)
+    df_cells[["X_position", "Y_position"]] -= 256, 256
+    if name_folder is not None:
+        plt.tight_layout()
+        plt.savefig(f"{name_folder}_all.png", dpi=300)
+        plt.close(fig)
 
     return df_cells
 
 
 def network_field(
-    number_cells,
-    cell_types,
+    params,
+    x_min,
+    x_max,
+    y_min,
+    y_max,
     name_folder,
     i,
-    dict_correlation_length,
-    dict_threshold,
     amplitude,
 ):
     np.random.seed(np.random.randint(0, 1000) + i)
     df_cells = generate_synthetic_network_field(
-        dict_correlation_length=dict_correlation_length,
-        number_cells=number_cells,
-        domain_size=domain_size,
-        cell_types=cell_types,
+        params=params,
+        x_min=x_min,
+        x_max=x_max,
+        y_min=y_min,
+        y_max=y_max,
         amplitude=amplitude,
         name_folder=f"./{name_folder}/field_{i}",
-        dict_threshold=dict_threshold,
+        save=True,
     )
 
     df_cells = df_cells.rename(columns={"Phenotypes": "type"})
@@ -228,11 +237,12 @@ if __name__ == "__main__":
     # === Network parameter ===
     n_cells = 512 + 128
     domain_size = (512, 512)
-    number_cells = {"tumor": 512, "cell_1": 128}
-    cell_types = list(number_cells.keys())
+    x_min, x_max, y_min, y_max = -256, 256, -256, 256
     name_folder = "config_network_field"
-    dict_correlation_length = {"tumor": 100, "cell_1": 50}
-    dict_threshold = {"tumor": 0.55, "cell_1": 0.65}
+    params = {
+        "tumor": {"correlation_length": 50, "threshold": 0.55, "number_cells": 512},
+        "cell_1": {"correlation_length": 50, "threshold": 0.55, "number_cells": 128},
+    }
     amplitude = 1
     os.makedirs(f"./{name_folder}", exist_ok=True)
 
@@ -241,13 +251,14 @@ if __name__ == "__main__":
 
     def wrapper(i):
         return network_field(
-            number_cells,
-            cell_types,
-            name_folder,
-            i,
-            dict_correlation_length,
-            dict_threshold,
-            amplitude,
+            params=params,
+            name_folder=name_folder,
+            x_min=x_min,
+            x_max=x_max,
+            y_min=y_min,
+            y_max=y_max,
+            i=i,
+            amplitude=amplitude,
         )
 
     N = 10
