@@ -190,9 +190,8 @@ def network_field(
     y_max,
     name_folder,
     i,
-    amplitude,
+    amplitude=1,
 ):
-    np.random.seed(np.random.randint(0, 1000) + i)
     df_cells = generate_synthetic_network_field(
         params=params,
         x_min=x_min,
@@ -201,7 +200,7 @@ def network_field(
         y_max=y_max,
         amplitude=amplitude,
         name_folder=f"./{name_folder}/field_{i}",
-        save=True,
+        save=False,
     )
 
     df_cells = df_cells.rename(columns={"Phenotypes": "type"})
@@ -240,8 +239,8 @@ if __name__ == "__main__":
     x_min, x_max, y_min, y_max = -256, 256, -256, 256
     name_folder = "config_network_field"
     params = {
-        "tumor": {"correlation_length": 50, "threshold": 0.55, "number_cells": 512},
-        "cell_1": {"correlation_length": 50, "threshold": 0.55, "number_cells": 128},
+        "tumor": {"correlation_length": 45, "threshold": 0.55, "number_cells": 512},
+        "cell_1": {"correlation_length": 45, "threshold": 0.55, "number_cells": 128},
     }
     amplitude = 1
     os.makedirs(f"./{name_folder}", exist_ok=True)
@@ -266,3 +265,6 @@ if __name__ == "__main__":
 
     with Pool(num_workers) as p:
         list(tqdm(p.imap_unordered(wrapper, range(N)), total=N))
+    for i in tqdm(range(10)):
+        np.random.seed(np.random.randint(0, 1000) + i)
+        wrapper(i)
