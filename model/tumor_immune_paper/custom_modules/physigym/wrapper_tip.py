@@ -5,6 +5,7 @@ from network_field import create_csv
 import os
 import pandas as pd
 import shutil
+import time
 
 
 # ============================================================
@@ -154,4 +155,5 @@ class PhysiCellModelWrapper(gym.Wrapper):
         create_csv(**self.generation_cfg)
         if self.frequency_save_data is not None:
             self.save_data()
+        time.sleep(0.1)
         return self.env.reset(seed=seed, options=options, **kwargs)
