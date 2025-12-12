@@ -10,8 +10,14 @@ from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import matplotlib
+import random
 
 matplotlib.use("Agg")
+
+
+def set_global_seed(seed: int):
+    np.random.seed(seed)
+    random.seed(seed)
 
 
 def generate_correlated_field(
@@ -169,12 +175,13 @@ def generate_synthetic_network_field(
 
     df_cells = pd.DataFrame(
         data={
-            "X_position": xs_final,
-            "Y_position": ys_final,
+            "x": xs_final,
+            "y": ys_final,
+            "z": [0] * len(xs_final),
             "type": phenotypes_final,
         }
     )
-    df_cells[["X_position", "Y_position"]] -= 256, 256
+    df_cells[["x", "y"]] += x_min, y_min
 
     return df_cells
 
@@ -200,14 +207,14 @@ def network_field(
     )
 
     df_cells.to_csv(f"./{name_folder}/df_{i}.csv", index=False)
-    df_cells["PhenotypeID"] = df_cells["type"].astype("category").cat.codes
+    df_cells["typeID"] = df_cells["type"].astype("category").cat.codes
 
     plt.figure(figsize=(8, 8))
 
     scatter = plt.scatter(
-        df_cells["X_position"],
-        df_cells["Y_position"],
-        c=df_cells["PhenotypeID"],
+        df_cells["x"],
+        df_cells["y"],
+        c=df_cells["typeID"],
         cmap="tab10",  # Pick a nice categorical colormap
         alpha=0.8,
         s=20,
@@ -225,23 +232,71 @@ def network_field(
     plt.savefig(f"./{name_folder}/df_{i}.png")
 
 
+def create_csv(seed, cell_2_fraction, csv_path, params, x_min, x_max, y_min, y_max):
+    if seed is not None:
+        set_global_seed(seed)
+    else:
+        set_global_seed(42)
+
+    df = generate_synthetic_network_field(
+        params=params,
+        x_min=x_min,
+        x_max=x_max,
+        y_min=y_min,
+        y_max=y_max,
+        amplitude=1,
+        save=False,
+    )
+
+    if cell_2_fraction is None:
+        cell_2_fraction = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    cell_2_fraction = (
+        np.random.choice(cell_2_fraction)
+        if isinstance(cell_2_fraction, (list, np.ndarray))
+        else cell_2_fraction
+    )
+    cell1_indices = df[df["type"] == "cell_1"].index
+    n_to_change = int(cell_2_fraction * len(cell1_indices))
+    if n_to_change > 0:
+        indices_to_change = np.random.choice(cell1_indices, n_to_change, replace=False)
+        df.loc[indices_to_change, "type"] = "cell_2"
+    df["z"] = 0.0
+    # Drop trailing empty columns
+    while df.iloc[:, -1].isna().all() or (df.iloc[:, -1] == "").all():
+        df = df.iloc[:, :-1]
+
+    df.to_csv(csv_path, index=False, float_format="%.6f")
+
+
 if __name__ == "__main__":
     # === Global parameter ===
 
     # === Network parameter ===
-    n_cells = 512 + 128
-    domain_size = (512, 512)
     x_min, x_max, y_min, y_max = -256, 256, -256, 256
     name_folder = "config_network_field"
     params = {
         "tumor": {"correlation_length": 45, "threshold": 0.55, "number_cells": 512},
         "cell_1": {"correlation_length": 45, "threshold": 0.55, "number_cells": 128},
     }
-    amplitude = 1
-    os.makedirs(f"./{name_folder}", exist_ok=True)
 
+    d_arg_generation = {
+        "cell_2_fraction": 0.3,
+        "params": params,
+        "x_min": x_min,
+        "x_max": x_max,
+        "y_min": y_min,
+        "y_max": y_max,
+        "seed": 42,
+        "csv_path": f"./{name_folder}/df.csv",
+    }
+
+    os.makedirs(f"./{name_folder}", exist_ok=True)
+    create_csv(**d_arg_generation)
+    exit()
     from multiprocessing import Pool, cpu_count
     from tqdm import tqdm
+
+    seed = 42
 
     def wrapper(i):
         return network_field(
@@ -252,7 +307,8 @@ if __name__ == "__main__":
             y_min=y_min,
             y_max=y_max,
             i=i,
-            amplitude=amplitude,
+            amplitude=1,
+            seed=seed + i,
         )
 
     N = 10
@@ -261,5 +317,4 @@ if __name__ == "__main__":
     with Pool(num_workers) as p:
         list(tqdm(p.imap_unordered(wrapper, range(N)), total=N))
     for i in tqdm(range(10)):
-        np.random.seed(np.random.randint(0, 1000) + i)
         wrapper(i)
