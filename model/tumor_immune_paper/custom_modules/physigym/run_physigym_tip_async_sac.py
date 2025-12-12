@@ -444,7 +444,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--settingxml", nargs="?", default="config/PhysiCell_settings.xml"
     )
-    parser.add_argument("--settingcells", nargs="?", default="cells.csv")
+    parser.add_argument("--settingcells", nargs="?", default="config/cells.csv")
     parser.add_argument("--seed", nargs="?", default="5")
     parser.add_argument(
         "--observation_mode", nargs="?", default="img_mc_cells"
@@ -589,28 +589,33 @@ if __name__ == "__main__":
         "observation_space_dtype": ghost_env.observation_space.dtype,
         "is_graph": True if "graph" in d_arg["model"]["observation_mode"] else False,
     }
+    params = {
+        "tumor": {
+            "correlation_length": 45,
+            "threshold": 0.55,
+            "number_cells": args.tumor,
+        },
+        "cell_1": {
+            "correlation_length": 45,
+            "threshold": 0.55,
+            "number_cells": args.cell_1,
+        },
+    }
+
     d_arg_generation = {
         "x_min": ghost_env.unwrapped.x_min,
         "x_max": ghost_env.unwrapped.x_max,
         "y_min": ghost_env.unwrapped.y_min,
         "y_max": ghost_env.unwrapped.y_max,
-        "n_tumor": args.tumor,
-        "n_cell_1": args.cell_1,
-        "range_jitter_tumor": (5, 15),
-        "range_cell_1": (5, 10),
-        "range_r2_frac_tumor": (0.1, 0.4),
-        "range_frac_cell_1": (0.1, 0.4),
-        "range_r1": (0.1, 0.4),
-        "range_cell_dist": (1.5, 2.0),
-        "init_mode": args.init_mode,
+        "params": params,
         "cell_2_fraction": r_cell_2_fraction,
+        "seed": d_arg_simulation["seed"],
     }
     d_arg["generation"] = d_arg_generation
     d_arg["env"] = d_arg_env
     # Optional: override number of actor processes
     if args.num_actors:
         d_arg["num_actors"] = args.num_actors
-    d_arg_generation["seed"] = d_arg_simulation["seed"]
     init_obs, _ = ghost_env.reset(
         seed=d_arg_simulation["seed"], generation_cfg=d_arg_generation
     )
