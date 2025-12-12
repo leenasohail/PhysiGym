@@ -27,7 +27,9 @@ import numpy as np
 import os
 import sys
 import tempfile
+import matplotlib
 
+matplotlib.use("Agg")
 
 # global variable
 physicell.flag_envphysigym = False
@@ -342,7 +344,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"physigym: ok!")
 
-
     def render(self, **kwargs):
         """
         input:
@@ -392,7 +393,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         if self.verbose:
             print(f"ok!")
         return a_img
-
 
     def reset(self, seed=None, options={}, **kwargs):
         """
@@ -522,7 +522,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         return o_observation, d_info
 
-
     def get_truncated(self):
         """
         input:
@@ -549,7 +548,6 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # output
         return b_truncated
-
 
     def step(self, action, **kwargs):
         """
@@ -736,7 +734,6 @@ class CorePhysiCellEnv(gymnasium.Env):
             print(f"physigym: ok!")
         return o_observation, r_reward, b_terminated, b_truncated, d_info
 
-
     def close(self, **kwargs):
         """
         input:
@@ -778,7 +775,6 @@ class CorePhysiCellEnv(gymnasium.Env):
             )
             print(f"physigym: ok!")
 
-
     def verbose_true(self):
         """
         input:
@@ -802,7 +798,6 @@ class CorePhysiCellEnv(gymnasium.Env):
         """
         print(f"physigym: set env.verbose = True.")
         self.verbose = True
-
 
     def verbose_false(self):
         """

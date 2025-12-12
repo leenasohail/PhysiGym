@@ -85,19 +85,17 @@ class GraphFeatureExtractor(nn.Module):
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
-    def __init__(self, env, neural_architecture_image="impala", **kwargs):
+    def __init__(self, cfg, neural_architecture_image="impala", **kwargs):
         super().__init__()
 
-        self.is_graph = False
+        self.is_graph = cfg["is_graph"]
         self.is_image = False
-        if hasattr(env.unwrapped, "kwargs"):
-            obs_mode = env.unwrapped.kwargs.get("observation_mode", "")
-            self.is_graph = "graph" in str(obs_mode)
-        obs_shape = env.observation_space.shape if not self.is_graph else None
+
+        obs_shape = cfg["observation_space_shape"] if not self.is_graph else None
 
         if self.is_graph:
             # Assume node features have fixed dimension
-            node_feature_dim = getattr(env.observation_space, "node_feature_dim", 16)
+            node_feature_dim = cfg["node_feature_dim"]
             self.feature_extractor = GraphFeatureExtractor(
                 node_feature_dim=node_feature_dim
             )
@@ -152,10 +150,10 @@ class FeatureExtractor(nn.Module):
 class QNetwork(nn.Module):
     """Critic network (Q-function)"""
 
-    def __init__(self, env, neural_architecture_image, **kwargs):
+    def __init__(self, cfg, neural_architecture_image, **kwargs):
         super().__init__()
         self.feature_extractor = FeatureExtractor(
-            env, neural_architecture_image, **kwargs
+            cfg, neural_architecture_image, **kwargs
         )
 
         # Fully connected layers
@@ -180,12 +178,12 @@ class Actor(nn.Module):
     LOG_STD_MAX = 2
     LOG_STD_MIN = -5
 
-    def __init__(self, env, neural_architecture_image, **kwargs):
+    def __init__(self, cfg, neural_architecture_image, **kwargs):
         super().__init__()
         self.feature_extractor = FeatureExtractor(
-            env, neural_architecture_image, **kwargs
+            cfg, neural_architecture_image, **kwargs
         )
-        action_dim = np.prod(env.action_space.shape)
+        action_dim = np.prod(cfg["action_space_shape"])
 
         # Fully connected layers
         self.fc1 = nn.LazyLinear(256)
@@ -197,14 +195,14 @@ class Actor(nn.Module):
         self.register_buffer(
             "action_scale",
             torch.tensor(
-                (env.action_space.high - env.action_space.low) / 2.0,
+                (cfg["action_space_high"] - cfg["action_space_low"]) / 2.0,
                 dtype=torch.float32,
             ),
         )
         self.register_buffer(
             "action_bias",
             torch.tensor(
-                (env.action_space.high + env.action_space.low) / 2.0,
+                (cfg["action_space_high"] + cfg["action_space_low"]) / 2.0,
                 dtype=torch.float32,
             ),
         )

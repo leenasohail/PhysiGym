@@ -1,7 +1,7 @@
 import gymnasium as gym
 from gymnasium.spaces import Box
 import numpy as np
-from initial_conditions_tip import create_csv
+from network_field import create_csv
 import os
 import pandas as pd
 import shutil

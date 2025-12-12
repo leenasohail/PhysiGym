@@ -21,16 +21,16 @@
 # library
 from extending import physicell
 from gymnasium import spaces
-from gymnasium.spaces.graph import GraphInstance
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from matplotlib import colors
 import numpy as np
 import os
 import pandas as pd
 from physigym.envs.physicell_core import CorePhysiCellEnv
 import skimage as ski
 from tysserand import tysserand as ty
+import matplotlib
+
+matplotlib.use("Agg")
 
 
 # function

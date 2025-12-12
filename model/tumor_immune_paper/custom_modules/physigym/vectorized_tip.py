@@ -205,7 +205,10 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--rl_threads", type=int, default=4)
     parser.add_argument("-s", "--seed", type=int, default=3)
     args = parser.parse_args()
-
+    params = {
+        "tumor": {"correlation_length": 45, "threshold": 0.55, "number_cells": 512},
+        "cell_1": {"correlation_length": 45, "threshold": 0.55, "number_cells": 128},
+    }
     # ---- Unified nested configuration ----
     cfg = {
         "simulation": {
@@ -247,33 +250,8 @@ if __name__ == "__main__":
             "x_max": 256,
             "y_min": -256,
             "y_max": 256,
-            "n_tumor": 512,  # number of tumor cells for the initial state
-            "n_cell_1": 128,  # number of cell 1 for the initial state
-            "range_jitter_tumor": (
-                5,
-                15,
-            ),  # range of std for the Gaussian noise jitter applied to tumor cells' positions inside ellipse
-            "range_cell_1": (
-                5,
-                10,
-            ),  # range  of std for the Gaussian noise jitter applied to surrounding cell_1 positions
-            "range_r2_frac_tumor": (
-                0.1,
-                0.4,
-            ),  # range for the fractional size of the semi-minor axis (y-axis radius) of the tumor ellipse relative to bounding box
-            "range_frac_cell_1": (
-                0.1,
-                0.4,
-            ),  # range for fractional size of semi-minor axis of the surrounding cells' ellipse (cell_1)
-            "range_r1": (
-                0.1,
-                0.4,
-            ),  # range for fractional size of the semi-major axis (x-axis radius) of the tumor ellipse
-            "range_cell_dist": (
-                1.5,
-                2.0,
-            ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
-            "init_mode": ["circular_mode", "asymmetric_mode", "connected_mst_mode"],
+            "params": params,  # number of tumor cells for the initial state
+            "seed": 128,  # number of cell 1 for the initial state
             "cell_2_fraction": 0.3,
         },
     }

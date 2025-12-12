@@ -126,7 +126,7 @@ def generate_synthetic_network_field(
     amplitude=1,
     save=False,
 ):
-    domain_size = (x_max - x_min, y_max - y_min)
+    domain_size = int(x_max - x_min), int(y_max - y_min)
     # === Generate Fields ===
     fields = generate_balanced_fields(
         domain_size=domain_size,
@@ -258,7 +258,7 @@ def create_csv(seed, cell_2_fraction, csv_path, params, x_min, x_max, y_min, y_m
     cell1_indices = df[df["type"] == "cell_1"].index
     n_to_change = int(cell_2_fraction * len(cell1_indices))
     if n_to_change > 0:
-        indices_to_change = np.random.choice(cell1_indices, n_to_change, replace=False)
+        indices_to_change = np.random.choice(cell1_indices, n_to_change)
         df.loc[indices_to_change, "type"] = "cell_2"
     df["z"] = 0.0
     # Drop trailing empty columns

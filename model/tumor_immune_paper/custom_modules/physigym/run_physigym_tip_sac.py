@@ -51,6 +51,8 @@ from wrapper_tip import PhysiCellModelWrapper
 
 # Tracking
 import wandb
+from tqdm import tqdm
+import psutil
 
 
 def flatten_dict(d, parent_key=""):
@@ -115,7 +117,7 @@ def obs_to_pyg(obs, o_device):
 def run(
     s_settingxml="config/PhysiCell_settings.xml",  # xpath
     s_settingcells="cells.csv",  # cells csv path
-    i_seed=int(1),  # int or none: seed of the experiment
+    i_seed=int(42),  # int or none: seed of the experiment
     s_observation_mode="scalars_cells_substrates",  # str: observation mode
     s_render_mode=None,  # render is none or rgb_array or human
     r_max_time_episode=12900.0,  #  8[d]=12900[min] = 8 * 3 = 24[steps]
@@ -124,7 +126,6 @@ def run(
     s_name="vec_sac",  # str: the name of this experiment
     b_wandb=False,  # bool: track with wandb, if false local tensorboard
     s_entity="corporate-manu-sureli",  # name of your project in wandb
-    s_init_mode="robust",  # type of initialisation  random_mode, hex_mode, circular_mode and robust (combine previous three modes)
     i_tumor=512,
     i_cell_1=128,
     r_cell_2_fraction=None,  # fraction of cell_1 into cell_2
@@ -215,6 +216,7 @@ def run(
     d_arg["rl"] = d_arg_rl
     d_arg["wrapper"] = d_arg_physigym_wrapper
     d_arg["model"] = d_arg_physigym_model
+    d_arg["neural_architecture_image"] = neural_architecture_image
     num_envs = d_arg["vectorization"]["num_envs"]
 
     model_cfg_ghost = d_arg["model"].copy()
@@ -231,7 +233,7 @@ def run(
         )
 
     # initialize tracking
-    s_run = f"{d_arg['simulation']['name']}_seed_{d_arg['simulation']['seed']}_observation_mode_{d_arg['model']['observation_mode']}_init_mode_{s_init_mode}_weight_{d_arg['wrapper']['weight']}_time_{int(time.time())}"
+    s_run = f"{d_arg['simulation']['name']}_seed_{d_arg['simulation']['seed']}_observation_mode_{d_arg['model']['observation_mode']}_weight_{d_arg['wrapper']['weight']}_time_{int(time.time())}"
     if d_arg["simulation"]["wandb_track"]:
         print("tracking: wandb ...")
         run = wandb.init(name=s_run, config=d_arg["simulation"], **d_arg["wandb"])
@@ -268,52 +270,53 @@ def run(
         r_cell_2_fraction = [0.0, 0.25, 0.5, 0.75, 1.0]
     # d_arg_generation control the generation of initial states, you should not modify it, at your own risk
     # but you may change the number of tumor cells (n_tumor) and you may also change (n_cell_1)
+    params = {
+        "tumor": {"correlation_length": 45, "threshold": 0.55, "number_cells": i_tumor},
+        "cell_1": {
+            "correlation_length": 45,
+            "threshold": 0.55,
+            "number_cells": i_cell_1,
+        },
+    }
     d_arg_generation = {
         "x_min": ghost_env.unwrapped.x_min,
         "x_max": ghost_env.unwrapped.x_max,
         "y_min": ghost_env.unwrapped.y_min,
         "y_max": ghost_env.unwrapped.y_max,
-        "n_tumor": i_tumor,  # number of tumor cells for the initial state
-        "n_cell_1": i_cell_1,  # number of cell 1 for the initial state
-        "range_jitter_tumor": (
-            5,
-            15,
-        ),  # range of std for the Gaussian noise jitter applied to tumor cells' positions inside ellipse
-        "range_cell_1": (
-            5,
-            10,
-        ),  # range  of std for the Gaussian noise jitter applied to surrounding cell_1 positions
-        "range_r2_frac_tumor": (
-            0.1,
-            0.4,
-        ),  # range for the fractional size of the semi-minor axis (y-axis radius) of the tumor ellipse relative to bounding box
-        "range_frac_cell_1": (
-            0.1,
-            0.4,
-        ),  # range for fractional size of semi-minor axis of the surrounding cells' ellipse (cell_1)
-        "range_r1": (
-            0.1,
-            0.4,
-        ),  # range for fractional size of the semi-major axis (x-axis radius) of the tumor ellipse
-        "range_cell_dist": (
-            1.5,
-            2.0,
-        ),  # multiplier that modifies the r2 fractional size of the surrounding cell_1 ellipse
-        "init_mode": s_init_mode,
+        "params": params,
         "cell_2_fraction": r_cell_2_fraction,
+        "seed": d_arg_simulation["seed"],
     }
 
     d_arg["generation"] = d_arg_generation
 
     envs = vec_envs(d_arg)
+    d_arg_env = {
+        "action_space_shape": ghost_env.action_space.shape,
+        "observation_space_shape": ghost_env.observation_space.shape,
+        "observation_mode": ghost_env.unwrapped.kwargs["observation_mode"],
+        "node_feature_dim": getattr(
+            ghost_env.observation_space, "node_feature_dim", None
+        ),
+        "x_min": ghost_env.unwrapped.x_min,
+        "x_max": ghost_env.unwrapped.x_max,
+        "y_min": ghost_env.unwrapped.y_min,
+        "y_max": ghost_env.unwrapped.y_max,
+        "action_space_high": ghost_env.action_space.high,
+        "action_space_low": ghost_env.action_space.low,
+        "observation_space_dtype": ghost_env.observation_space.dtype,
+        "is_graph": True if "graph" in d_arg["model"]["observation_mode"] else False,
+    }
+    is_graph = d_arg_env["is_graph"]
 
     # Initialize neural networks
     o_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    actor = Actor(ghost_env, neural_architecture_image).to(o_device)
-    qf1 = QNetwork(ghost_env, neural_architecture_image).to(o_device)
-    qf2 = QNetwork(ghost_env, neural_architecture_image).to(o_device)
-    qf1_target = QNetwork(ghost_env, neural_architecture_image).to(o_device)
-    qf2_target = QNetwork(ghost_env, neural_architecture_image).to(o_device)
+    # Networks
+    actor = Actor(d_arg_env, d_arg["neural_architecture_image"]).to(o_device)
+    qf1 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(o_device)
+    qf2 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(o_device)
+    qf1_target = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(o_device)
+    qf2_target = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(o_device)
     q_optimizer = optim.Adam(
         list(qf1.parameters()) + list(qf2.parameters()), lr=d_arg["rl"]["q_lr"]
     )
@@ -351,7 +354,8 @@ def run(
     discounted_cumulative_returns = np.zeros((num_envs))
     cumulative_returns = np.zeros((num_envs))
     o_observations = envs.reset()
-
+    total = d_arg["rl"]["total_timesteps"]
+    pbar = tqdm(total=total)
     for global_step in range(d_arg["rl"]["total_timesteps"]):
         # sample the action space or learn
         if global_step <= d_arg["rl"]["learning_starts"]:
@@ -393,6 +397,10 @@ def run(
             )
             cumulative_returns[i] += r_rewards[i]
 
+        pbar.update(global_step - pbar.n)
+        pbar.set_postfix(
+            {"rb": len(rb), "memory": f"{psutil.virtual_memory().percent}"}
+        )
         # handle observation
         o_observations = o_observations_next
 
@@ -541,7 +549,7 @@ if __name__ == "__main__":
         help="path/to/settings.xml file.",
     )
     parser.add_argument(
-        "--settingcells", nargs="?", default="cells.csv", help="name cells.csv ."
+        "--settingcells", nargs="?", default="config/cells.csv", help="name cells.csv ."
     )
     # seed
     parser.add_argument(
@@ -614,16 +622,6 @@ if __name__ == "__main__":
         nargs="?",
         default="corporate-manu-sureli",
         help="weight and biases team.",
-    )
-    parser.add_argument(
-        "--init_mode",
-        nargs="+",  # one or more values
-        default=[
-            "circular_mode",
-            "asymmetric_mode",
-            "connected_mst_mode",
-        ],  # default is a list
-        help="type(s) of initialisation, e.g. circular_mode asymmetric_mode hex_mode",
     )
 
     parser.add_argument(
@@ -698,7 +696,6 @@ if __name__ == "__main__":
         s_name=args.name,
         b_wandb=True if args.wandb.lower().startswith("t") else False,
         s_entity=args.entity,
-        s_init_mode=args.init_mode,
         i_tumor=args.tumor,
         i_cell_1=args.cell_1,
         r_cell_2_fraction=args.cell_2_fraction,
