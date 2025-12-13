@@ -19,9 +19,11 @@ import argparse
 import psutil
 import gymnasium as gym
 import numpy as np
-from stable_baselines3.common.vec_env import SubprocVecEnv
 from lxml import etree
 import time
+from tqdm import tqdm
+
+from stable_baselines3.common.vec_env import SubprocVecEnv
 import physigym
 from extending import physicell
 from wrapper_tip import PhysiCellModelWrapper
@@ -105,7 +107,7 @@ def make_physigym_env(env_id: int, cfg: dict):
     del model_cfg_copy["settingcells"]
     rl_threads = vect_cfg["rl_threads"]
 
-    master_seed = seed if seed is not None else 0
+    master_seed = seed if seed is not None else 42
     rng = np.random.default_rng(master_seed)
 
     def _init():
@@ -127,8 +129,6 @@ def make_physigym_env(env_id: int, cfg: dict):
         tree.write(env_xml, pretty_print=True)
         model_cfg_copy["settingxml"] = env_xml
 
-        env_seed = int(rng.integers(0, 2**32 - 1)) + env_id
-
         del model_cfg_copy["output_dir"]
         if env_id != 0:
             wrapper_cfg["frequency_save_data"] = None
@@ -137,9 +137,8 @@ def make_physigym_env(env_id: int, cfg: dict):
         # Wrap it for simplified action and custom reward
         env = PhysiCellModelWrapper(env, **wrapper_cfg)
 
-        if seed is not None:
-            generation_cfg["seed"] = env_seed
-            env.reset(seed=env_seed, generation_cfg=generation_cfg)
+        generation_cfg["seed"] = int(rng.integers(0, 2**32 - 1)) + env_id
+        env.reset(seed=generation_cfg["seed"], generation_cfg=generation_cfg)
 
         return env
 
@@ -167,22 +166,17 @@ def vec_envs(cfg: dict):
 # ============================================================
 def run_vectorized(cfg: dict):
     vect_cfg = cfg["vectorization"]
-    sim_cfg = cfg["simulation"]
     num_envs = vect_cfg["num_envs"]
-
     envs = vec_envs(cfg)
-    from tqdm import tqdm
-
-    obs = envs.reset()
+    _ = envs.reset()
     time_1 = time.time()
-    for t in tqdm(range(100)):
+    for t in tqdm(range(1000)):
         actions = np.array(
             [envs.action_space.sample() for _ in range(num_envs)],
             dtype=np.float32,
         )
         # actions = np.random.uniform(low=0, high=1, size=(num_envs, 1))
-        obs, rewards, dones, infos = envs.step(actions)
-        # print(f"[Step {t}] rewards = {rewards}")
+        _, _, _, _ = envs.step(actions)
 
     envs.close()
     print("[INFO] Simulation complete.")
@@ -201,7 +195,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
     parser.add_argument("-m", "--max_time", type=float, default=1440.0)
-    parser.add_argument("-n", "--num_envs", type=int, default=8)
+    parser.add_argument("-n", "--num_envs", type=int, default=7)
     parser.add_argument("-t", "--rl_threads", type=int, default=4)
     parser.add_argument("-s", "--seed", type=int, default=3)
     args = parser.parse_args()
@@ -251,8 +245,8 @@ if __name__ == "__main__":
             "y_min": -256,
             "y_max": 256,
             "params": params,  # number of tumor cells for the initial state
-            "seed": 128,  # number of cell 1 for the initial state
-            "cell_2_fraction": 0.3,
+            "seed": 128,  # seed
+            "cell_2_fraction": args.seed,
         },
     }
 
