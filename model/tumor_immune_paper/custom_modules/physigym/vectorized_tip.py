@@ -95,7 +95,9 @@ def make_physigym_env(env_id: int, cfg: dict):
     base_cells = model_cfg["settingcells"]
     model_cfg_copy = model_cfg.copy()
     threads_per_env = vect_cfg["threads_per_env"]
-    seed = sim_cfg.get("seed")
+    seed = sim_cfg["seed"]
+    master_seed = seed if seed is not None else 42
+    rng = np.random.default_rng(master_seed)
     env_xml = f"config/PhysiCell_settings_env{env_id}.xml"
     env_cells = f"config/cells_{env_id}.csv"
     if not os.path.exists(env_xml):
@@ -106,9 +108,6 @@ def make_physigym_env(env_id: int, cfg: dict):
         model_cfg_copy["output_dir"] = "output"
     del model_cfg_copy["settingcells"]
     rl_threads = vect_cfg["rl_threads"]
-
-    master_seed = seed if seed is not None else 42
-    rng = np.random.default_rng(master_seed)
 
     def _init():
         assign_cpu_affinity(env_id, threads_per_env, offset_threads=rl_threads)
@@ -147,9 +146,8 @@ def make_physigym_env(env_id: int, cfg: dict):
 
 def vec_envs(cfg: dict):
     vect_cfg = cfg["vectorization"]
-    sim_cfg = cfg["simulation"]
     num_envs = vect_cfg["num_envs"]
-    rl_threads, remaining_threads = configure_thread_splitting(vect_cfg["rl_threads"])
+    rl_threads, _ = configure_thread_splitting(vect_cfg["rl_threads"])
     total_cores = psutil.cpu_count(logical=True)
     threads_per_env = (total_cores - rl_threads) // num_envs
     cfg["vectorization"]["threads_per_env"] = threads_per_env
@@ -245,8 +243,8 @@ if __name__ == "__main__":
             "y_min": -256,
             "y_max": 256,
             "params": params,  # number of tumor cells for the initial state
-            "seed": 128,  # seed
-            "cell_2_fraction": args.seed,
+            "seed": args.seed,  # seed
+            "cell_2_fraction": 0.3,
         },
     }
 
