@@ -5,7 +5,6 @@ from network_field import create_csv
 import os
 import pandas as pd
 import shutil
-import time
 
 
 # ============================================================
@@ -68,6 +67,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         os.makedirs(self.output_dir, exist_ok=True)
         self.frequency_save_data = frequency_save_data
         self.list_data = []
+        self.seed = None
 
     @property
     def action_space(self):
@@ -147,13 +147,14 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
         return obs, reward, terminated, truncated, info
 
-    def reset(self, seed=None, options={}, generation_cfg={}, **kwargs):
+    def reset(self, options={}, generation_cfg={}, **kwargs):
         generation_cfg["csv_path"] = self.csv_path_init
         if self.generation_cfg is None:
             self.generation_cfg = generation_cfg
+            self.seed = self.generation_cfg["seed"]
+
         self.generation_cfg["seed"] += self.env.unwrapped.episode
         create_csv(**self.generation_cfg)
         if self.frequency_save_data is not None:
             self.save_data()
-        time.sleep(0.1)
-        return self.env.reset(seed=seed, options=options, **kwargs)
+        return self.env.reset(seed=self.seed, options=options, **kwargs)

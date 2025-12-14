@@ -168,7 +168,7 @@ def run_vectorized(cfg: dict):
     envs = vec_envs(cfg)
     _ = envs.reset()
     time_1 = time.time()
-    for t in tqdm(range(1000)):
+    for t in tqdm(range(2500)):
         actions = np.array(
             [envs.action_space.sample() for _ in range(num_envs)],
             dtype=np.float32,
@@ -243,8 +243,8 @@ if __name__ == "__main__":
             "y_min": -256,
             "y_max": 256,
             "params": params,  # number of tumor cells for the initial state
-            "seed": args.seed,  # seed
-            "cell_2_fraction": 0.3,
+            "seed": 128,  # seed
+            "cell_2_fraction": args.seed,
         },
     }
 
