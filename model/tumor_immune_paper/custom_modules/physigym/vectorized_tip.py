@@ -27,6 +27,10 @@ from stable_baselines3.common.vec_env import SubprocVecEnv
 import physigym
 from extending import physicell
 from wrapper_tip import PhysiCellModelWrapper
+import sys
+import faulthandler
+
+faulthandler.enable(file=sys.stderr, all_threads=True)
 
 
 # ============================================================
@@ -185,6 +189,8 @@ def run_vectorized(cfg: dict):
 # CLI
 # ============================================================
 if __name__ == "__main__":
+    import mp
+    mp.set_start_method("spawn", force=True)
     parser = argparse.ArgumentParser(
         description="Vectorized PhysiCell runner with CPU pinning."
     )
@@ -192,7 +198,7 @@ if __name__ == "__main__":
         "settingxml", nargs="?", default="config/PhysiCell_settings.xml"
     )
     parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
-    parser.add_argument("-m", "--max_time", type=float, default=1440.0)
+    parser.add_argument("-m", "--max_time", type=float, default=360.0)
     parser.add_argument("-n", "--num_envs", type=int, default=7)
     parser.add_argument("-t", "--rl_threads", type=int, default=4)
     parser.add_argument("-s", "--seed", type=int, default=3)
@@ -215,7 +221,7 @@ if __name__ == "__main__":
             "id": "physigym/ModelPhysiCellEnv-v0",
             "settingxml": args.settingxml,
             "settingcells": args.settingcells,
-            "output_dir": "test",
+            "output_dir": None,
             "cell_type_cmap": {
                 "tumor": "yellow",
                 "cell_1": "green",
