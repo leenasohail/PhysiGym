@@ -33,6 +33,9 @@
 #include <omp.h>
 #include <sys/stat.h>
 
+#include <fcntl.h>
+
+
 // loade PhysiCell library
 #include "../../core/PhysiCell.h"
 #include "../../modules/PhysiCell_standard_modules.h"
@@ -50,8 +53,38 @@ std::ofstream report_file;
 
 // function
 
+void delete_cell_no_substrates(Cell* pDeleteMe) {
+    // skip release_internalized_substrates
+    pDeleteMe->remove_all_attached_cells();
+    pDeleteMe->remove_all_spring_attachments();
+    pDeleteMe->remove_self_from_all_neighbors();
+
+    // move last item to index and pop
+    (*all_cells)[ (*all_cells).size() - 1 ]->index = pDeleteMe->index;
+    (*all_cells)[pDeleteMe->index] = (*all_cells)[ (*all_cells).size() - 1 ];
+    all_cells->pop_back();
+
+    // deregister and delete
+    pDeleteMe->get_container()->remove_agent(pDeleteMe);
+    delete pDeleteMe;
+}
+
+// destroy all safely
+void destroy_all_cells() {
+    for (int i = all_cells->size() - 1; i >= 0; --i) {
+        delete_cell_no_substrates((*all_cells)[i]);
+    }
+}
+
+
 // extended Python C++ function start
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
+
+    // silenced PhysiCell
+    // int devnull = open("/dev/null", O_WRONLY);
+    // dup2(devnull, 1);  // stdout
+    // dup2(devnull, 2);  // stderr
+    // close(devnull);
 
     // extract args take default if no args
     char *settingxml = "config/PhysiCell_settings.xml";
@@ -91,10 +124,10 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
         setup_tissue();  // modify this in the custom code
 
         // set MultiCellDS save options
-        set_save_biofvm_mesh_as_matlab(true);
-        set_save_biofvm_data_as_matlab(true);
-        set_save_biofvm_cell_data(true);
-        set_save_biofvm_cell_data_as_custom_matlab(true);
+        set_save_biofvm_mesh_as_matlab(false);
+        set_save_biofvm_data_as_matlab(false);
+        set_save_biofvm_cell_data(false);
+        set_save_biofvm_cell_data_as_custom_matlab(false);
 
     } else {
         // load xml file
@@ -112,9 +145,8 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
         // reset cells
         std::cout << "reset cells ..." << std::endl;
-        for (Cell* pCell: (*all_cells)) {
-            pCell->die();
-        }
+        destroy_all_cells();
+        std::cout << "reset_max_basic_agent_ID ..." << std::endl;
         BioFVM::reset_max_basic_agent_ID();
 
         // reset mesh0
