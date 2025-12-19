@@ -3,7 +3,7 @@
 // derived from: PhyiCell/main.cpp
 //
 // language: C/C++
-// date: 2015-2024
+// date: 2015-2025
 // license: BSD-3-Clause
 // author: Alexandre Bertin, Elmar Bucher, Paul Macklin
 // original source code: https://github.com/MathCancer/PhysiCell
@@ -51,13 +51,13 @@ std::ofstream report_file;
 //std::vector<std::string> (*cell_coloring_function)(Cell*) = my_coloring_function;  // set a pathology coloring function
 //std::string (*substrate_coloring_function)(double, double, double) = paint_by_density_percentage;
 
-// function
-
-void delete_cell_no_substrates(Cell* pDeleteMe) {
+// Helper functions
+// exactly like in PhysiCell BUT 
+void delete_cell(Cell* pDeleteMe) {
     pDeleteMe->remove_all_attached_cells();
     pDeleteMe->remove_all_spring_attachments();
     pDeleteMe->remove_self_from_all_neighbors();
-    pDeleteMe->internalized_substrates->assign(pDeleteMe->internalized_substrates->size() , 0.0 );  
+    pDeleteMe->internalized_substrates->assign(pDeleteMe->internalized_substrates->size() , 0.0 );  // instead of pDeleteMe->release_internalized_substrates (BioFVM causing a core dumped)
 
     // move last item to index and pop
     (*all_cells)[ (*all_cells).size() - 1 ]->index = pDeleteMe->index;
@@ -72,10 +72,10 @@ void delete_cell_no_substrates(Cell* pDeleteMe) {
 // destroy all safely
 void destroy_all_cells() {
     for (int i = all_cells->size() - 1; i >= 0; --i) {
-        delete_cell_no_substrates((*all_cells)[i]);
+        delete_cell((*all_cells)[i]);
     }
 }
-
+//
 
 // extended Python C++ function start
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
@@ -124,10 +124,10 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
         setup_tissue();  // modify this in the custom code
 
         // set MultiCellDS save options
-        set_save_biofvm_mesh_as_matlab(false);
-        set_save_biofvm_data_as_matlab(false);
-        set_save_biofvm_cell_data(false);
-        set_save_biofvm_cell_data_as_custom_matlab(false);
+        set_save_biofvm_mesh_as_matlab(true);
+        set_save_biofvm_data_as_matlab(true);
+        set_save_biofvm_cell_data(true);
+        set_save_biofvm_cell_data_as_custom_matlab(true);
 
     } else {
         // load xml file
