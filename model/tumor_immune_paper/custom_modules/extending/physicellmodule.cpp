@@ -54,10 +54,10 @@ std::ofstream report_file;
 // function
 
 void delete_cell_no_substrates(Cell* pDeleteMe) {
-    // skip release_internalized_substrates
     pDeleteMe->remove_all_attached_cells();
     pDeleteMe->remove_all_spring_attachments();
     pDeleteMe->remove_self_from_all_neighbors();
+    pDeleteMe->internalized_substrates->assign(pDeleteMe->internalized_substrates->size() , 0.0 );  
 
     // move last item to index and pop
     (*all_cells)[ (*all_cells).size() - 1 ]->index = pDeleteMe->index;
