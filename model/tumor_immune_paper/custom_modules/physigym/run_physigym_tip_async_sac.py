@@ -25,6 +25,7 @@ from wrapper_tip import PhysiCellModelWrapper
 
 
 from torch.multiprocessing import Event, Queue
+import queue
 
 torch.cuda._lazy_init()
 mp.set_start_method("spawn", force=True)
@@ -95,7 +96,7 @@ def actor_process(
                     actor_local.load_state_dict(
                         {k: v.cpu() for k, v in new_params.items()}
                     )
-        except Queue.Empty:
+        except queue.Empty:
             pass
         if local_step <= d_arg["rl"]["learning_starts"]:
             actions = np.array(
@@ -150,7 +151,7 @@ def actor_process(
                 }
                 try:
                     stats_queue.put_nowait(stats)
-                except Queue.Full:
+                except queue.Full:
                     # drop a stat if main can't keep up
                     pass
 
@@ -163,7 +164,7 @@ def actor_process(
                 sample_queue.put_nowait(
                     (o, actions[i], float(rewards[i]), no, bool(dones[i]))
                 )
-            except Queue.Full:
+            except queue.Full:
                 # if sample queue is full, drop sample (or implement backpressure)
                 # dropping occasionally is safer than blocking the actor indefinitely
                 pass
@@ -269,7 +270,7 @@ def run_async_sac(d_arg, init_obs):
         actor_queue.put_nowait(
             {k: v.detach().cpu() for k, v in actor.state_dict().items()}
         )
-    except Queue.Full:
+    except queue.Full:
         actor_queue.put({k: v.detach().cpu() for k, v in actor.state_dict().items()})
 
     # Logging
@@ -300,7 +301,7 @@ def run_async_sac(d_arg, init_obs):
             while not sample_queue.empty() and drained < total:
                 try:
                     state, action, reward, next_state, done = sample_queue.get_nowait()
-                except Queue.Empty:
+                except queue.Empty:
                     break
                 rb.add(state, action, reward, next_state, done)
                 drained += 1
@@ -309,7 +310,7 @@ def run_async_sac(d_arg, init_obs):
             while not stats_queue.empty():
                 try:
                     stat = stats_queue.get_nowait()
-                except Queue.Empty:
+                except queue.Empty:
                     break
                 log_dict = {
                     "charts/return": stat["episode_return"],
@@ -407,7 +408,7 @@ def run_async_sac(d_arg, init_obs):
                         {k: v.detach().cpu() for k, v in actor.state_dict().items()}
                     )
 
-                except Queue.Full:
+                except queue.Full:
                     # if actor queue full, skip this update (actor will pick up later)
                     pass
 
@@ -466,7 +467,7 @@ if __name__ == "__main__":
     parser.add_argument("--cell_1", type=int, nargs="?", default=128)
     parser.add_argument("--cell_2_fraction", type=float, nargs="?", default=None)
     parser.add_argument(
-        "--num_envs", type=int, nargs="?", default=7
+        "--num_envs", type=int, nargs="?", default=4
     )  # total parallel PhysiCell instances
     parser.add_argument("--s_frequency_save_data", type=int, nargs="?", default=None)
     parser.add_argument(
