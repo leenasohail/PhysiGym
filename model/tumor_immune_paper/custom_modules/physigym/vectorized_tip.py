@@ -24,13 +24,13 @@ import time
 from tqdm import tqdm
 
 from stable_baselines3.common.vec_env import SubprocVecEnv
-import physigym
-from extending import physicell
 from wrapper_tip import PhysiCellModelWrapper
 import sys
 import faulthandler
 
 faulthandler.enable(file=sys.stderr, all_threads=True)
+import physigym
+from extending import physicell
 
 
 # ============================================================
@@ -149,6 +149,9 @@ def make_physigym_env(env_id: int, cfg: dict):
 
 
 def vec_envs(cfg: dict):
+    import multiprocessing as mp
+
+    mp.set_start_method("spawn", force=True)
     vect_cfg = cfg["vectorization"]
     num_envs = vect_cfg["num_envs"]
     rl_threads, _ = configure_thread_splitting(vect_cfg["rl_threads"])
@@ -160,7 +163,7 @@ def vec_envs(cfg: dict):
 
     env_fns = [make_physigym_env(i, cfg) for i in range(num_envs)]
 
-    return SubprocVecEnv(env_fns)
+    return SubprocVecEnv(env_fns=env_fns, start_method="spawn")
 
 
 def test_vec_env(cfg: dict):
