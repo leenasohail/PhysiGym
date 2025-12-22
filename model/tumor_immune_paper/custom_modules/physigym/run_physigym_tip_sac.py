@@ -54,6 +54,10 @@ import wandb
 from tqdm import tqdm
 import psutil
 
+import multiprocessing
+
+multiprocessing.set_start_method("spawn", force=True)
+
 
 def flatten_dict(d, parent_key=""):
     """Flatten a nested dictionary, joining keys with dots."""
@@ -291,22 +295,26 @@ def run(
     d_arg["generation"] = d_arg_generation
 
     envs = vec_envs(d_arg)
+
     d_arg_env = {
-        "action_space_shape": ghost_env.action_space.shape,
-        "observation_space_shape": ghost_env.observation_space.shape,
-        "observation_mode": ghost_env.unwrapped.kwargs["observation_mode"],
-        "node_feature_dim": getattr(
-            ghost_env.observation_space, "node_feature_dim", None
-        ),
-        "x_min": ghost_env.unwrapped.x_min,
-        "x_max": ghost_env.unwrapped.x_max,
-        "y_min": ghost_env.unwrapped.y_min,
-        "y_max": ghost_env.unwrapped.y_max,
-        "action_space_high": ghost_env.action_space.high,
-        "action_space_low": ghost_env.action_space.low,
-        "observation_space_dtype": ghost_env.observation_space.dtype,
-        "is_graph": True if "graph" in d_arg["model"]["observation_mode"] else False,
+        # Spaces are exposed directly by VecEnv
+        "action_space_shape": envs.action_space.shape,
+        "observation_space_shape": envs.observation_space.shape,
+        # Custom env attributes → get_attr (take env 0)
+        "observation_mode": envs.get_attr("observation_mode")[0],
+        "node_feature_dim": envs.get_attr("node_feature_dim")[0],
+        "x_min": envs.get_attr("x_min")[0],
+        "x_max": envs.get_attr("x_max")[0],
+        "y_min": envs.get_attr("y_min")[0],
+        "y_max": envs.get_attr("y_max")[0],
+        "action_space_high": envs.action_space.high,
+        "action_space_low": envs.action_space.low,
+        # Observation space metadata
+        "observation_space_dtype": envs.observation_space.dtype,
+        # Model-side flag (not env-side)
+        "is_graph": "graph" in d_arg["model"]["observation_mode"],
     }
+
     is_graph = d_arg_env["is_graph"]
 
     # Initialize neural networks
