@@ -334,9 +334,8 @@ def run(
         alpha = d_arg["rl"]["alpha"]
 
     is_graph = False
-    if hasattr(ghost_env.unwrapped, "kwargs"):
-        obs_mode = ghost_env.unwrapped.kwargs.get("observation_mode", "")
-        is_graph = "graph" in str(obs_mode)
+    obs_mode = envs.get_attr("observation_mode")[0]
+    is_graph = "graph" in obs_mode
 
     # Initialize the reply buffer
     rb = ReplayBuffer(
