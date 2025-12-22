@@ -151,6 +151,10 @@ class PhysiCellModelWrapper(gym.Wrapper):
         generation_cfg["csv_path"] = self.csv_path_init
         if self.generation_cfg is None:
             self.generation_cfg = generation_cfg
+            self.generation_cfg["x_min"] = self.env.unwrapped.x_min
+            self.generation_cfg["y_min"] = self.env.unwrapped.y_min
+            self.generation_cfg["x_max"] = self.env.unwrapped.x_max
+            self.generation_cfg["y_max"] = self.env.unwrapped.y_max
             self.seed = self.generation_cfg["seed"]
 
         self.generation_cfg["seed"] += self.env.unwrapped.episode

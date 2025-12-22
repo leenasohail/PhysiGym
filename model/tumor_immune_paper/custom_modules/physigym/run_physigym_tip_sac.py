@@ -223,11 +223,6 @@ def run(
     d_arg["neural_architecture_image"] = neural_architecture_image
     num_envs = d_arg["vectorization"]["num_envs"]
 
-    model_cfg_ghost = d_arg["model"].copy()
-    del model_cfg_ghost["settingcells"]
-    del model_cfg_ghost["output_dir"]
-    ghost_env = gym.make(**model_cfg_ghost)
-    ghost_env = PhysiCellModelWrapper(ghost_env, **d_arg_physigym_wrapper)
     # gpu cpu
     if (d_arg["simulation"]["cuda"] and not torch.cuda.is_available()) or (
         not d_arg["simulation"]["cuda"] and torch.cuda.is_available()
@@ -282,11 +277,8 @@ def run(
             "number_cells": i_cell_1,
         },
     }
+
     d_arg_generation = {
-        "x_min": ghost_env.unwrapped.x_min,
-        "x_max": ghost_env.unwrapped.x_max,
-        "y_min": ghost_env.unwrapped.y_min,
-        "y_max": ghost_env.unwrapped.y_max,
         "params": params,
         "cell_2_fraction": r_cell_2_fraction,
         "seed": d_arg_simulation["seed"],
@@ -333,7 +325,7 @@ def run(
     # Set neural network entropy alpha by automatic tuning or manual
     if d_arg["rl"]["autotune"]:
         target_entropy = -torch.prod(
-            torch.Tensor(ghost_env.action_space.shape).to(o_device)
+            torch.Tensor(envs.action_space.shape).to(o_device)
         ).item()
         log_alpha = torch.zeros(1, requires_grad=True, device=o_device)
         alpha = log_alpha.exp().item()
@@ -348,15 +340,14 @@ def run(
 
     # Initialize the reply buffer
     rb = ReplayBuffer(
-        state_dim=ghost_env.observation_space.shape,
-        action_dim=ghost_env.action_space.shape,
+        state_dim=envs.observation_space.shape,
+        action_dim=envs.action_space.shape,
         device=o_device,
         buffer_size=d_arg["rl"]["buffer_size"],
         batch_size=d_arg["rl"]["batch_size"],
-        state_type=ghost_env.observation_space.dtype,
+        state_type=envs.observation_space.dtype,
         is_graph=is_graph,
     )
-    del ghost_env
     total_discounted_cumulative_returns = np.zeros((num_envs))
     total_cumulative_returns = np.zeros((num_envs))
     discounted_cumulative_returns = np.zeros((num_envs))
