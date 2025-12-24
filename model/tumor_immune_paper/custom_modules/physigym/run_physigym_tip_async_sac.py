@@ -27,9 +27,6 @@ from wrapper_tip import PhysiCellModelWrapper
 from torch.multiprocessing import Event, Queue
 import queue
 
-torch.cuda._lazy_init()
-mp.set_start_method("spawn", force=True)
-
 
 # --------------------------------------------------------------
 # Helper: convert dict-of-arrays → PyG Batch (same as your original)
@@ -64,13 +61,14 @@ def actor_process(
     d_arg,
     stop_event,
     env_info_queue,
+    first_obs_queue,
 ):
     # One actor → one process → runs ALL vectorized envs
     envs = vec_envs(d_arg)
 
     begin_time = time.time()
     obs = envs.reset()
-
+    first_obs_queue.put(obs)
     # === Add generation config (requires ghost_env) ===
     d_arg_env = {
         # Spaces are exposed directly by VecEnv
@@ -94,7 +92,7 @@ def actor_process(
     env_info_queue.put(d_arg_env)  # I regive to my main process d_arg_env
 
     actor_local = Actor(
-        d_arg["env"], d_arg.get("neural_architecture_image", "impala")
+        d_arg_env, d_arg.get("neural_architecture_image", "impala")
     ).cpu()
     with torch.no_grad():
         _, _, _ = actor_local.get_action(obs)
@@ -200,7 +198,7 @@ def actor_process(
         pass
 
 
-def run_async_sac(self, d_arg):
+def run_async_sac(d_arg):
     device = torch.device(
         "cuda" if d_arg["simulation"]["cuda"] and torch.cuda.is_available() else "cpu"
     )
@@ -214,6 +212,7 @@ def run_async_sac(self, d_arg):
     sample_queue = mp.Queue(maxsize=1000)
     stats_queue = mp.Queue(maxsize=1000)
     env_info_queue = mp.Queue(maxsize=1)
+    first_obs_queue = mp.Queue(maxsize=1)
     stop_event = mp.Event()
 
     actor_proc = mp.Process(
@@ -225,9 +224,12 @@ def run_async_sac(self, d_arg):
             d_arg,
             stop_event,
             env_info_queue,
+            first_obs_queue,
         ),
         daemon=False,
     )
+    actor_proc.start()
+    first_obs = first_obs_queue.get()
     print("Waiting for env metadata from actor...")
     d_arg_env = env_info_queue.get()  # BLOCKS until actor sends
     d_arg["env"] = d_arg_env
@@ -243,22 +245,22 @@ def run_async_sac(self, d_arg):
         is_graph=d_arg_env["is_graph"],
     )
 
-    actor = Actor(self.d_arg_env, self.d_arg["neural_architecture_image"]).to(device)
-    qf1 = QNetwork(self.d_arg_env, self.d_arg["neural_architecture_image"]).to(device)
-    qf2 = QNetwork(self.d_arg_env, self.d_arg["neural_architecture_image"]).to(device)
+    actor = Actor(d_arg_env, d_arg["neural_architecture_image"]).to(device)
+    qf1 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(device)
+    qf2 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(device)
     # Networks
-    if self.d_arg_env["is_graph"]:
+    if d_arg_env["is_graph"]:
         graph = Data(
-            x=torch.tensor(self.first_obs["node_features"], dtype=torch.float32),
-            edge_index=torch.tensor(self.first_obs["edge_index"], dtype=torch.long),
-            edge_attr=torch.tensor(self.first_obs["edge_attr"], dtype=torch.float32),
+            x=torch.tensor(first_obs["node_features"], dtype=torch.float32),
+            edge_index=torch.tensor(first_obs["edge_index"], dtype=torch.long),
+            edge_attr=torch.tensor(first_obs["edge_attr"], dtype=torch.float32),
         )
         dummy_state = Batch.from_data_list([graph]).to(device)
     else:
-        dummy_state = torch.Tensor(self.first_obs).to(device).unsqueeze(0)
+        dummy_state = torch.Tensor(first_obs).to(device).unsqueeze(0)
 
     with torch.no_grad():
-        if self.d_arg_env["is_graph"]:
+        if d_arg_env["is_graph"]:
             actions_tensor, _, _ = actor.get_action(dummy_state)
         else:
             actions_tensor, _, _ = actor.get_action(dummy_state)
@@ -275,12 +277,12 @@ def run_async_sac(self, d_arg):
     actor_optimizer = optim.Adam(actor.parameters(), lr=d_arg["rl"]["policy_lr"])
     # Alpha (entropy)
     if d_arg["rl"]["autotune"]:
-        target_entropy = -float(np.prod(self.d_arg_env["action_space_shape"]))
+        target_entropy = -float(np.prod(d_arg_env["action_space_shape"]))
         log_alpha = torch.zeros(1, requires_grad=True, device=device)
         alpha_optim = optim.Adam([log_alpha], lr=d_arg["rl"]["q_lr"])
         alpha = log_alpha.exp().item()
     else:
-        alpha = float(self.d_arg["rl"]["alpha"])
+        alpha = float(d_arg["rl"]["alpha"])
 
     # send initial policy
     try:
@@ -456,6 +458,8 @@ def run_async_sac(self, d_arg):
 # Entry point
 # --------------------------------------------------------------
 if __name__ == "__main__":
+    mp.set_start_method(method="spawn", force=True)
+
     print("Starting asynchronous SAC for PhysiGym...")
 
     parser = argparse.ArgumentParser(
