@@ -185,8 +185,7 @@ def actor_process(
                 pass
 
         obs = next_obs
-        # small sleep to reduce busy loop (tunable)
-        time.sleep(0.0001)
+        time.sleep(0.001)
 
     # Clean up envs before process exit
     try:
