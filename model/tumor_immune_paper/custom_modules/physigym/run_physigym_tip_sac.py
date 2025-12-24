@@ -347,6 +347,11 @@ def run(
         state_type=envs.observation_space.dtype,
         is_graph=is_graph,
     )
+
+
+
+
+    
     total_discounted_cumulative_returns = np.zeros((num_envs))
     total_cumulative_returns = np.zeros((num_envs))
     discounted_cumulative_returns = np.zeros((num_envs))

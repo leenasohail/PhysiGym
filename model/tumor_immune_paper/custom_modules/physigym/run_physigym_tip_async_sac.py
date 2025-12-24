@@ -61,14 +61,12 @@ def actor_process(
     d_arg,
     stop_event,
     env_info_queue,
-    first_obs_queue,
 ):
     # One actor → one process → runs ALL vectorized envs
     envs = vec_envs(d_arg)
 
     begin_time = time.time()
     obs = envs.reset()
-    first_obs_queue.put(obs)
     # === Add generation config (requires ghost_env) ===
     d_arg_env = {
         # Spaces are exposed directly by VecEnv
@@ -88,7 +86,6 @@ def actor_process(
         # Model-side flag (not env-side)
         "is_graph": "graph" in d_arg["model"]["observation_mode"],
     }
-    d_arg["env"] = d_arg_env
     env_info_queue.put(d_arg_env)  # I regive to my main process d_arg_env
 
     actor_local = Actor(
@@ -212,7 +209,6 @@ def run_async_sac(d_arg):
     sample_queue = mp.Queue(maxsize=1000)
     stats_queue = mp.Queue(maxsize=1000)
     env_info_queue = mp.Queue(maxsize=1)
-    first_obs_queue = mp.Queue(maxsize=1)
     stop_event = mp.Event()
 
     actor_proc = mp.Process(
@@ -224,16 +220,12 @@ def run_async_sac(d_arg):
             d_arg,
             stop_event,
             env_info_queue,
-            first_obs_queue,
         ),
         daemon=False,
     )
     actor_proc.start()
-    first_obs = first_obs_queue.get()
-    print("Waiting for env metadata from actor...")
     d_arg_env = env_info_queue.get()  # BLOCKS until actor sends
     d_arg["env"] = d_arg_env
-    print("Received env metadata:", d_arg_env)
 
     rb = ReplayBuffer(
         state_dim=d_arg_env["observation_space_shape"],
@@ -250,14 +242,18 @@ def run_async_sac(d_arg):
     qf2 = QNetwork(d_arg_env, d_arg["neural_architecture_image"]).to(device)
     # Networks
     if d_arg_env["is_graph"]:
-        graph = Data(
-            x=torch.tensor(first_obs["node_features"], dtype=torch.float32),
-            edge_index=torch.tensor(first_obs["edge_index"], dtype=torch.long),
-            edge_attr=torch.tensor(first_obs["edge_attr"], dtype=torch.float32),
+        dummy_graph = Data(
+            x=torch.zeros((1, d_arg_env["node_feature_dim"]), dtype=torch.float32),
+            edge_index=torch.zeros((2, 1), dtype=torch.long),
+            edge_attr=torch.zeros((1, 1), dtype=torch.float32),
         )
-        dummy_state = Batch.from_data_list([graph]).to(device)
+        dummy_state = Batch.from_data_list([dummy_graph]).to(device)
     else:
-        dummy_state = torch.Tensor(first_obs).to(device).unsqueeze(0)
+        dummy_state = torch.zeros(
+            (1, *d_arg_env["observation_space_shape"]),
+            device=device,
+            dtype=torch.float32,
+        )
 
     with torch.no_grad():
         if d_arg_env["is_graph"]:
@@ -445,13 +441,6 @@ def run_async_sac(d_arg):
         writer.close()
         if d_arg["simulation"]["wandb_track"]:
             wandb.finish()
-
-        print("Training finished and cleaned up.")
-
-
-# --------------------------------------------------------------
-# Main learner + async runner
-# -------------------------------------------------------
 
 
 # --------------------------------------------------------------
