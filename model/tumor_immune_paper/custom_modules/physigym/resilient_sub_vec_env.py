@@ -1,14 +1,24 @@
 import multiprocessing as mp
 import numpy as np
-from stable_baselines.common.vec_env.base_vec_env import CloudpickleWrapper
-from stable_baselines3.common.vec_env import _worker, _flatten_obs, SubprocVecEnv
+
+from stable_baselines3.common.vec_env.subproc_vec_env import (
+    SubprocVecEnv,
+    _worker,
+    _stack_obs,
+)
+from stable_baselines3.common.vec_env.base_vec_env import CloudpickleWrapper
 
 
 class ResilientSubprocVecEnv(SubprocVecEnv):
     def __init__(self, env_fns, start_method="spawn"):
-        assert start_method == "spawn", "Use spawn for PhysiCell"
+        assert start_method == "spawn", "PhysiCell requires spawn"
+
         self.env_fns = env_fns
         super().__init__(env_fns, start_method=start_method)
+
+        # 🔧 Make remotes/processes mutable
+        self.remotes = list(self.remotes)
+        self.processes = list(self.processes)
 
     def _restart_env(self, i):
         print(f"[ResilientVecEnv] Restarting env {i}")
@@ -25,7 +35,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
             pass
 
         ctx = mp.get_context("spawn")
-        remote, work_remote = ctx.Pipe(duplex=True)
+        remote, work_remote = ctx.Pipe()
 
         proc = ctx.Process(
             target=_worker,
@@ -38,7 +48,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
         self.remotes[i] = remote
         self.processes[i] = proc
 
-        # sync spaces
+        # Sync spaces (SB3 expects this)
         remote.send(("get_spaces", None))
         remote.recv()
 
@@ -55,29 +65,39 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
                 reward = 0.0
                 done = True
                 info = {"not_crashed": False}
-                results.append((obs, reward, done, info))
+                results.append((obs, reward, done, info, reset_info))
 
-        obs, rews, dones, infos = zip(*results)
+        self.waiting = False
+        obs, rews, dones, infos, self.reset_infos = zip(*results)
+
         return (
-            _flatten_obs(obs, self.observation_space),
-            np.array(rews),
-            np.array(dones),
+            _stack_obs(obs, self.observation_space),
+            np.stack(rews),
+            np.stack(dones),
             infos,
         )
 
     def reset(self):
+        for env_idx, remote in enumerate(self.remotes):
+            try:
+                remote.send(("reset", (self._seeds[env_idx], self._options[env_idx])))
+            except Exception:
+                self._restart_env(env_idx)
+                remote = self.remotes[env_idx]
+                remote.send(("reset", (None, None)))
+
+        results = []
         for i, remote in enumerate(self.remotes):
             try:
-                remote.send(("reset", None))
+                results.append(remote.recv())
             except Exception:
                 self._restart_env(i)
+                obs = self.observation_space.sample()
+                reset_info = {}
+                results.append((obs, reset_info))
 
-        obs = []
-        for i, remote in enumerate(self.remotes):
-            try:
-                obs.append(remote.recv())
-            except Exception:
-                self._restart_env(i)
-                obs.append(self.observation_space.sample())
+        obs, self.reset_infos = zip(*results)
+        self._reset_seeds()
+        self._reset_options()
 
-        return _flatten_obs(obs, self.observation_space)
+        return _stack_obs(obs, self.observation_space)
