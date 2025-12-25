@@ -67,50 +67,56 @@ class PhysiCellModelWrapper(gym.Wrapper):
         os.makedirs(self.output_dir, exist_ok=True)
         self.frequency_save_data = frequency_save_data
         self.list_data = []
-        self.seed = None
+        self.seed = int(
+            self.env.get_wrapper_attr("x_root").xpath("//random_seed")[0].text
+        )
 
     @property
     def action_space(self):
         return self._action_space
 
     def save_data(self):
-        self.output_dir_episode = os.path.join(
-            self.output_dir, f"episode{str(self.env.unwrapped.episode).zfill(8)}"
-        )
-        os.makedirs(self.output_dir_episode, exist_ok=True)
-        episode = self.env.unwrapped.episode
-        df = pd.DataFrame(self.list_data)
-        df.to_csv(os.path.join(self.output_dir_episode, "data.csv"), index=False)
-        dst_path = os.path.join(
-            self.output_dir_episode, os.path.basename(self.generation_cfg["csv_path"])
-        )
-        shutil.copy(self.generation_cfg["csv_path"], dst_path)
-        self.list_data = []
-        self.output_dir_episode = os.path.join(
-            self.output_dir, f"episode{str(episode).zfill(8)}"
-        )
-        if episode % self.frequency_save_data == 0:
+        if self.frequency_save_data is not None:
+            self.output_dir_episode = os.path.join(
+                self.output_dir, f"episode{str(self.env.unwrapped.episode).zfill(8)}"
+            )
             os.makedirs(self.output_dir_episode, exist_ok=True)
-            # manipulate setting xml before reset
-            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
-                0
-            ].text = self.output_dir_episode
-            self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-                0
-            ].text = "true"
-            self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
-                0
-            ].text = "true"
+            episode = self.env.unwrapped.episode
+            df = pd.DataFrame(self.list_data)
+            df.to_csv(os.path.join(self.output_dir_episode, "data.csv"), index=False)
+            dst_path = os.path.join(
+                self.output_dir_episode,
+                os.path.basename(self.generation_cfg["csv_path"]),
+            )
+            shutil.copy(self.generation_cfg["csv_path"], dst_path)
+            self.list_data = []
+            self.output_dir_episode = os.path.join(
+                self.output_dir, f"episode{str(episode).zfill(8)}"
+            )
+            if episode % self.frequency_save_data == 0:
+                os.makedirs(self.output_dir_episode, exist_ok=True)
+                # manipulate setting xml before reset
+                self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
+                    0
+                ].text = self.output_dir_episode
+                self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+                    0
+                ].text = "true"
+                self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                    0
+                ].text = "true"
+            else:
+                self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
+                    0
+                ].text = os.path.join(self.output_dir, "devnull")
+                self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
+                    0
+                ].text = "false"
+                self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
+                    0
+                ].text = "false"
         else:
-            self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
-                0
-            ].text = os.path.join(self.output_dir, "devnull")
-            self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-                0
-            ].text = "false"
-            self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
-                0
-            ].text = "false"
+            None
 
     def step(self, action: np.ndarray):
         d_action = {
@@ -147,18 +153,34 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
         return obs, reward, terminated, truncated, info
 
-    def reset(self, options={}, generation_cfg={}, **kwargs):
-        generation_cfg["csv_path"] = self.csv_path_init
-        if self.generation_cfg is None:
-            self.generation_cfg = generation_cfg
-            self.generation_cfg["x_min"] = self.env.unwrapped.x_min
-            self.generation_cfg["y_min"] = self.env.unwrapped.y_min
-            self.generation_cfg["x_max"] = self.env.unwrapped.x_max
-            self.generation_cfg["y_max"] = self.env.unwrapped.y_max
-            self.seed = self.generation_cfg["seed"]
+    def process_update_generation_cfg(self, generation_cfg=None):
+        if self.generation_cfg is not None:
+            self.generation_cfg["seed"] += self.env.unwrapped.episode
+            self.generation_cfg["csv_path"] = self.csv_path_init
+            create_csv(**self.generation_cfg)
+        else:
+            if generation_cfg is not None and self.generation_cfg is None:
+                self.generation_cfg = generation_cfg.copy()
 
-        self.generation_cfg["seed"] += self.env.unwrapped.episode
-        create_csv(**self.generation_cfg)
-        if self.frequency_save_data is not None:
-            self.save_data()
-        return self.env.reset(seed=self.seed, options=options, **kwargs)
+                # complete spatial bounds from env
+                self.generation_cfg["x_min"] = self.env.unwrapped.x_min
+                self.generation_cfg["y_min"] = self.env.unwrapped.y_min
+                self.generation_cfg["x_max"] = self.env.unwrapped.x_max
+                self.generation_cfg["y_max"] = self.env.unwrapped.y_max
+
+                # ensure seed exists
+                self.generation_cfg.setdefault("seed", self.seed)
+
+    def reset(self, seed=None, options=None, generation_cfg=None, **kwargs):
+        if options is None:
+            options = {}
+
+        if seed is not None:
+            self.seed = seed
+
+        self.process_update_generation_cfg(generation_cfg)
+
+        self.save_data()
+
+        # ---- IMPORTANT: forward seed, do not invent one ----
+        return self.env.reset(seed=seed, options=options)
