@@ -24,6 +24,7 @@ import time
 from tqdm import tqdm
 
 from stable_baselines3.common.vec_env import SubprocVecEnv
+from resilient_sub_vec_env import ResilientSubprocVecEnv
 from wrapper_tip import PhysiCellModelWrapper
 import sys
 import faulthandler
@@ -140,8 +141,8 @@ def make_physigym_env(env_id: int, cfg: dict):
         # Wrap it for simplified action and custom reward
         env = PhysiCellModelWrapper(env, **wrapper_cfg)
 
-        generation_cfg["seed"] = int(rng.integers(0, 2**32 - 1)) + env_id
-        env.reset(seed=generation_cfg["seed"], generation_cfg=generation_cfg)
+        generation_cfg["seed"] = int(rng.integers(0, 2**12 - 1)) + env_id
+        env.reset(generation_cfg=generation_cfg)
 
         return env
 
@@ -163,7 +164,9 @@ def vec_envs(cfg: dict):
 
     env_fns = [make_physigym_env(i, cfg) for i in range(num_envs)]
 
-    return SubprocVecEnv(env_fns=env_fns, start_method="spawn")
+    return ResilientSubprocVecEnv(
+        env_fns=env_fns, start_method="spawn"
+    )  # SubprocVecEnv(env_fns=env_fns, start_method="spawn")
 
 
 def test_vec_env(cfg: dict):

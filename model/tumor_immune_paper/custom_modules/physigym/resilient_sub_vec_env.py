@@ -65,6 +65,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
                 reward = 0.0
                 done = True
                 info = {"not_crashed": False}
+                reset_info = {"crashed": True}
                 results.append((obs, reward, done, info, reset_info))
 
         self.waiting = False
