@@ -54,7 +54,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
                 obs = self.observation_space.sample()
                 reward = 0.0
                 done = True
-                info = {"crashed": True}
+                info = {"not_crashed": False}
                 results.append((obs, reward, done, info))
 
         obs, rews, dones, infos = zip(*results)

@@ -156,7 +156,7 @@ def actor_process(
                 )
 
             # send stats if episode ended
-            if dones[i]:
+            if dones[i] and infos[i].get("not_crashed", True):
                 stats = {
                     "episode_return": float(episode_returns[i]),
                     "episode_discounted_return": float(episode_discounted_returns[i]),
@@ -169,16 +169,17 @@ def actor_process(
                 except queue.Full:
                     # drop a stat if main can't keep up
                     pass
-
+            if dones[i]:
                 # reset counters for that env (envs.reset() should also have reset it internally)
                 episode_returns[i] = 0.0
                 episode_discounted_returns[i] = 0
 
             # send sample; use non-blocking to avoid actor stall
             try:
-                sample_queue.put_nowait(
-                    (o, actions[i], float(rewards[i]), no, bool(dones[i]))
-                )
+                if infos[i].get("not_crashed", True):
+                    sample_queue.put_nowait(
+                        (o, actions[i], float(rewards[i]), no, bool(dones[i]))
+                    )
             except queue.Full:
                 # if sample queue is full, drop sample (or implement backpressure)
                 # dropping occasionally is safer than blocking the actor indefinitely
