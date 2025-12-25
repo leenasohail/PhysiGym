@@ -347,8 +347,8 @@ def run_async_sac(d_arg):
                 continue
             else:
                 learning_steps += 1
-            K = 3
-            for _ in range(K):
+
+            for _ in range(d_arg["rl"]["num_loops"]):
                 # 3) Sample batch and do SAC updates
                 batch = rb.sample()
                 next_state = batch["next_state"]
@@ -447,54 +447,97 @@ def run_async_sac(d_arg):
 # Entry point
 # --------------------------------------------------------------
 if __name__ == "__main__":
-    mp.set_start_method(method="spawn", force=True)
-
     print("Starting asynchronous SAC for PhysiGym...")
 
     parser = argparse.ArgumentParser(
-        prog="run physigym episodes",
+        prog="run_physigym_episodes",
         description="Asynchronous SAC with PhysiCell + PyG graph support",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # === All your original arguments ===
+    # === File / Environment Settings ===
     parser.add_argument(
-        "--settingxml", nargs="?", default="config/PhysiCell_settings.xml"
+        "--settingxml",
+        default="config/PhysiCell_settings.xml",
+        help="Path to PhysiCell settings XML file",
     )
-    parser.add_argument("--settingcells", nargs="?", default="config/cells.csv")
-    parser.add_argument("--seed", nargs="?", default="5")
     parser.add_argument(
-        "--observation_mode", nargs="?", default="img_mc_cells"
-    )  # change default if you want
-    parser.add_argument("--render_mode", nargs="?", default="None")
-    parser.add_argument("--max_time_episode", type=float, nargs="?", default=12900.0)
-    parser.add_argument("--learning_starts", type=int, nargs="?", default=int(5000))
-    parser.add_argument("--total_timesteps", type=int, nargs="?", default=int(6e4))
-    parser.add_argument("--gpu", nargs="?", default="true")
-    parser.add_argument("--name", nargs="?", default="async_sac_tip")
-    parser.add_argument("--wandb", nargs="?", default="true")
-    parser.add_argument("--entity", nargs="?", default="corporate-manu-sureli")
+        "--settingcells", default="config/cells.csv", help="Path to initial cell CSV"
+    )
+    parser.add_argument("--seed", type=int, default=5, help="Random seed")
+    parser.add_argument("--render_mode", default="None", help="Rendering mode")
+    parser.add_argument("--gpu", type=str, default="true", help="Use GPU? (true/false)")
+
+    # === Observation & Neural Network ===
+    parser.add_argument(
+        "--observation_mode",
+        default="img_mc_cells",
+        help="Observation mode for RL agent",
+    )
+    parser.add_argument(
+        "--neural_architecture_image",
+        default="impala",
+        help="Neural network architecture for image input",
+    )
+
+    # === Training / RL Settings ===
+    parser.add_argument(
+        "--max_time_episode", type=float, default=12900.0, help="Max time per episode"
+    )
+    parser.add_argument(
+        "--learning_starts", type=int, default=5000, help="Steps before learning starts"
+    )
+    parser.add_argument(
+        "--total_timesteps",
+        type=int,
+        default=int(1e5),
+        help="Total timesteps for training",
+    )
+    parser.add_argument(
+        "--rl_threads", type=int, default=4, help="Number of RL threads"
+    )
+    parser.add_argument(
+        "--num_envs", type=int, default=6, help="Parallel PhysiCell instances"
+    )
+    parser.add_argument(
+        "--buffer_size", type=int, default=int(1e5), help="Replay buffer size"
+    )
+    parser.add_argument(
+        "--batch_size_multiplier",
+        type=int,
+        default=64,
+        help="Batch size multiplier for training",
+    )
+
+    # === Experiment Metadata ===
+    parser.add_argument("--name", default="async_sac_tip", help="Experiment name")
+    parser.add_argument(
+        "--wandb", default="true", help="Log to Weights & Biases? (true/false)"
+    )
+    parser.add_argument(
+        "--entity", default="corporate-manu-sureli", help="WandB entity name"
+    )
+
+    # === Initialization & Cells ===
     parser.add_argument(
         "--init_mode",
         nargs="+",
         default=["circular_mode", "asymmetric_mode", "connected_mst_mode"],
+        help="Initial cell configuration modes",
     )
-    parser.add_argument("--tumor", type=int, nargs="?", default=512)
-    parser.add_argument("--cell_1", type=int, nargs="?", default=128)
-    parser.add_argument("--cell_2_fraction", type=float, nargs="?", default=None)
+    parser.add_argument("--tumor", type=int, default=512, help="Initial tumor size")
+    parser.add_argument("--cell_1", type=int, default=128, help="Number of cell type 1")
     parser.add_argument(
-        "--num_envs", type=int, nargs="?", default=4
-    )  # total parallel PhysiCell instances
-    parser.add_argument("--s_frequency_save_data", type=int, nargs="?", default=None)
-    parser.add_argument(
-        "--neural_architecture_image", type=str, nargs="?", default="impala"
+        "--cell_2_fraction", type=float, default=None, help="Fraction of cell type 2"
     )
-    parser.add_argument("--rl_threads", type=int, nargs="?", default=4)
-
-    args = parser.add_argument("--buffer_size", type=int, nargs="?", default=int(1e6))
-    parser.add_argument("--batch_size_multiplier", type=int, nargs="?", default=64)
+    parser.add_argument(
+        "--s_frequency_save_data",
+        type=int,
+        default=None,
+        help="Frequency of saving simulation data",
+    )
 
     args = parser.parse_args()
-    print("Arguments:", args)
 
     # === Build d_arg exactly like your original run() function ===
     i_seed = None if str(args.seed).lower() == "none" else int(args.seed)
@@ -564,6 +607,7 @@ if __name__ == "__main__":
         "q_lr": 3e-4,
         "policy_lr": 3e-4,
         "gamma": 0.99,
+        "num_loops": 3,
     }
 
     d_arg_vect = {
