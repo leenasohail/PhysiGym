@@ -498,7 +498,7 @@ def run(
         # recording episode to tensorboard
         scalars = {}
         for i in range(num_envs):
-            if b_dones[i]:
+            if b_dones[i] and infos[i].get("not_crashed", True):
                 # scalars[f"charts/env_{i}_discounted_cumulative_return"] = discounted_cumulative_returns[i]
                 # scalars[f"charts/env_{i}_cumulative_return"] = cumulative_returns[i]
                 total_discounted_cumulative_returns[i] = discounted_cumulative_returns[
@@ -680,8 +680,6 @@ if __name__ == "__main__":
 
     # parse arguments
     args = parser.parse_args()
-    print(args)
-
     # processing
     run(
         s_settingxml=args.settingxml,

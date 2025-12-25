@@ -545,11 +545,6 @@ if __name__ == "__main__":
     b_wandb = args.wandb.lower().startswith("t")
     s_render_mode = None if args.render_mode.lower() == "none" else args.render_mode
 
-    if args.cell_2_fraction is None:
-        r_cell_2_fraction = [0.0, 0.25, 0.5, 0.75, 1.0]
-    else:
-        r_cell_2_fraction = [args.cell_2_fraction]
-
     d_arg_simulation = {
         "name": args.name,
         "cuda": b_gpu,
@@ -629,7 +624,9 @@ if __name__ == "__main__":
 
     d_arg_generation = {
         "params": params,
-        "cell_2_fraction": r_cell_2_fraction,
+        "cell_2_fraction": [args.cell_2_fraction]
+        if args.cell_2_fraction is not None
+        else [0.0, 0.25, 0.5, 0.75, 1.0],
         "seed": d_arg_simulation["seed"],
     }
     # === Final d_arg ===
