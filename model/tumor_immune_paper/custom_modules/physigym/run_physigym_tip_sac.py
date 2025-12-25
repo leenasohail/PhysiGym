@@ -348,10 +348,6 @@ def run(
         is_graph=is_graph,
     )
 
-
-
-
-    
     total_discounted_cumulative_returns = np.zeros((num_envs))
     total_cumulative_returns = np.zeros((num_envs))
     discounted_cumulative_returns = np.zeros((num_envs))
@@ -378,27 +374,28 @@ def run(
         # physigym step
         o_observations_next, r_rewards, b_dones, infos = envs.step(a_actions)
         for i in range(num_envs):
-            obs_i = (
-                {k: v[i] for k, v in o_observations.items()}
-                if is_graph
-                else o_observations[i]
-            )
-            next_obs_i = (
-                {k: v[i] for k, v in o_observations_next.items()}
-                if is_graph
-                else o_observations_next[i]
-            )
-            rb.add(
-                state=obs_i,
-                action=a_actions[i],
-                next_state=next_obs_i,
-                reward=r_rewards[i],
-                done=b_dones[i],
-            )
-            discounted_cumulative_returns[i] += (
-                r_rewards[i] * d_arg["rl"]["gamma"] ** (infos[i]["step_episode"])
-            )
-            cumulative_returns[i] += r_rewards[i]
+            if infos[i].get("not_crashed", True):
+                obs_i = (
+                    {k: v[i] for k, v in o_observations.items()}
+                    if is_graph
+                    else o_observations[i]
+                )
+                next_obs_i = (
+                    {k: v[i] for k, v in o_observations_next.items()}
+                    if is_graph
+                    else o_observations_next[i]
+                )
+                rb.add(
+                    state=obs_i,
+                    action=a_actions[i],
+                    next_state=next_obs_i,
+                    reward=r_rewards[i],
+                    done=b_dones[i],
+                )
+                discounted_cumulative_returns[i] += (
+                    r_rewards[i] * d_arg["rl"]["gamma"] ** (infos[i]["step_episode"])
+                )
+                cumulative_returns[i] += r_rewards[i]
 
         pbar.update(global_step - pbar.n)
         pbar.set_postfix(
