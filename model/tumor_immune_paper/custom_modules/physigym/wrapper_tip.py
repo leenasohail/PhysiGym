@@ -130,11 +130,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         info["action"] = d_action
         info["step_episode"] = self.env.unwrapped.step_episode
 
-        reward = (
-            -(1 - self.weight) * r_drugs
-            + self.weight * r_cancer_cells
-            - 100 * terminated * (self.env.unwrapped.c_t != 0)
-        )
+        reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
 
         # reward = np.clip(reward, -1,1)
         if self.frequency_save_data is not None:
