@@ -73,8 +73,8 @@ def actor_process(
         "action_space_shape": envs.action_space.shape,
         "observation_space_shape": envs.observation_space.shape,
         # Custom env attributes → get_attr (take env 0)
-        "observation_mode": envs.get_attr("observation_mode")[0],
-        "node_feature_dim": envs.get_attr("node_feature_dim")[0],
+        "observation_mode": d_arg["model"]["observation_mode"],
+        "node_feature_dim": envs.get_attr("node_dim")[0],
         "x_min": envs.get_attr("x_min")[0],
         "x_max": envs.get_attr("x_max")[0],
         "y_min": envs.get_attr("y_min")[0],
@@ -91,7 +91,10 @@ def actor_process(
     actor_local = Actor(
         d_arg_env, d_arg.get("neural_architecture_image", "impala")
     ).cpu()
-    with torch.no_grad():
+    if d_arg_env["is_graph"]:
+        obs = obs_to_pyg(obs, "cpu")
+    else:
+        obs = torch.from_numpy(obs).cpu()
         _, _, _ = actor_local.get_action(obs)
     actor_local.eval()
     num_envs = envs.num_envs
@@ -638,6 +641,7 @@ if __name__ == "__main__":
         "wrapper": d_arg_physigym_wrapper,
         "model": d_arg_physigym_model,
         "neural_architecture_image": args.neural_architecture_image,  # passed to Actor/QNetwork
+        "generation": d_arg_generation,
     }
 
     # === LAUNCH! ===
