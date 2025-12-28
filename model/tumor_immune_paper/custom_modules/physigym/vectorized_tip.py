@@ -214,7 +214,6 @@ def test_run_vectorized(cfg: dict):
     base_cells = model_cfg["settingcells"]
     model_cfg_copy = model_cfg.copy()
     vect_cfg["threads_per_env"] = 28
-    threads_per_env = 28
     seed = sim_cfg["seed"]
     env_id = 0
     master_seed = seed if seed is not None else 42
@@ -228,10 +227,6 @@ def test_run_vectorized(cfg: dict):
     if model_cfg_copy["output_dir"] is None:
         model_cfg_copy["output_dir"] = "output"
     del model_cfg_copy["settingcells"]
-    rl_threads = vect_cfg["rl_threads"]
-    envs = make_physigym_env(0, cfg)
-
-    assign_cpu_affinity(env_id, threads_per_env=28, offset_threads=rl_threads)
 
     # Modify XML for this env
     tree = etree.parse(env_xml)

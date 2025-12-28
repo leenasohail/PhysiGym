@@ -75,6 +75,10 @@ class PhysiCellModelWrapper(gym.Wrapper):
     def action_space(self):
         return self._action_space
 
+    @property
+    def observation_mode(self):
+        return self.env.unwrapped.observation_mode
+
     def save_data(self):
         if self.frequency_save_data is not None:
             self.output_dir_episode = os.path.join(
