@@ -159,7 +159,7 @@ def actor_process(
                 )
 
             # send stats if episode ended
-            if dones[i] and infos[i].get("not_crashed", True):
+            if dones[i] and not infos[i].get("disabled", False):
                 stats = {
                     "episode_return": float(episode_returns[i]),
                     "episode_discounted_return": float(episode_discounted_returns[i]),
@@ -179,7 +179,7 @@ def actor_process(
 
             # send sample; use non-blocking to avoid actor stall
             try:
-                if infos[i].get("not_crashed", True):
+                if not infos[i].get("disabled", True):
                     sample_queue.put_nowait(
                         (o, actions[i], float(rewards[i]), no, bool(dones[i]))
                     )
@@ -420,7 +420,7 @@ def run_async_sac(d_arg):
                         )
 
             # Periodically send new policy to actors
-            if learning_steps % 256 == 0:
+            if learning_steps % 16 == 0:
                 try:
                     actor_queue.put_nowait(
                         {k: v.detach().cpu() for k, v in actor.state_dict().items()}

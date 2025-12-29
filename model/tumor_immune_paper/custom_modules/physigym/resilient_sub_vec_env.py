@@ -1,5 +1,6 @@
 import multiprocessing as mp
 import numpy as np
+from typing import Set
 
 from stable_baselines3.common.vec_env.subproc_vec_env import (
     SubprocVecEnv,
@@ -10,18 +11,34 @@ from stable_baselines3.common.vec_env.base_vec_env import CloudpickleWrapper
 
 
 class ResilientSubprocVecEnv(SubprocVecEnv):
+    """
+    SubprocVecEnv variant that permanently disables crashing environments
+    instead of restarting them (PhysiCell-safe).
+    """
+
     def __init__(self, env_fns, start_method="spawn"):
         assert start_method == "spawn", "PhysiCell requires spawn"
 
         self.env_fns = env_fns
+        self.dead_envs: Set[int] = set()
+
         super().__init__(env_fns, start_method=start_method)
 
-        # 🔧 Make remotes/processes mutable
+        # Make mutable
         self.remotes = list(self.remotes)
         self.processes = list(self.processes)
 
-    def _restart_env(self, i):
-        print(f"[ResilientVecEnv] Restarting env {i}")
+    # ------------------------------------------------------------------
+    # Crash handling
+    # ------------------------------------------------------------------
+
+    def _disable_env(self, i: int):
+        if i in self.dead_envs:
+            return
+
+        print(f"[ResilientVecEnv] Disabling env {i}")
+
+        self.dead_envs.add(i)
 
         try:
             if self.processes[i].is_alive():
@@ -34,39 +51,52 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
         except Exception:
             pass
 
-        ctx = mp.get_context("spawn")
-        remote, work_remote = ctx.Pipe()
+    # ------------------------------------------------------------------
+    # Step
+    # ------------------------------------------------------------------
 
-        proc = ctx.Process(
-            target=_worker,
-            args=(work_remote, remote, CloudpickleWrapper(self.env_fns[i])),
-            daemon=True,
-        )
-        proc.start()
-        work_remote.close()
-
-        self.remotes[i] = remote
-        self.processes[i] = proc
-
-        # Sync spaces (SB3 expects this)
-        remote.send(("get_spaces", None))
-        remote.recv()
+    def step_async(self, actions):
+        for i, (remote, action) in enumerate(zip(self.remotes, actions)):
+            if i in self.dead_envs:
+                continue
+            remote.send(("step", action))
+        self.waiting = True
 
     def step_wait(self):
         results = []
 
         for i, remote in enumerate(self.remotes):
+            if i in self.dead_envs:
+                obs = self.observation_space.sample()
+                reward = 0.0
+                done = True
+
+                info = {
+                    "crashed": True,
+                    "disabled": True,
+                    "terminal_observation": obs,
+                    "step_episode": -1,
+                }
+
+                results.append((obs, reward, done, info, info))
+                continue
+
             try:
                 results.append(remote.recv())
             except (EOFError, BrokenPipeError):
-                self._restart_env(i)
+                self._disable_env(i)
 
                 obs = self.observation_space.sample()
                 reward = 0.0
                 done = True
-                info = {"not_crashed": False}
-                reset_info = {"crashed": True}
-                results.append((obs, reward, done, info, reset_info))
+
+                info = {
+                    "crashed": True,
+                    "disabled": True,
+                    "step_episode": -1,
+                }
+
+                results.append((obs, reward, done, info, info))
 
         self.waiting = False
         obs, rews, dones, infos, self.reset_infos = zip(*results)
@@ -78,23 +108,39 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
             infos,
         )
 
+    # ------------------------------------------------------------------
+    # Reset
+    # ------------------------------------------------------------------
+
     def reset(self):
-        for env_idx, remote in enumerate(self.remotes):
-            try:
-                remote.send(("reset", (self._seeds[env_idx], self._options[env_idx])))
-            except Exception:
-                self._restart_env(env_idx)
-                remote = self.remotes[env_idx]
-                remote.send(("reset", (None, None)))
+        for i, remote in enumerate(self.remotes):
+            if i in self.dead_envs:
+                continue
+            remote.send(("reset", (self._seeds[i], self._options[i])))
 
         results = []
         for i, remote in enumerate(self.remotes):
+            if i in self.dead_envs:
+                obs = self.observation_space.sample()
+                reset_info = {
+                    "crashed": True,
+                    "disabled": True,
+                    "step_episode": -1,
+                }
+                results.append((obs, reset_info))
+                continue
+
             try:
                 results.append(remote.recv())
-            except Exception:
-                self._restart_env(i)
+            except (EOFError, BrokenPipeError):
+                self._disable_env(i)
+
                 obs = self.observation_space.sample()
-                reset_info = {}
+                reset_info = {
+                    "crashed": True,
+                    "disabled": True,
+                    "step_episode": -1,
+                }
                 results.append((obs, reset_info))
 
         obs, self.reset_infos = zip(*results)
