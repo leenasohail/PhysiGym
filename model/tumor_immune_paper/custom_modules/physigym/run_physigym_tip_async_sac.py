@@ -179,7 +179,7 @@ def actor_process(
 
             # send sample; use non-blocking to avoid actor stall
             try:
-                if not infos[i].get("disabled", True):
+                if not infos[i].get("disabled", False):
                     sample_queue.put_nowait(
                         (o, actions[i], float(rewards[i]), no, bool(dones[i]))
                     )
