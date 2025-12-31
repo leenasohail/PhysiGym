@@ -135,6 +135,22 @@ def actor_process(
 
         # Step envs
         next_obs, rewards, dones, infos = envs.step(actions)
+        if all(info.get("disabled", False) for info in infos):
+            print("[Actor] All envs dead — restarting VecEnv")
+
+            try:
+                envs.close()
+                
+            except Exception:
+                pass
+            del envs
+            envs = vec_envs(d_arg)
+            obs = envs.reset()
+
+            num_envs = envs.num_envs
+            episode_returns = np.zeros(num_envs, dtype=np.float64)
+            episode_discounted_returns = np.zeros(num_envs, dtype=np.float64)
+
         info_step_episode = np.array(
             [infos[i]["step_episode"] for i in range(num_envs)]
         )
@@ -312,9 +328,9 @@ def run_async_sac(d_arg):
         learning_steps = 0
         while learning_steps < total:
             pbar.update(learning_steps - pbar.n)
-
+            buffer_size = len(rb)
             # Update postfix info
-            pbar.set_postfix({"rb": len(rb)})
+            pbar.set_postfix({"rb": buffer_size})
             # 1) Drain sample_queue into replay buffer until we've reached learning_starts
             while not sample_queue.empty() and drained < total:
                 try:
@@ -336,6 +352,7 @@ def run_async_sac(d_arg):
                     "charts/length": stat["episode_length"],
                     "charts/step": stat["step"],
                     "charts/timestamp": stat["timestamp"],
+                    "charts/rb_size": buffer_size,
                 }
                 if d_arg["simulation"]["wandb_track"]:
                     run.log(log_dict)
@@ -420,7 +437,7 @@ def run_async_sac(d_arg):
                         )
 
             # Periodically send new policy to actors
-            if learning_steps % 16 == 0:
+            if learning_steps % 64 == 0:
                 try:
                     actor_queue.put_nowait(
                         {k: v.detach().cpu() for k, v in actor.state_dict().items()}
@@ -493,17 +510,17 @@ if __name__ == "__main__":
     parser.add_argument(
         "--total_timesteps",
         type=int,
-        default=int(1e5),
+        default=int(5e5),
         help="Total timesteps for training",
     )
     parser.add_argument(
-        "--rl_threads", type=int, default=4, help="Number of RL threads"
+        "--rl_threads", type=int, default=3, help="Number of RL threads"
     )
     parser.add_argument(
-        "--num_envs", type=int, default=6, help="Parallel PhysiCell instances"
+        "--num_envs", type=int, default=9, help="Parallel PhysiCell instances"
     )
     parser.add_argument(
-        "--buffer_size", type=int, default=int(1e5), help="Replay buffer size"
+        "--buffer_size", type=int, default=int(3e5), help="Replay buffer size"
     )
     parser.add_argument(
         "--batch_size_multiplier",
@@ -641,7 +658,7 @@ if __name__ == "__main__":
         "wrapper": d_arg_physigym_wrapper,
         "model": d_arg_physigym_model,
         "neural_architecture_image": args.neural_architecture_image,  # passed to Actor/QNetwork
-        "generation": d_arg_generation,
+        "generation":d_arg_generation
     }
 
     # === LAUNCH! ===
