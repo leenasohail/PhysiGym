@@ -59,7 +59,7 @@
     <options>
         <legacy_random_points_on_sphere_in_divide>false</legacy_random_points_on_sphere_in_divide>
         <virtual_wall_at_domain_edge>true</virtual_wall_at_domain_edge>
-        <random_seed>system_clock</random_seed>
+        <random_seed>5</random_seed>
     </options>
 
     <microenvironment_setup>

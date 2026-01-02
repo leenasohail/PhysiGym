@@ -21,16 +21,16 @@
 # library
 from extending import physicell
 from gymnasium import spaces
+from gymnasium.spaces.graph import GraphInstance
 import matplotlib.pyplot as plt
+from matplotlib import cm
+from matplotlib import colors
 import numpy as np
 import os
 import pandas as pd
 from physigym.envs.physicell_core import CorePhysiCellEnv
 import skimage as ski
 from tysserand import tysserand as ty
-import matplotlib
-
-matplotlib.use("Agg")
 
 
 # function
@@ -95,6 +95,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # check render mode
         if observation_mode == "img_rgb" and render_mode == None:
             render_mode = "rgb_array"
+        self.observation_mode = observation_mode
         self.max_nodes = 2000  #  choose based on your env
         self.max_edges = 7500  #  number of Delaunay edges worst case
         self.node_dim = 1
@@ -597,7 +598,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             truncated (the episode reached the max time limit).
         """
         # model dependent terminated processing logic goes here!
-        return True if (self.c_t == 0) or (self.c_t > 1536) else False
+        return True if (self.c_t == 0) else False  # or (self.c_t > 1536)
 
     def get_reset_values(self):
         """
@@ -679,15 +680,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             alpha=1 / 3,
         )
 
-        # pro-inflammatory factor
+        # pro-tumoral factor
         df_conc = pd.DataFrame(
-            physicell.get_microenv("pro-inflammatory factor"),
-            columns=["x", "y", "z", "pro-inflammatory factor"],
+            physicell.get_microenv("pro-tumoral factor"),
+            columns=["x", "y", "z", "pro-tumoral factor"],
         )
         df_conc = df_conc.loc[df_conc.z == 0.0, :]
-        df_mesh = df_conc.pivot(
-            index="y", columns="x", values="pro-inflammatory factor"
-        )
+        df_mesh = df_conc.pivot(index="y", columns="x", values="pro-tumoral factor")
         ax.contourf(
             df_mesh.columns,
             df_mesh.index,
@@ -698,15 +697,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             alpha=1 / 3,
         )
 
-        # anti-inflammatory factor
+        # anti-tumoral factor
         df_conc = pd.DataFrame(
-            physicell.get_microenv("anti-inflammatory factor"),
-            columns=["x", "y", "z", "anti-inflammatory factor"],
+            physicell.get_microenv("anti-tumoral factor"),
+            columns=["x", "y", "z", "anti-tumoral factor"],
         )
         df_conc = df_conc.loc[df_conc.z == 0.0, :]
-        df_mesh = df_conc.pivot(
-            index="y", columns="x", values="anti-inflammatory factor"
-        )
+        df_mesh = df_conc.pivot(index="y", columns="x", values="anti-tumoral factor")
         ax.contourf(
             df_mesh.columns,
             df_mesh.index,

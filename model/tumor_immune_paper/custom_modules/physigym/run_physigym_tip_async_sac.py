@@ -99,7 +99,6 @@ def actor_process(
     actor_local.eval()
     num_envs = envs.num_envs
     episode_returns = np.zeros(num_envs, dtype=np.float64)
-    episode_discounted_returns = np.zeros(num_envs, dtype=np.float64)
     local_step = 0
     while not stop_event.is_set():
         # Try to fetch a new policy (non-blocking)
@@ -140,7 +139,7 @@ def actor_process(
 
             try:
                 envs.close()
-                
+
             except Exception:
                 pass
             del envs
@@ -149,17 +148,10 @@ def actor_process(
 
             num_envs = envs.num_envs
             episode_returns = np.zeros(num_envs, dtype=np.float64)
-            episode_discounted_returns = np.zeros(num_envs, dtype=np.float64)
 
-        info_step_episode = np.array(
-            [infos[i]["step_episode"] for i in range(num_envs)]
-        )
         # Bookkeeping per-env
         episode_returns += rewards.astype(np.float64)
-        episode_discounted_returns += d_arg["rl"]["gamma"] ** (
-            info_step_episode
-        ) * rewards.astype(np.float64)
-        local_step += 1
+        local_step += envs.num_envs
 
         # Push transitions (vectorized batch -> individual transitions)
         for i in range(num_envs):
@@ -178,7 +170,6 @@ def actor_process(
             if dones[i] and not infos[i].get("disabled", False):
                 stats = {
                     "episode_return": float(episode_returns[i]),
-                    "episode_discounted_return": float(episode_discounted_returns[i]),
                     "episode_length": int(infos[i]["step_episode"]),
                     "step": int(local_step),
                     "timestamp": time.time() - begin_time,
@@ -191,8 +182,6 @@ def actor_process(
             if dones[i]:
                 # reset counters for that env (envs.reset() should also have reset it internally)
                 episode_returns[i] = 0.0
-                episode_discounted_returns[i] = 0
-
             # send sample; use non-blocking to avoid actor stall
             try:
                 if not infos[i].get("disabled", False):
@@ -325,12 +314,9 @@ def run_async_sac(d_arg):
         pbar = tqdm(total=total)
 
         drained = 0
-        learning_steps = 0
-        while learning_steps < total:
-            pbar.update(learning_steps - pbar.n)
-            buffer_size = len(rb)
-            # Update postfix info
-            pbar.set_postfix({"rb": buffer_size})
+        grad_steps = 0
+        while drained < total:
+            pbar.update(drained - pbar.n)
             # 1) Drain sample_queue into replay buffer until we've reached learning_starts
             while not sample_queue.empty() and drained < total:
                 try:
@@ -346,13 +332,15 @@ def run_async_sac(d_arg):
                     stat = stats_queue.get_nowait()
                 except queue.Empty:
                     break
+
                 log_dict = {
                     "charts/return": stat["episode_return"],
-                    "charts/discounted_return": stat["episode_discounted_return"],
                     "charts/length": stat["episode_length"],
                     "charts/step": stat["step"],
                     "charts/timestamp": stat["timestamp"],
-                    "charts/rb_size": buffer_size,
+                    "charts/grad_steps": grad_steps,
+                    "charts/buffer_size": len(rb),
+                    "charts/samples_drained": drained,
                 }
                 if d_arg["simulation"]["wandb_track"]:
                     run.log(log_dict)
@@ -365,8 +353,6 @@ def run_async_sac(d_arg):
             if drained < max(d_arg["rl"]["learning_starts"], d_arg["rl"]["batch_size"]):
                 time.sleep(0.1)
                 continue
-            else:
-                learning_steps += 1
 
             for _ in range(d_arg["rl"]["num_loops"]):
                 # 3) Sample batch and do SAC updates
@@ -398,9 +384,10 @@ def run_async_sac(d_arg):
                 q_optimizer.zero_grad()
                 qf_loss.backward()
                 q_optimizer.step()
+                grad_steps += 1
 
                 # Policy & alpha update
-                if drained % d_arg["rl"]["policy_frequency"] == 0:
+                if grad_steps % d_arg["rl"]["policy_frequency"] == 0:
                     for _ in range(d_arg["rl"]["policy_frequency"]):
                         actions, log_pi, _ = actor.get_action(state)
                         q1_pi = qf1(state, actions)
@@ -422,7 +409,7 @@ def run_async_sac(d_arg):
                             alpha = log_alpha.exp().item()
 
                 # Soft-update targets periodically (frequency param controls how often)
-                if drained % d_arg["rl"]["target_network_frequency"] == 0:
+                if grad_steps % d_arg["rl"]["target_network_frequency"] == 0:
                     for param, target_param in zip(
                         qf1.parameters(), qf1_target.parameters()
                     ):
@@ -437,7 +424,7 @@ def run_async_sac(d_arg):
                         )
 
             # Periodically send new policy to actors
-            if learning_steps % 64 == 0:
+            if grad_steps % 64 == 0:
                 try:
                     actor_queue.put_nowait(
                         {k: v.detach().cpu() for k, v in actor.state_dict().items()}
@@ -491,7 +478,7 @@ if __name__ == "__main__":
     # === Observation & Neural Network ===
     parser.add_argument(
         "--observation_mode",
-        default="img_mc_cells",
+        default="img_mc_cells_substrates",
         help="Observation mode for RL agent",
     )
     parser.add_argument(
@@ -510,7 +497,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--total_timesteps",
         type=int,
-        default=int(5e5),
+        default=int(3e5),
         help="Total timesteps for training",
     )
     parser.add_argument(
@@ -622,7 +609,7 @@ if __name__ == "__main__":
         "q_lr": 3e-4,
         "policy_lr": 3e-4,
         "gamma": 0.99,
-        "num_loops": 3,
+        "num_loops": 5,
     }
 
     d_arg_vect = {
@@ -658,7 +645,7 @@ if __name__ == "__main__":
         "wrapper": d_arg_physigym_wrapper,
         "model": d_arg_physigym_model,
         "neural_architecture_image": args.neural_architecture_image,  # passed to Actor/QNetwork
-        "generation":d_arg_generation
+        "generation": d_arg_generation,
     }
 
     # === LAUNCH! ===

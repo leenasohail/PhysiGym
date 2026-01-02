@@ -75,7 +75,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
                     "crashed": True,
                     "disabled": True,
                     "terminal_observation": obs,
-                    "step_episode":-1,
+                    "step_episode": -1,
                 }
 
                 results.append((obs, reward, done, info, info))
@@ -93,7 +93,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
                 info = {
                     "crashed": True,
                     "disabled": True,
-                    "step_episode":-1,
+                    "step_episode": -1,
                 }
 
                 results.append((obs, reward, done, info, info))
@@ -125,7 +125,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
                 reset_info = {
                     "crashed": True,
                     "disabled": True,
-                    "step_episode":-1,
+                    "step_episode": -1,
                 }
                 results.append((obs, reset_info))
                 continue
@@ -139,7 +139,7 @@ class ResilientSubprocVecEnv(SubprocVecEnv):
                 reset_info = {
                     "crashed": True,
                     "disabled": True,
-                    "step_episode":-1,
+                    "step_episode": -1,
                 }
                 results.append((obs, reset_info))
 
