@@ -492,7 +492,10 @@ if __name__ == "__main__":
         "--max_time_episode", type=float, default=12900.0, help="Max time per episode"
     )
     parser.add_argument(
-        "--learning_starts", type=int, default=5000, help="Steps before learning starts"
+        "--learning_starts",
+        type=int,
+        default=10000,
+        help="Steps before learning starts",
     )
     parser.add_argument(
         "--total_timesteps",
@@ -609,7 +612,7 @@ if __name__ == "__main__":
         "q_lr": 3e-4,
         "policy_lr": 3e-4,
         "gamma": 0.99,
-        "num_loops": 5,
+        "num_loops": 3,
     }
 
     d_arg_vect = {
