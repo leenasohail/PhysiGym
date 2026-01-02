@@ -27,9 +27,6 @@ import numpy as np
 import os
 import sys
 import tempfile
-import matplotlib
-
-matplotlib.use("Agg")
 
 # global variable
 physicell.flag_envphysigym = False
@@ -230,8 +227,18 @@ class CorePhysiCellEnv(gymnasium.Env):
 
         # handle figsize
         self.figsize = figsize
-        if not (self.render_mode is None):
-            self.fig, axs = plt.subplots(figsize=self.figsize)
+        self.fig = None
+        self.axs = None
+
+        # Only create figure if rendering is enabled
+        if self.render_mode is not None:
+            import matplotlib.pyplot as plt  # local import avoids global font init
+
+            self.fig, self.axs = plt.subplots(figsize=self.figsize)
+
+        if self.verbose:
+            print("physigym: self.figsize", self.figsize)
+
         if self.verbose:
             print("physigym: self.figsize", self.figsize)
 
@@ -305,26 +312,34 @@ class CorePhysiCellEnv(gymnasium.Env):
             self.cell_type_to_id.keys(), key=self.cell_type_to_id.get
         )
         self.cell_type_count = len(self.cell_type_unique)
+        # handle cell_type mapping
         self.cell_type_to_color = {}
-        if type(cell_type_cmap) is dict:
+        if isinstance(cell_type_cmap, dict):
             for s_cell_type in self.cell_type_unique:
-                try:
-                    self.cell_type_to_color.update(
-                        {s_cell_type: cell_type_cmap[s_cell_type]}
-                    )
-                except KeyError:
-                    self.cell_type_to_color.update({s_cell_type: "gray"})
-        elif type(cell_type_cmap) is str:
-            for i, ar_color in enumerate(
-                plt.get_cmap(cell_type_cmap, self.cell_type_count).colors
-            ):
-                self.cell_type_to_color.update(
-                    {self.cell_type_unique[i]: colors.to_hex(ar_color)}
+                self.cell_type_to_color[s_cell_type] = cell_type_cmap.get(
+                    s_cell_type, "gray"
                 )
+
+        elif isinstance(cell_type_cmap, str):
+            # Only use matplotlib colormap if rendering is enabled
+            if self.render_mode is not None:
+                import matplotlib.pyplot as plt
+                import matplotlib.colors as mcolors
+
+                cmap = plt.get_cmap(cell_type_cmap, self.cell_type_count)
+                for i, s_cell_type in enumerate(self.cell_type_unique):
+                    self.cell_type_to_color[s_cell_type] = mcolors.to_hex(
+                        cmap.colors[i]
+                    )
+            else:
+                # fallback: assign gray if no rendering
+                for s_cell_type in self.cell_type_unique:
+                    self.cell_type_to_color[s_cell_type] = "gray"
         else:
             raise ValueError(
-                f"cell_type_cmap {cell_type_cmap} have to be a dictionary of string or a string."
+                f"cell_type_cmap {cell_type_cmap} must be a dict of strings or a string."
             )
+
         if self.verbose:
             print("physigym: self.cell_type_to_id", sorted(self.cell_type_to_id))
             print("physigym: self.cell_type_unique", self.cell_type_unique)
@@ -439,29 +454,18 @@ class CorePhysiCellEnv(gymnasium.Env):
         if seed is None:
             i_seed = seed
             if self.verbose:
-                print(f"physigym: set {self.settingxml} random_seed to system_clock.")
-            self.x_root.xpath("//random_seed")[0].text = "system_clock"
+                print(f"physigym: set {self.settingxml} random_seed to 42.")
+            self.x_root.xpath("//random_seed")[0].text = "42"
         # handle setting.xml based seeding
         elif seed < 0:
             s_seed = self.x_root.xpath("//random_seed")[0].text.strip()
-            if s_seed == "system_clock":
-                i_seed = None
-            else:
-                i_seed = int(s_seed)
+            i_seed = int(s_seed)
         # handle Gymnasium based seeding
         else:  # seed >= 0
             i_seed = seed
             if self.verbose:
                 print(f"physigym: set {self.settingxml} random_seed to {i_seed}.")
             self.x_root.xpath("//random_seed")[0].text = str(i_seed)
-
-        # rewrite setting xml file
-        s_tmpdir = tempfile.mkdtemp(prefix="physigym_")
-        s_settingxml = os.path.join(s_tmpdir, "PhysiCell_settings.xml")
-        with open(s_settingxml, "wb") as f:
-            self.x_tree.write(f, pretty_print=True)
-            f.flush()
-            os.fsync(f.fileno())
 
         # seed self.np_random number generator
         super().reset(seed=i_seed)
@@ -489,8 +493,9 @@ class CorePhysiCellEnv(gymnasium.Env):
         # initialize physiCell model with the temp XML
         if self.verbose:
             print(f"physigym: declare PhysiCell model instance.")
-        physicell.start(s_settingxml, self.episode != 0)
-
+        print("Before Start")
+        physicell.start(self.settingxml, self.episode != 0)
+        print("After start")
         # observe domain
         if self.verbose:
             print(f"physigym: domain observation.")
@@ -519,7 +524,7 @@ class CorePhysiCellEnv(gymnasium.Env):
                 "to run another env, it will be necessary to fork or spawn the runtime!"
             )
             print(f"physigym: ok!")
-
+        print(f"physigym: ok!")
         return o_observation, d_info
 
     def get_truncated(self):
