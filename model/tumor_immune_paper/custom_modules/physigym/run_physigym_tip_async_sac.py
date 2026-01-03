@@ -153,7 +153,9 @@ def actor_process(
         episode_returns += rewards.astype(np.float64)
         local_step += envs.num_envs
 
-        # Push transitions (vectorized batch -> individual transitions)
+        # Accumulate samples for this env step
+        batch_samples = []
+
         for i in range(num_envs):
             if d_arg_env["is_graph"]:
                 o = {k: v[i] for k, v in obs.items()}
@@ -177,20 +179,22 @@ def actor_process(
                 try:
                     stats_queue.put_nowait(stats)
                 except queue.Full:
-                    # drop a stat if main can't keep up
                     pass
+
             if dones[i]:
-                # reset counters for that env (envs.reset() should also have reset it internally)
                 episode_returns[i] = 0.0
-            # send sample; use non-blocking to avoid actor stall
+
+            # collect sample (do NOT push yet)
+            if not infos[i].get("disabled", False):
+                batch_samples.append(
+                    (o, actions[i], float(rewards[i]), no, bool(dones[i]))
+                )
+
+        if batch_samples:
             try:
-                if not infos[i].get("disabled", False):
-                    sample_queue.put_nowait(
-                        (o, actions[i], float(rewards[i]), no, bool(dones[i]))
-                    )
+                sample_queue.put_nowait(batch_samples)
             except queue.Full:
-                # if sample queue is full, drop sample (or implement backpressure)
-                # dropping occasionally is safer than blocking the actor indefinitely
+                # drop whole batch if learner is overloaded
                 pass
 
         obs = next_obs
@@ -214,7 +218,7 @@ def run_async_sac(d_arg):
     random.seed(seed)
     # Process communication
     actor_queue = mp.Queue(maxsize=5)
-    sample_queue = mp.Queue(maxsize=1000)
+    sample_queue = mp.Queue(maxsize=10000)
     stats_queue = mp.Queue(maxsize=1000)
     env_info_queue = mp.Queue(maxsize=1)
     stop_event = mp.Event()
@@ -317,14 +321,23 @@ def run_async_sac(d_arg):
         grad_steps = 0
         while drained < total:
             pbar.update(drained - pbar.n)
-            # 1) Drain sample_queue into replay buffer until we've reached learning_starts
+            local_batch = []
+
             while not sample_queue.empty() and drained < total:
                 try:
-                    state, action, reward, next_state, done = sample_queue.get_nowait()
+                    item = sample_queue.get_nowait()
                 except queue.Empty:
                     break
-                rb.add(state, action, reward, next_state, done)
-                drained += 1
+
+                # item can be a single transition or a batch
+                if isinstance(item, list):
+                    local_batch.extend(item)
+                else:
+                    local_batch.append(item)
+
+            if local_batch:
+                rb.add_batch(local_batch)
+                drained += len(local_batch)
 
             # 2) Log any stats reported by actors
             while not stats_queue.empty():
@@ -595,7 +608,9 @@ if __name__ == "__main__":
 
     d_arg_physigym_wrapper = {
         "list_variable_name": ["drug_1"],
-        "weight": 0.8,
+        "w_cell": 0.7,
+        "w_increase": 0.2,
+        "w_amount": 0.1,
         "frequency_save_data": args.s_frequency_save_data or None,
     }
 

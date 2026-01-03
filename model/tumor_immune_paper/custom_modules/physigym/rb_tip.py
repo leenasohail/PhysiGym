@@ -53,6 +53,13 @@ class ReplayBuffer:
         else:
             return self.buffer_size if self.full else self.buffer_index
 
+    def add_batch(self, batch):
+        """
+        batch: list of (state, action, reward, next_state, done)
+        """
+        for transition in batch:
+            self.add(*transition)
+
     def add(self, state, action, reward, next_state, done):
         if not self.is_graph:
             self.state[self.buffer_index] = state

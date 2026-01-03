@@ -15,8 +15,10 @@ class PhysiCellModelWrapper(gym.Wrapper):
         self,
         env: gym.Env,
         list_variable_name: list[str] = ["drug_1"],
-        weight: float = 0.8,
-        frequency_save_data=256,
+        w_cell=0.7,
+        w_increase=0.2,
+        w_amount=0.1,
+        frequency_save_data=64,
     ):
         """
         Wraps a PhysiCell environment to use a flat continuous Box action space.
@@ -46,7 +48,14 @@ class PhysiCellModelWrapper(gym.Wrapper):
         dtype = env.action_space[list_variable_name[0]].dtype
 
         self._action_space = Box(low=low, high=high, dtype=dtype)
-        self.weight = weight
+        logits = np.array([w_cell, w_amount, w_increase])
+        if np.sum(logits) == 1:
+            self.w_cell, self.w_amount, self.w_increase = w_cell, w_amount, w_increase
+        else:
+            weights = np.exp(logits)
+            weights /= np.sum(weights)
+            self.w_cell, self.w_amount, self.w_increase = weights
+
         self.cell_positions_folder = (
             self.env.get_wrapper_attr("x_root")
             .xpath("//initial_conditions/cell_positions/folder")[0]
@@ -130,19 +139,25 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
         obs, r_cancer_cells, terminated, truncated, info = self.env.step(d_action)
 
-        r_drugs = np.mean(action)
+        drug_prev = self.info["prev_mean_drugs"]
+        drug_t = np.mean(action)
         info["action"] = d_action
+        drug_increase = max(0.0, drug_t - drug_prev)
+        self.info["prev_mean_drugs"] = drug_t
         info["step_episode"] = self.env.unwrapped.step_episode
 
-        reward = -(1 - self.weight) * r_drugs + self.weight * r_cancer_cells
+        reward = (
+            self.w_cell * r_cancer_cells
+            - self.w_amount * drug_t
+            - self.w_increase * drug_increase
+        )
 
-        # reward = np.clip(reward, -1,1)
         if self.frequency_save_data is not None:
             data = {
                 "step": self.env.unwrapped.step_episode,
                 "reward": reward,
                 "drug_1": action,
-                "r_drugs": r_drugs,
+                "mean_drugs": drug_t,
                 "r_cancer_cells": r_cancer_cells,
                 "number_tumor": info["number_tumor"],
                 "number_cell_1": info["number_cell_1"],
@@ -163,10 +178,10 @@ class PhysiCellModelWrapper(gym.Wrapper):
                 self.generation_cfg = generation_cfg.copy()
 
                 # complete spatial bounds from env
-                self.generation_cfg["x_min"] = self.env.unwrapped.x_min
-                self.generation_cfg["y_min"] = self.env.unwrapped.y_min
-                self.generation_cfg["x_max"] = self.env.unwrapped.x_max
-                self.generation_cfg["y_max"] = self.env.unwrapped.y_max
+                self.generation_cfg["x_min"] = self.env.unwrapped.x_min * 0.9
+                self.generation_cfg["y_min"] = self.env.unwrapped.y_min * 0.9
+                self.generation_cfg["x_max"] = self.env.unwrapped.x_max * 0.9
+                self.generation_cfg["y_max"] = self.env.unwrapped.y_max * 0.9
 
                 # ensure seed exists
                 self.generation_cfg.setdefault("seed", self.seed)
@@ -181,6 +196,8 @@ class PhysiCellModelWrapper(gym.Wrapper):
         self.process_update_generation_cfg(generation_cfg)
 
         self.save_data()
+
+        self.info = {"prev_mean_drugs": 0}
 
         # ---- IMPORTANT: forward seed, do not invent one ----
         return self.env.reset(seed=seed, options=options)

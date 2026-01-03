@@ -117,6 +117,9 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             img_mc_grid_size_y=img_mc_grid_size_y,
             normalization_factor=normalization_factor,
         )
+        self.lambda_dt = float(
+            self.x_root.xpath("//user_parameters/growth_rate")[0].text
+        ) * float(self.x_root.xpath("//user_parameters/dt_gym")[0].text)
 
     def get_action_space(self):
         """
@@ -633,20 +636,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         description:
             cost function.
         """
-        if self.c_prev > 0:
-            r_reward_tumor = (self.c_prev - self.c_t) / (
-                self.c_prev
-                * np.e
-                ** (
-                    physicell.get_parameter("growth_rate")
-                    * physicell.get_parameter("dt_gym")
-                )
-                - self.c_prev
-            )
-            r_reward_tumor = np.clip(r_reward_tumor, -1, 1)
-        else:
-            r_reward_tumor = 0
-        return r_reward_tumor
+
+        expected_growth = self.c_prev * (np.exp(self.lambda_dt) - 1.0)
+        expected_growth = max(expected_growth, 1e-8)
+
+        r_tumor = (self.c_prev - self.c_t) / expected_growth
+        return np.clip(r_tumor, -1, 1)
 
     def get_img(self):
         """
