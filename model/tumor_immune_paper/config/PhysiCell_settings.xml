@@ -830,5 +830,6 @@
         <dt_gym type="double" units="min" description="necessary for PhysiGym, never delete!">60</dt_gym>
         <time type="double" units="min" description="necessary for PhysiGym, never delete!">0.0</time>
         <drug_1 type="double" units="" description="">0</drug_1>
+        <growth_rate type="double" units="1/min" description="netto growth rate tumor ">0.000641</growth_rate>
     </user_parameters>
 </PhysiCell_settings>
