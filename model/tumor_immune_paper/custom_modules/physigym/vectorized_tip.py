@@ -189,7 +189,7 @@ def run_vectorized(cfg: dict):
     envs = vec_envs(cfg)
     _ = envs.reset()
     time_1 = time.time()
-    for t in tqdm(range(2500)):
+    for _ in tqdm(range(25000)):
         actions = np.array(
             [envs.action_space.sample() for _ in range(num_envs)],
             dtype=np.float32,
@@ -229,7 +229,6 @@ def test_run_vectorized(cfg: dict):
         model_cfg_copy["output_dir"] = "output"
     del model_cfg_copy["settingcells"]
     rl_threads = vect_cfg["rl_threads"]
-    envs = make_physigym_env(0, cfg)
 
     assign_cpu_affinity(env_id, threads_per_env=28, offset_threads=rl_threads)
 
@@ -259,9 +258,9 @@ def test_run_vectorized(cfg: dict):
     generation_cfg["seed"] = int(rng.integers(0, 2**32 - 1)) + env_id
     _, _ = env.reset(seed=generation_cfg["seed"], generation_cfg=generation_cfg)
     time_1 = time.time()
-    for t in tqdm(range(2500)):
-        actions = np.random.uniform(low=0, high=1, size=(1, 1))
-        obs, reward, terminated, truncated, info = env.step(actions)
+    for _ in tqdm(range(2500)):  # change the stop from range
+        actions = np.random.uniform(low=0, high=0.005, size=(1, 1))
+        _, _, terminated, truncated, _ = env.step(actions)
         if terminated or truncated:
             env.reset()
 
@@ -284,7 +283,7 @@ if __name__ == "__main__":
         "settingxml", nargs="?", default="config/PhysiCell_settings.xml"
     )
     parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
-    parser.add_argument("-m", "--max_time", type=float, default=180.0)
+    parser.add_argument("-m", "--max_time", type=float, default=180 * 200.0)
     parser.add_argument("-n", "--num_envs", type=int, default=7)
     parser.add_argument("-t", "--rl_threads", type=int, default=4)
     parser.add_argument("-s", "--seed", type=int, default=3)
