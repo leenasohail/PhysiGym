@@ -4,10 +4,8 @@ from typing import Set
 
 from stable_baselines3.common.vec_env.subproc_vec_env import (
     SubprocVecEnv,
-    _worker,
     _stack_obs,
 )
-from stable_baselines3.common.vec_env.base_vec_env import CloudpickleWrapper
 
 
 class ResilientSubprocVecEnv(SubprocVecEnv):
