@@ -156,7 +156,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
             data = {
                 "step": self.env.unwrapped.step_episode,
                 "reward": reward,
-                "drug_1": action,
+                "drug_1": d_action,
                 "mean_drugs": drug_t,
                 "r_cancer_cells": r_cancer_cells,
                 "number_tumor": info["number_tumor"],

@@ -542,12 +542,6 @@ if __name__ == "__main__":
     )
 
     # === Initialization & Cells ===
-    parser.add_argument(
-        "--init_mode",
-        nargs="+",
-        default=["circular_mode", "asymmetric_mode", "connected_mst_mode"],
-        help="Initial cell configuration modes",
-    )
     parser.add_argument("--tumor", type=int, default=512, help="Initial tumor size")
     parser.add_argument("--cell_1", type=int, default=128, help="Number of cell type 1")
     parser.add_argument(
