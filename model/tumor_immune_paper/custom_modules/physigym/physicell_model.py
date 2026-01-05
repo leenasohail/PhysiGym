@@ -505,7 +505,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
         else:
             raise ValueError(
-                f"unknown observation type: {self.kwargs['observation_mode']}"
+                f"unknown observation type: {mode}"
             )
 
         # output

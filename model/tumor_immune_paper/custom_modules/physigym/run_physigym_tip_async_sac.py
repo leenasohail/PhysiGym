@@ -4,6 +4,7 @@ import os
 import random
 import time
 from copy import deepcopy
+from pathlib import Path
 
 import gymnasium as gym
 import numpy as np
@@ -301,12 +302,12 @@ def run_async_sac(d_arg):
         actor_queue.put({k: v.detach().cpu() for k, v in actor.state_dict().items()})
 
     # Logging
-    run_name = f"{d_arg['simulation']['name']}_{d_arg['simulation']['seed']}_{d_arg['model']['observation_mode']}_{int(time.time())}"
-    writer = SummaryWriter(f"runs/{run_name}")
+    output_dir = d_arg["model"]["output_dir"]
+    writer = SummaryWriter(log_dir=output_dir)
     if d_arg["simulation"]["wandb_track"]:
         run = wandb.init(
             project=d_arg["wandb"]["project"] if "wandb" in d_arg else "SAC_ASYNC_TIP",
-            name=run_name,
+            name=Path(output_dir).name,
             config=d_arg,
         )
 
@@ -513,7 +514,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--total_timesteps",
         type=int,
-        default=int(3e5),
+        default=int(2e5),
         help="Total timesteps for training",
     )
     parser.add_argument(
@@ -523,7 +524,7 @@ if __name__ == "__main__":
         "--num_envs", type=int, default=9, help="Parallel PhysiCell instances"
     )
     parser.add_argument(
-        "--buffer_size", type=int, default=int(3e5), help="Replay buffer size"
+        "--buffer_size", type=int, default=int(2e5), help="Replay buffer size"
     )
     parser.add_argument(
         "--batch_size_multiplier",
@@ -550,7 +551,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--s_frequency_save_data",
         type=int,
-        default=None,
+        default=1,
         help="Frequency of saving simulation data",
     )
 
@@ -582,7 +583,6 @@ if __name__ == "__main__":
         "id": "physigym/ModelPhysiCellEnv-v0",
         "settingxml": args.settingxml,
         "settingcells": args.settingcells,
-        "output_dir": None,
         "cell_type_cmap": {
             "tumor": "yellow",
             "cell_1": "green",
@@ -605,7 +605,7 @@ if __name__ == "__main__":
         "w_cell": 0.7,
         "w_increase": 0.2,
         "w_amount": 0.1,
-        "frequency_save_data": args.s_frequency_save_data or None,
+        "frequency_save_data": args.s_frequency_save_data,
     }
 
     d_arg_rl = {
@@ -659,6 +659,9 @@ if __name__ == "__main__":
         "neural_architecture_image": args.neural_architecture_image,  # passed to Actor/QNetwork
         "generation": d_arg_generation,
     }
+    d_arg["model"]["output_dir"] = (
+        f"data/{d_arg['simulation']['name']}_{d_arg['simulation']['seed']}_{d_arg['model']['observation_mode']}_{int(time.time())}"
+    )
 
     # === LAUNCH! ===
     run_async_sac(d_arg=d_arg)
