@@ -305,7 +305,10 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             however, there are no limits.
         """
         # model dependent observation processing logic goes here!
-
+        mode = self.kwargs["observation_mode"]
+        norm = self.kwargs["normalization_factor"]
+        gx = self.kwargs["img_mc_grid_size_x"]
+        gy = self.kwargs["img_mc_grid_size_y"]
         # get cell data frame
         self.df_cell = pd.DataFrame(
             physicell.get_cell(), columns=["ID", "x", "y", "z", "dead", "type"]
@@ -325,46 +328,115 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # update cell_2 cell count
         self.nb_cell_2 = df_alive.loc[(df_alive.type == "cell_2"), :].shape[0]
 
+
+        def get_normalized_cell_counts():
+            counts = np.zeros(self.cell_type_count, dtype=np.float32)
+            for cell_type, idx in self.cell_type_to_id.items():
+                counts[idx] = (df_alive.type == cell_type).sum() / norm - 1
+            return counts
+
+        def get_max_substrates():
+            max_vals = np.zeros(self.substrate_count, dtype=np.float32)
+            for i, subs in enumerate(self.substrate_unique):
+                microenv = physicell.get_microenv(subs)
+                max_vals[i] = microenv[:, -1].max()  # last column = substrate value
+            return max_vals
+        
+        def discretize_xy(x, y):
+            x_bin = ((x - self.x_min) / (self.x_max - self.x_min) * (gx - 1)).astype(int)
+            y_bin = ((y - self.y_min) / (self.y_max - self.y_min) * (gy - 1)).astype(int)
+            return (
+                np.clip(x_bin, 0, gx - 1),
+                np.clip(y_bin, 0, gy - 1),
+            )
+
+
+        def build_cell_image():
+            cell_type_idx = df_alive["type"].map(self.cell_type_to_id).to_numpy()
+            x_bin, y_bin = discretize_xy(df_alive["x"].to_numpy(), df_alive["y"].to_numpy())
+
+            img = np.zeros(
+                (self.cell_type_count, gx, gy),
+                dtype=np.float32,
+            )
+            np.add.at(img, (cell_type_idx, x_bin, y_bin), 1)
+
+            norm = self.ratio_img_mc_size_x * self.ratio_img_mc_size_y
+            return ski.util.img_as_ubyte(img / norm)
+
+
+        def build_substrate_image():
+            # merge all substrates once
+            dfs = []
+            for subs in self.substrate_unique:
+                dfs.append(
+                    pd.DataFrame(
+                        physicell.get_microenv(subs),
+                        columns=["x", "y", "z", subs],
+                    )
+                )
+
+            df = dfs[0]
+            for d in dfs[1:]:
+                df = df.merge(d, on=["x", "y", "z"])
+
+            x_bin, y_bin = discretize_xy(df["x"].to_numpy(), df["y"].to_numpy())
+            df["x_bin"] = x_bin
+            df["y_bin"] = y_bin
+
+            grouped = df.groupby(["x_bin", "y_bin"])[self.substrate_unique].max()
+
+            img = np.zeros(
+                (len(self.substrate_unique), gx, gy),
+                dtype=np.float32,
+            )
+
+            for i, subs in enumerate(self.substrate_unique):
+                for (xb, yb), val in grouped[subs].items():
+                    img[i, xb, yb] = val
+
+            min_v = img.min(axis=(1, 2), keepdims=True)
+            max_v = img.max(axis=(1, 2), keepdims=True)
+            scale = np.where(max_v > min_v, max_v - min_v, 1)
+
+            return ski.util.img_as_ubyte((img - min_v) / scale)
         # observe the environemnt
-        if self.kwargs["observation_mode"] == "scalars_cells":
-            a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=np.float32)
-            for s_cell_type, i_id in self.cell_type_to_id.items():
-                a_norm_cell_count[i_id] = (
-                    df_alive.loc[
-                        (df_alive.type == s_cell_type),
-                        :,
-                    ].shape[0]
-                    / self.kwargs["normalization_factor"]
-                    - 1
+        if mode == "scalars_cells":
+            o_observation = get_normalized_cell_counts()
+
+        elif mode == "scalars_substrates":
+            o_observation = get_max_substrates()
+
+        elif mode == "scalars_cells_substrates":
+            o_observation = np.concatenate(
+                [
+                    get_normalized_cell_counts(),
+                    get_max_substrates(),
+                ]
+            )
+        
+        elif mode in {
+        "img_mc_cells",
+        "img_mc_substrates",
+        "img_mc_cells_substrates",
+        }:
+            if "cells" in mode:
+                img_mc_cells = build_cell_image()
+                if mode == "img_mc_cells":
+                    o_observation = img_mc_cells
+
+            elif "substrates" in mode:
+                img_mc_substrates = build_substrate_image()
+                if mode == "img_mc_substrates":
+                    o_observation = img_mc_substrates
+
+            elif mode == "img_mc_cells_substrates":
+                o_observation = np.concatenate(
+                    [img_mc_cells, img_mc_substrates],
+                    axis=0,
                 )
-            o_observation = a_norm_cell_count
 
-        elif self.kwargs["observation_mode"] == "scalars_substrates":
-            o_observation = np.zeros((self.substrate_count,), dtype=np.float32)
-            for i, s_subs in enumerate(self.substrate_unique):
-                # assuming last column is substrate value
-                o_observation[i] = pd.DataFrame(
-                    physicell.get_microenv(s_subs), columns=["x", "y", "z", s_subs]
-                )[s_subs].max()
-
-        elif self.kwargs["observation_mode"] == "scalars_cells_substrates":
-            a_norm_cell_count = np.zeros((self.cell_type_count,), dtype=np.float32)
-            for s_cell_type, i_id in self.cell_type_to_id.items():
-                a_norm_cell_count[i_id] = (
-                    df_alive.loc[(df_alive.type == s_cell_type), :].shape[0]
-                    / self.kwargs["normalization_factor"]
-                    - 1
-                )
-
-            max_substrates = np.zeros((self.substrate_count,), dtype=np.float32)
-            for i, s_subs in enumerate(self.substrate_unique):
-                max_substrates[i] = pd.DataFrame(
-                    physicell.get_microenv(s_subs), columns=["x", "y", "z", s_subs]
-                )[s_subs].max()
-
-            o_observation = np.concatenate([a_norm_cell_count, max_substrates])
-
-        elif self.kwargs["observation_mode"] == "img_rgb":
+        elif mode == "img_rgb":
             a_img = self.render()
             a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
             a_img = ski.transform.resize(  # ski.transform.rescale
@@ -377,124 +449,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             )
             o_observation = np.expand_dims(ski.util.img_as_ubyte(a_img), axis=0)
 
-        elif self.kwargs["observation_mode"] in [
-            "img_mc_cells",
-            "img_mc_substrates",
-            "img_mc_cells_substrates",
-        ]:
-            if self.kwargs["observation_mode"] in [
-                "img_mc_cells",
-                "img_mc_cells_substrates",
-            ]:
-                # get cell_type indices
-                cell_type_indices = (
-                    df_alive["type"].map(self.cell_type_to_id).to_numpy()
-                )
 
-                # discretize
-                x_bin = (
-                    (df_alive["x"] - self.x_min)
-                    / (self.x_max - self.x_min)
-                    * (self.kwargs["img_mc_grid_size_x"] - 1)
-                ).astype(int)
-                y_bin = (
-                    (df_alive["y"] - self.y_min)
-                    / (self.y_max - self.y_min)
-                    * (self.kwargs["img_mc_grid_size_y"] - 1)
-                ).astype(int)
-
-                # clip in case of rounding issues
-                x_bin = np.clip(x_bin, 0, self.kwargs["img_mc_grid_size_x"] - 1)
-                y_bin = np.clip(y_bin, 0, self.kwargs["img_mc_grid_size_y"] - 1)
-
-                # get numpy array
-                image = np.zeros(
-                    shape=(
-                        self.cell_type_count,
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
-                    ),
-                    dtype=np.float32,
-                )
-                np.add.at(
-                    image,
-                    (cell_type_indices, x_bin, y_bin),
-                    1,
-                )
-                if self.kwargs["observation_mode"] == "img_mc_cells":
-                    # output
-                    o_observation = ski.util.img_as_ubyte(
-                        image / (self.ratio_img_mc_size_x * self.ratio_img_mc_size_y)
-                    )
-                else:
-                    img_mc_cells = ski.util.img_as_ubyte(
-                        image / (self.ratio_img_mc_size_x * self.ratio_img_mc_size_y)
-                    )
-
-            if self.kwargs["observation_mode"] in [
-                "img_mc_cells_substrates",
-                "img_mc_substrates",
-            ]:
-                self.df_subs = None
-                for s_subs in self.substrate_unique:
-                    df_subs = pd.DataFrame(
-                        physicell.get_microenv(s_subs), columns=["x", "y", "z", s_subs]
-                    )
-                    if self.df_subs is None:
-                        self.df_subs = df_subs
-                    else:
-                        self.df_subs = pd.merge(
-                            self.df_subs, df_subs, on=["x", "y", "z"]
-                        )
-                # discretize
-                self.df_subs["x_bin"] = (
-                    (
-                        (self.df_subs["x"] - self.x_min)
-                        / (self.x_max - self.x_min)
-                        * (self.kwargs["img_mc_grid_size_x"] - 1)
-                    )
-                    .astype(int)
-                    .clip(0, self.kwargs["img_mc_grid_size_x"] - 1)
-                )
-                self.df_subs["y_bin"] = (
-                    (
-                        (self.df_subs["y"] - self.y_min)
-                        / (self.y_max - self.y_min)
-                        * (self.kwargs["img_mc_grid_size_y"] - 1)
-                    )
-                    .astype(int)
-                    .clip(0, self.kwargs["img_mc_grid_size_y"] - 1)
-                )
-
-                grouped = self.df_subs.groupby(["x_bin", "y_bin"])[
-                    self.substrate_unique
-                ].max()
-
-                # initialize image
-                image = np.zeros(
-                    (
-                        len(self.substrate_unique),
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
-                    ),
-                    dtype=np.float32,
-                )
-
-                # fill image
-                for i, subs in enumerate(self.substrate_unique):
-                    for (x_bin, y_bin), value in grouped[subs].items():
-                        image[i, x_bin, y_bin] = value
-                min_vals = image.min(axis=(1, 2), keepdims=True)
-                max_vals = image.max(axis=(1, 2), keepdims=True)
-                scales = np.where((max_vals - min_vals) > 0, max_vals - min_vals, 1)
-                img_mc_substrates = ski.util.img_as_ubyte(((image - min_vals) / scales))
-
-                if self.kwargs["observation_mode"] == "img_mc_substrates":
-                    o_observation = img_mc_substrates
-                else:
-                    o_observation = np.concatenate([img_mc_cells, img_mc_substrates])
-
-        elif self.kwargs["observation_mode"] in ["graph_delaunay", "graph_knn"]:
+        elif mode in ["graph_delaunay", "graph_knn"]:
             cell_type_indices = df_alive["type"].map(self.cell_type_to_id).to_numpy()
             df_alive.set_index("ID", inplace=True)
             coords = df_alive[["x", "y"]].values
@@ -502,7 +458,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             # Raw graph (variable size)
             pairs = (
                 ty.build_delaunay(coords)
-                if self.kwargs["observation_mode"] == "graph_delaunay"
+                if mode == "graph_delaunay"
                 else ty.build_knn(coords, k=self.k)
             )  # shape = (E, 2)
             distances = ty.distance_neighbors(coords, pairs)  # shape = (E,)
