@@ -442,8 +442,8 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             a_img = ski.transform.resize(  # ski.transform.rescale
                 a_img,
                 output_shape=(
-                    self.kwargs["img_rgb_grid_size_x"],
-                    self.kwargs["img_rgb_grid_size_y"],
+                    gx,
+                    gy,
                 ),
                 anti_aliasing=True,
             )
@@ -451,7 +451,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
 
         elif mode in ["graph_delaunay", "graph_knn"]:
-            cell_type_indices = df_alive["type"].map(self.cell_type_to_id).to_numpy()
             df_alive.set_index("ID", inplace=True)
             coords = df_alive[["x", "y"]].values
 
