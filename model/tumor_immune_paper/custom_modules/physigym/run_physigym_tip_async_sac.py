@@ -93,10 +93,10 @@ def actor_process(
         d_arg_env, d_arg.get("neural_architecture_image", "impala")
     ).cpu()
     if d_arg_env["is_graph"]:
-        obs = obs_to_pyg(obs, "cpu")
+        obs_nn = obs_to_pyg(obs, "cpu")
     else:
-        obs = torch.from_numpy(obs).cpu()
-        _, _, _ = actor_local.get_action(obs)
+        obs_nn = torch.from_numpy(obs).cpu()
+        _, _, _ = actor_local.get_action(obs_nn)
     actor_local.eval()
     num_envs = envs.num_envs
     episode_returns = np.zeros(num_envs, dtype=np.float64)
