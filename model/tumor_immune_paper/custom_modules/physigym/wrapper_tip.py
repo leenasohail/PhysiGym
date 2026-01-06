@@ -89,7 +89,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
         return self.env.unwrapped.observation_mode
 
     def save_data(self):
-        if self.frequency_save_data is not None:
+        if self.frequency_save_data is not None and self.env.unwrapped.episode != -1:
             self.output_dir_episode = os.path.join(
                 self.output_dir, f"episode{str(self.env.unwrapped.episode).zfill(8)}"
             )
@@ -106,28 +106,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
             self.output_dir_episode = os.path.join(
                 self.output_dir, f"episode{str(episode).zfill(8)}"
             )
-            if episode % self.frequency_save_data == 0:
-                os.makedirs(self.output_dir_episode, exist_ok=True)
-                # manipulate setting xml before reset
-                self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
-                    0
-                ].text = self.output_dir_episode
-                self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-                    0
-                ].text = "true"
-                self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
-                    0
-                ].text = "true"
-            else:
-                self.env.get_wrapper_attr("x_root").xpath("//save/folder")[
-                    0
-                ].text = os.path.join(self.output_dir, "devnull")
-                self.env.get_wrapper_attr("x_root").xpath("//save/full_data/enable")[
-                    0
-                ].text = "false"
-                self.env.get_wrapper_attr("x_root").xpath("//save/SVG/enable")[
-                    0
-                ].text = "false"
         else:
             None
 
@@ -156,7 +134,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
             data = {
                 "step": self.env.unwrapped.step_episode,
                 "reward": reward,
-                "drug_1": d_action,
                 "mean_drugs": drug_t,
                 "r_cancer_cells": r_cancer_cells,
                 "number_tumor": info["number_tumor"],
@@ -171,7 +148,6 @@ class PhysiCellModelWrapper(gym.Wrapper):
     def process_update_generation_cfg(self, generation_cfg=None):
         if self.generation_cfg is not None:
             self.generation_cfg["seed"] += self.env.unwrapped.episode
-            self.generation_cfg["csv_path"] = self.csv_path_init
             create_csv(**self.generation_cfg)
         else:
             if generation_cfg is not None and self.generation_cfg is None:
@@ -185,6 +161,7 @@ class PhysiCellModelWrapper(gym.Wrapper):
 
                 # ensure seed exists
                 self.generation_cfg.setdefault("seed", self.seed)
+        self.generation_cfg["csv_path"] = self.csv_path_init
 
     def reset(self, seed=None, options=None, generation_cfg=None, **kwargs):
         if options is None:
