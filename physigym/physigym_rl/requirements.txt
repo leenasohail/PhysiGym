@@ -1,7 +1,4 @@
-gymnasium
 numpy
-tensorboard
 tensordict
 torch_geometric
-wandb
 stable_baselines3

@@ -265,6 +265,8 @@ def create_csv(seed, cell_2_fraction, csv_path, params, x_min, x_max, y_min, y_m
     while df.iloc[:, -1].isna().all() or (df.iloc[:, -1] == "").all():
         df = df.iloc[:, :-1]
 
+    df = df.drop_duplicates(subset=["x", "y"], keep=False)
+
     df.to_csv(csv_path, index=False, float_format="%.6f")
 
 
