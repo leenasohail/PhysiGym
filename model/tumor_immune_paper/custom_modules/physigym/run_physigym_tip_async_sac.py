@@ -88,17 +88,34 @@ def actor_process(
         "is_graph": "graph" in d_arg["model"]["observation_mode"],
     }
     env_info_queue.put(d_arg_env)  # I regive to my main process d_arg_env
-
-    actor_local = Actor(
-        d_arg_env, d_arg.get("neural_architecture_image", "impala")
-    ).cpu()
-    if d_arg_env["is_graph"]:
-        obs_nn = obs_to_pyg(obs, "cpu")
-    else:
-        obs_nn = torch.from_numpy(obs).cpu()
-        _, _, _ = actor_local.get_action(obs_nn)
-    actor_local.eval()
     num_envs = envs.num_envs
+
+    actor_local = (
+        Actor(
+            d_arg_env,
+            d_arg.get("neural_architecture_image", "impala"),
+        )
+        .cpu()
+        .eval()
+    )
+
+    # Warm-up
+    if d_arg_env["is_graph"]:
+        warm_obs = obs_to_pyg(obs, "cpu")
+    else:
+        warm_obs = torch.from_numpy(obs)
+    with torch.inference_mode():
+        actor_local.get_action(warm_obs)
+
+    # -----------------------------
+    # Pre-allocate tensors (non-graph)
+    # -----------------------------
+    if not d_arg_env["is_graph"]:
+        obs_tensor = torch.empty(
+            (num_envs, *envs.observation_space.shape),
+            dtype=torch.float32,
+        )
+
     episode_returns = np.zeros(num_envs, dtype=np.float64)
     local_step = 0
     while not stop_event.is_set():
@@ -123,15 +140,15 @@ def actor_process(
             )
 
         else:
-            # Inference
-            with torch.no_grad():
+            with torch.inference_mode():
                 if d_arg_env["is_graph"]:
                     pyg_batch = obs_to_pyg(obs, "cpu")
                     actions_tensor, _, _ = actor_local.get_action(pyg_batch)
                 else:
-                    x = torch.from_numpy(obs).cpu()
-                    actions_tensor, _, _ = actor_local.get_action(x)
-                actions = actions_tensor.cpu().numpy()
+                    np.copyto(obs_tensor.numpy(), obs)
+                    actions_tensor, _, _ = actor_local.get_action(obs_tensor)
+
+                actions = actions_tensor.numpy()
 
         # Step envs
         next_obs, rewards, dones, infos = envs.step(actions)
@@ -154,52 +171,61 @@ def actor_process(
         episode_returns += rewards.astype(np.float64)
         local_step += envs.num_envs
 
+        disabled = np.array(
+            [info.get("disabled", False) for info in infos],
+            dtype=bool,
+        )
+        valid = ~disabled
+
+        # -------------------------
+        # Episode stats
+        # -------------------------
+        ended = np.where(dones & valid)[0]
+        for i in ended:
+            try:
+                stats_queue.put_nowait(
+                    {
+                        "episode_return": float(episode_returns[i]),
+                        "episode_length": int(infos[i]["step_episode"]),
+                        "step": int(local_step),
+                        "timestamp": time.time() - begin_time,
+                    }
+                )
+            except queue.Full:
+                pass
+            episode_returns[i] = 0.0
         # Accumulate samples for this env step
         batch_samples = []
 
-        for i in range(num_envs):
+        if np.any(valid):
             if d_arg_env["is_graph"]:
-                o = {k: v[i] for k, v in obs.items()}
-                no = {k: v[i] for k, v in next_obs.items()}
+                batch_samples = [
+                    (
+                        {k: v[i] for k, v in obs.items()},
+                        actions[i],
+                        float(rewards[i]),
+                        {k: v[i] for k, v in next_obs.items()},
+                        bool(dones[i]),
+                    )
+                    for i in np.where(valid)[0]
+                ]
             else:
-                o = obs[i].copy() if isinstance(obs[i], np.ndarray) else obs[i]
-                no = (
-                    next_obs[i].copy()
-                    if isinstance(next_obs[i], np.ndarray)
-                    else next_obs[i]
+                batch_samples = list(
+                    zip(
+                        obs[valid],
+                        actions[valid],
+                        rewards[valid].astype(float),
+                        next_obs[valid],
+                        dones[valid],
+                    )
                 )
 
-            # send stats if episode ended
-            if dones[i] and not infos[i].get("disabled", False):
-                stats = {
-                    "episode_return": float(episode_returns[i]),
-                    "episode_length": int(infos[i]["step_episode"]),
-                    "step": int(local_step),
-                    "timestamp": time.time() - begin_time,
-                }
-                try:
-                    stats_queue.put_nowait(stats)
-                except queue.Full:
-                    pass
-
-            if dones[i]:
-                episode_returns[i] = 0.0
-
-            # collect sample (do NOT push yet)
-            if not infos[i].get("disabled", False):
-                batch_samples.append(
-                    (o, actions[i], float(rewards[i]), no, bool(dones[i]))
-                )
-
-        if batch_samples:
             try:
                 sample_queue.put_nowait(batch_samples)
             except queue.Full:
-                # drop whole batch if learner is overloaded
                 pass
 
         obs = next_obs
-        time.sleep(0.001)
 
     # Clean up envs before process exit
     try:
@@ -497,7 +523,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--neural_architecture_image",
-        default="impala",
+        default="hadamax",
         help="Neural network architecture for image input",
     )
 
