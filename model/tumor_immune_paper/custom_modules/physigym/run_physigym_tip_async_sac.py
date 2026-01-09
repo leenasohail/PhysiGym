@@ -486,7 +486,6 @@ if __name__ == "__main__":
         "--settingcells", default="config/cells.csv", help="Path to initial cell CSV"
     )
     parser.add_argument("--seed", type=int, default=5, help="Random seed")
-    parser.add_argument("--render_mode", default="None", help="Rendering mode")
     parser.add_argument("--gpu", type=str, default="true", help="Use GPU? (true/false)")
 
     # === Observation & Neural Network ===
@@ -508,7 +507,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--learning_starts",
         type=int,
-        default=1e4,
+        default=10000,
         help="Steps before learning starts",
     )
     parser.add_argument(
@@ -561,7 +560,6 @@ if __name__ == "__main__":
     i_seed = None if str(args.seed).lower() == "none" else int(args.seed)
     b_gpu = args.gpu.lower().startswith("t")
     b_wandb = args.wandb.lower().startswith("t")
-    s_render_mode = None if args.render_mode.lower() == "none" else args.render_mode
 
     d_arg_simulation = {
         "name": args.name,
@@ -591,7 +589,7 @@ if __name__ == "__main__":
         },
         "figsize": (6, 6),
         "observation_mode": args.observation_mode,
-        "render_mode": s_render_mode,
+        "render_mode": None,
         "verbose": False,
         "img_rgb_grid_size_x": 64,
         "img_rgb_grid_size_y": 64,
