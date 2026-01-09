@@ -493,9 +493,7 @@ class CorePhysiCellEnv(gymnasium.Env):
         # initialize physiCell model with the temp XML
         if self.verbose:
             print(f"physigym: declare PhysiCell model instance.")
-        print("Before Start")
         physicell.start(self.settingxml, self.episode != 0)
-        print("After start")
         # observe domain
         if self.verbose:
             print(f"physigym: domain observation.")
@@ -524,7 +522,6 @@ class CorePhysiCellEnv(gymnasium.Env):
                 "to run another env, it will be necessary to fork or spawn the runtime!"
             )
             print(f"physigym: ok!")
-        print(f"physigym: ok!")
         return o_observation, d_info
 
     def get_truncated(self):
