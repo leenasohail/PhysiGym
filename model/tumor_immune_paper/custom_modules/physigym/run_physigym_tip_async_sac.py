@@ -22,7 +22,6 @@ from tqdm import tqdm
 from vectorized_tip import vec_envs
 from nn_tip import Actor, QNetwork
 from rb_tip import ReplayBuffer
-from wrapper_tip import PhysiCellModelWrapper
 
 
 from torch.multiprocessing import Event, Queue
@@ -152,12 +151,18 @@ def actor_process(
 
         # Bookkeeping per-env
         episode_returns += rewards.astype(np.float64)
-        local_step += envs.num_envs
+        local_step += num_envs - len(envs.dead_envs)
 
         # Accumulate samples for this env step
         batch_samples = []
 
         for i in range(num_envs):
+            if i in envs.dead_envs:
+                continue
+
+            info = infos[i]
+            done = dones[i]
+
             if d_arg_env["is_graph"]:
                 o = {k: v[i] for k, v in obs.items()}
                 no = {k: v[i] for k, v in next_obs.items()}
@@ -170,26 +175,22 @@ def actor_process(
                 )
 
             # send stats if episode ended
-            if dones[i] and not infos[i].get("disabled", False):
-                stats = {
-                    "episode_return": float(episode_returns[i]),
-                    "episode_length": int(infos[i]["step_episode"]),
-                    "step": int(local_step),
-                    "timestamp": time.time() - begin_time,
-                }
+            if done:
                 try:
-                    stats_queue.put_nowait(stats)
+                    stats_queue.put_nowait(
+                        {
+                            "episode_return": float(episode_returns[i]),
+                            "episode_length": int(info["step_episode"]),
+                            "step": int(local_step),
+                            "timestamp": time.time() - begin_time,
+                        }
+                    )
                 except queue.Full:
                     pass
 
-            if dones[i]:
+            if done:
                 episode_returns[i] = 0.0
-
-            # collect sample (do NOT push yet)
-            if not infos[i].get("disabled", False):
-                batch_samples.append(
-                    (o, actions[i], float(rewards[i]), no, bool(dones[i]))
-                )
+            batch_samples.append((o, actions[i], float(rewards[i]), no, bool(dones[i])))
 
         if batch_samples:
             try:
@@ -199,7 +200,6 @@ def actor_process(
                 pass
 
         obs = next_obs
-        time.sleep(0.001)
 
     # Clean up envs before process exit
     try:
@@ -324,7 +324,7 @@ def run_async_sac(d_arg):
             pbar.update(drained - pbar.n)
             local_batch = []
 
-            while not sample_queue.empty() and drained < total:
+            while True:
                 try:
                     item = sample_queue.get_nowait()
                 except queue.Empty:
@@ -508,7 +508,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--learning_starts",
         type=int,
-        default=10000,
+        default=1e4,
         help="Steps before learning starts",
     )
     parser.add_argument(
@@ -518,7 +518,7 @@ if __name__ == "__main__":
         help="Total timesteps for training",
     )
     parser.add_argument(
-        "--rl_threads", type=int, default=3, help="Number of RL threads"
+        "--rl_threads", type=int, default=5, help="Number of RL threads"
     )
     parser.add_argument(
         "--num_envs", type=int, default=9, help="Parallel PhysiCell instances"
