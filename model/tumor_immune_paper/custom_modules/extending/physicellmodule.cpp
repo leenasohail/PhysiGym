@@ -53,7 +53,7 @@ std::ofstream report_file;
 
 // Helper functions
 // exactly like in PhysiCell BUT 
-void delete_cell(Cell* pDeleteMe) {
+void modified_delete_cell(Cell* pDeleteMe) {
     pDeleteMe->remove_all_attached_cells();
     pDeleteMe->remove_all_spring_attachments();
     pDeleteMe->remove_self_from_all_neighbors();
@@ -72,7 +72,7 @@ void delete_cell(Cell* pDeleteMe) {
 // destroy all safely
 void destroy_all_cells() {
     for (int i = all_cells->size() - 1; i >= 0; --i) {
-        delete_cell((*all_cells)[i]);
+        modified_delete_cell((*all_cells)[i]);
     }
 }
 //
@@ -80,11 +80,15 @@ void destroy_all_cells() {
 // extended Python C++ function start
 static PyObject* physicell_start(PyObject *self, PyObject *args) {
 
-    // silenced PhysiCell
-    // int devnull = open("/dev/null", O_WRONLY);
-    // dup2(devnull, 1);  // stdout
-    // dup2(devnull, 2);  // stderr
-    // close(devnull);
+    // ===== SILENCE START =====
+    int stdout_fd = dup(STDOUT_FILENO);
+    int stderr_fd = dup(STDERR_FILENO);
+
+    int devnull = open("/dev/null", O_WRONLY);
+    dup2(devnull, STDOUT_FILENO);
+    dup2(devnull, STDERR_FILENO);
+    close(devnull);
+    // =========================
 
     // extract args take default if no args
     char *settingxml = "config/PhysiCell_settings.xml";
@@ -222,6 +226,13 @@ static PyObject* physicell_start(PyObject *self, PyObject *args) {
     BioFVM::RUNTIME_TIC();
     BioFVM::TIC();
 
+    // ===== RESTORE OUTPUT =====
+    dup2(stdout_fd, STDOUT_FILENO);
+    dup2(stderr_fd, STDERR_FILENO);
+    close(stdout_fd);
+    close(stderr_fd);
+    // ==========================
+
     // going home
     return PyLong_FromLong(0);
 }
@@ -247,6 +258,11 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
         bool action = true;
         bool step = true;
         while (step) {
+            // run microenvironment
+            microenvironment.simulate_diffusion_decay(diffusion_dt);
+
+            // run PhysiCell
+            ((Cell_Container *)microenvironment.agent_container)->update_all_cells(PhysiCell_globals.current_time);
 
             // max time reached?
             if (PhysiCell_globals.current_time > PhysiCell_settings.max_time) {
@@ -257,7 +273,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
             if (action) {
 
                 // achtung : begin physigym specific implementation!
-                std::cout << "administer drug ... " << std::endl;
+                // std::cout << "administer drug ... " << std::endl;
                 add_substrate("drug_1", parameters.doubles("drug_1"));
                 action = false;
                 // achtung : end physigym specific implementation!
@@ -298,7 +314,7 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
 
                 // achtung : begin physigym specific implementation!
                 custom_countdown += parameters.doubles("dt_gym");  // [min]
-                std::cout << "processing gym time step observation block ... " << std::endl;
+                // std::cout << "processing gym time step observation block ... " << std::endl;
                 parameters.doubles("time") = PhysiCell_globals.current_time;
                 action = true;
                 step = false;
@@ -357,11 +373,6 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
             //std::cout << "processing diffusion time step observation block ... " << std::endl << std::endl;
             //step = false;
 
-            // run microenvironment
-            microenvironment.simulate_diffusion_decay(diffusion_dt);
-
-            // run PhysiCell
-            ((Cell_Container *)microenvironment.agent_container)->update_all_cells(PhysiCell_globals.current_time);
 
             // update time
             custom_countdown -= diffusion_dt;
@@ -425,10 +436,6 @@ static PyObject* physicell_stop(PyObject *self, PyObject *args) {
     sprintf(filename, "%s/final.svg", PhysiCell_settings.folder.c_str());
     SVG_plot(filename, microenvironment, 0.0, PhysiCell_globals.current_time, cell_coloring_function, substrate_coloring_function);
 
-    // timer
-    std::cout << std::endl << "Total simulation runtime: " << std::endl;
-    BioFVM::display_stopwatch_value(std::cout, BioFVM::runtime_stopwatch_value());
-    std::cout << std::endl;
 
     // save legacy simulation report
     if (PhysiCell_settings.enable_legacy_saves == true) {
