@@ -153,25 +153,18 @@ def vec_envs(cfg: dict):
     mp.set_start_method("spawn", force=True)
     vect_cfg = cfg["vectorization"]
     num_envs = vect_cfg["num_envs"]
-    rl_threads = vect_cfg["rl_threads"]# configure_thread_splitting(vect_cfg["rl_threads"])
+    rl_threads = vect_cfg[
+        "rl_threads"
+    ]  # configure_thread_splitting(vect_cfg["rl_threads"])
     threads_per_env = (psutil.cpu_count(logical=True) - rl_threads) // num_envs
     cfg["vectorization"]["threads_per_env"] = threads_per_env
     print(f"[INFO] Launching {num_envs} envs × {threads_per_env} threads each")
 
     env_fns = [make_physigym_env(i, cfg) for i in range(num_envs)]
 
-    return ResilientSubprocVecEnv(env_fns=env_fns, start_method="spawn") #SubprocVecEnv(env_fns=env_fns, start_method="spawn")
-
-
-def test_vec_env(cfg: dict):
-    vect_cfg = cfg["vectorization"]
-    num_envs = vect_cfg["num_envs"]
-    rl_threads, _ = configure_thread_splitting(vect_cfg["rl_threads"])
-    total_cores = psutil.cpu_count(logical=True)
-    threads_per_env = (total_cores - rl_threads) // num_envs
-    cfg["vectorization"]["threads_per_env"] = threads_per_env
-
-    return make_physigym_env(0, cfg)
+    return ResilientSubprocVecEnv(
+        env_fns=env_fns, start_method="spawn"
+    )  # SubprocVecEnv(env_fns=env_fns, start_method="spawn")
 
 
 # ============================================================
@@ -186,6 +179,7 @@ def run_vectorized(cfg: dict):
     time_1 = time.time()
     total = cfg["rl"]["total_timesteps"]
     pbar = tqdm(total=total)
+    local_step = 0
     while local_step < total:
         pbar.update(local_step - pbar.n)
         actions = np.array(
@@ -209,76 +203,7 @@ def run_vectorized(cfg: dict):
             num_envs = envs.num_envs
 
     envs.close()
-    print("[INFO] Simulation complete.")
-    print(f"[INFO] Total time = {time.time() - time_1:.2f} s")
-
-
-def test_run_vectorized(cfg: dict):
-    vect_cfg = cfg["vectorization"]
-    sim_cfg = cfg["simulation"]
-    vect_cfg = cfg["vectorization"]
-    model_cfg = cfg["model"]
-    wrapper_cfg = cfg["wrapper"]
-    generation_cfg = cfg["generation"]
-
-    base_xml = model_cfg["settingxml"]
-    base_cells = model_cfg["settingcells"]
-    model_cfg_copy = model_cfg.copy()
-    vect_cfg["threads_per_env"] = 28
-    threads_per_env = 28
-    seed = sim_cfg["seed"]
-    env_id = 0
-    master_seed = seed if seed is not None else 42
-    rng = np.random.default_rng(master_seed)
-    env_xml = f"config/PhysiCell_settings_env{env_id}.xml"
-    env_cells = f"config/cells_{env_id}.csv"
-    if not os.path.exists(env_xml):
-        shutil.copy(base_xml, env_xml)
-    if not os.path.exists(env_cells):
-        shutil.copy(base_cells, env_cells)
-    if model_cfg_copy["output_dir"] is None:
-        model_cfg_copy["output_dir"] = "output"
-    del model_cfg_copy["settingcells"]
-    rl_threads = vect_cfg["rl_threads"]
-    envs = make_physigym_env(0, cfg)
-
-    assign_cpu_affinity(env_id, threads_per_env=28, offset_threads=rl_threads)
-
-    # Modify XML for this env
-    tree = etree.parse(env_xml)
-    root = tree.getroot()
-    root.xpath("//overall/max_time")[0].text = str(sim_cfg["max_time"])
-    root.xpath("//parallel/omp_num_threads")[0].text = str(28)
-    root.xpath("//save/folder")[0].text = os.path.join(
-        model_cfg_copy["output_dir"], f"env{env_id}"
-    )
-    root.xpath("//save/full_data/enable")[0].text = "false"
-    root.xpath("//save/SVG/enable")[0].text = "false"
-    root.xpath("//initial_conditions/cell_positions/filename")[
-        0
-    ].text = f"cells_{env_id}.csv"
-    tree.write(env_xml, pretty_print=True)
-    model_cfg_copy["settingxml"] = env_xml
-
-    del model_cfg_copy["output_dir"]
-    if env_id != 0:
-        wrapper_cfg["frequency_save_data"] = None
-    # Create the base PhysiCell environment
-    env = gym.make(**model_cfg_copy)
-    # Wrap it for simplified action and custom reward
-    env = PhysiCellModelWrapper(env, **wrapper_cfg)
-    generation_cfg["seed"] = int(rng.integers(0, 2**32 - 1)) + env_id
-    _, _ = env.reset(seed=generation_cfg["seed"], generation_cfg=generation_cfg)
-    time_1 = time.time()
-    for t in tqdm(range(2500)):
-        actions = np.random.uniform(low=0, high=1, size=(1, 1))
-        obs, reward, terminated, truncated, info = env.step(actions)
-        if terminated or truncated:
-            env.reset()
-
-    env.close()
-    print("[INFO] Simulation complete.")
-    print(f"[INFO] Total time = {time.time() - time_1:.2f} s")
+    return round(time.time() - time_1, 2)
 
 
 # ============================================================
@@ -286,6 +211,7 @@ def test_run_vectorized(cfg: dict):
 # ============================================================
 if __name__ == "__main__":
     import faulthandler
+    import pandas as pd
 
     faulthandler.enable(all_threads=True)
     parser = argparse.ArgumentParser(
@@ -295,9 +221,9 @@ if __name__ == "__main__":
         "settingxml", nargs="?", default="config/PhysiCell_settings.xml"
     )
     parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
-    parser.add_argument("-m", "--max_time", type=float, default=18000.0)
+    parser.add_argument("-m", "--max_time", type=float, default=12900.0)
     parser.add_argument("-n", "--num_envs", type=int, default=7)
-    parser.add_argument("-t", "--rl_threads", type=int, default=4)
+    parser.add_argument("-t", "--rl_threads", type=int, default=5)
     parser.add_argument("-s", "--seed", type=int, default=3)
     parser.add_argument("-tt", "--total_timesteps", type=int, default=1e5)
     args = parser.parse_args()
@@ -338,9 +264,9 @@ if __name__ == "__main__":
         },
         "wrapper": {
             "list_variable_name": ["drug_1"],
-            "w_cell":0.7,
-            "w_increase":0.2,
-            "w_amount":0.1,
+            "w_cell": 0.7,
+            "w_increase": 0.2,
+            "w_amount": 0.1,
             "frequency_save_data": None,
         },
         "generation": {
@@ -352,9 +278,27 @@ if __name__ == "__main__":
             "seed": args.seed,  # seed
             "cell_2_fraction": 0.3,
         },
-        "rl":{
-            "total_timesteps":25000
-        }
+        "rl": {"total_timesteps": 25000},
     }
-    # test_run_vectorized(cfg)
-    run_vectorized(cfg)
+    records = []
+    seeds = [1, 16, 32, 64, 128]
+    for seed in seeds:
+        for num_envs in range(2, 10):
+            cfg["vectorization"]["num_envs"] = num_envs
+            cfg["generation"]["seed"] = seed
+
+            time_needed = run_vectorized(cfg)
+
+            records.append(
+                {
+                    "num_envs": num_envs,
+                    "seed": seed,
+                    "time": time_needed,
+                }
+            )
+
+    df = pd.DataFrame(records)
+    df.to_csv(
+        f"num_envs_seed_time_{cfg['rl']['total_timesteps']}_steps.csv",
+        index=False,
+    )
