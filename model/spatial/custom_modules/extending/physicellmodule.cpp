@@ -257,13 +257,30 @@ static PyObject* physicell_step(PyObject *self, PyObject *args) {
                 //        return NULL;
                 //    }
                 //}
-		set_persistencetime("cell_1", parameters.doubles("persistime_cell_1"));
-		set_migrationspeed("cell_1", parameters.doubles("migrationspeed_cell_1"));
-		set_migrationbias("cell_1", parameters.doubles("migrationbias_cell_1"));
-		set_persistencetime("cell_2", parameters.doubles("persistime_cell_2"));
-                set_migrationspeed("cell_2", parameters.doubles("migrationspeed_cell_2"));
-                set_migrationbias("cell_2", parameters.doubles("migrationbias_cell_2"));
 
+                // mechanic cell 1
+                //set_cell_cell_adhesion_strength("cell_1", parameters.doubles("cell_cell_adhesion_strength_cell_1"));
+                //set_cell_cell_repulsion_strength("cell_1", parameters.doubles("cell_cell_repulsion_strength_cell_1"));
+                //set_relative_maximum_adhesion_distance("cell_1", parameters.doubles("relative_max_adhesion_distance_cell_1"));
+                //set_cell_adhesion_affinity("cell_1","cell_1", parameters.doubles("cell_1_adhesion_affinity_cell_1"));
+                //set_cell_adhesion_affinity("cell_1","cell_2", parameters.doubles("cell_1_adhesion_affinity_cell_2));
+
+                // mechanic cell 2
+                //set_cell_cell_adhesion_strength("cell_2", parameters.doubles("cell_cell_adhesion_strength_cell_2"));
+                //set_cell_cell_repulsion_strength("cell_2", parameters.doubles("cell_cell_repulsion_strength_cell_2"));
+                //set_relative_maximum_adhesion_distance("cell_2", parameters.doubles("relative_max_adhesion_distance_cell_2"));
+                //set_cell_adhesion_affinity("cell_2","cell_1", parameters.doubles("cell_2_adhesion_affinity_cell_1"));
+                //set_cell_adhesion_affinity("cell_2","cell_2", parameters.doubles("cell_2_adhesion_affinity_cell_2"));
+
+                // migration cell 1
+                //set_persistencetime("cell_1", parameters.doubles("persistime_cell_1"));
+                //set_migrationspeed("cell_1", parameters.doubles("migrationspeed_cell_1"));
+                //set_migrationbias("cell_1", parameters.doubles("migrationbias_cell_1"));
+
+                // migration cell 2
+                //set_persistencetime("cell_2", parameters.doubles("persistime_cell_2"));
+                //set_migrationspeed("cell_2", parameters.doubles("migrationspeed_cell_2"));
+                //set_migrationbias("cell_2", parameters.doubles("migrationbias_cell_2"));
             }
 
 

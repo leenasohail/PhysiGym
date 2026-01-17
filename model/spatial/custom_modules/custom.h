@@ -30,6 +30,11 @@ std::vector<std::string> my_coloring_function(Cell*);
 void phenotype_function(Cell* pCell, Phenotype& phenotype, double dt);
 void custom_function(Cell* pCell, Phenotype& phenotype, double dt);
 void contact_function(Cell* pMe, Phenotype& phenoMe, Cell* pOther, Phenotype& phenoOther, double dt);
-int set_persistencetime(std::string s_cell_type, double r_minutes);
+
+int set_persistencetime(std::string s_cell_type, double minutes);
 int set_migrationspeed(std::string s_cell_type, double um_minutes);
 int set_migrationbias(std::string s_cell_type, double brownian_bias);
+int set_cell_cell_adhesion_strength(std::string s_cell_type, double um_minutes);
+int set_cell_cell_repulsion_strength(std::string s_cell_type, double um_minutes);
+int set_relative_maximum_adhesion_distance(std::string s_cell_type, double um);
+//int set_cell_adhesion_affinity();

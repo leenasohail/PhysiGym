@@ -149,36 +149,72 @@ void contact_function(Cell* pMe, Phenotype& phenoMe, Cell* pOther, Phenotype& ph
 
 //double persistence_time
 //the unit is minutes
-int set_persistencetime(std::string s_cell_type, double r_minutes) {
+int set_persistencetime(std::string s_cell_type, double minutes) {
     for (Cell* pCell: (*all_cells)) {
-    	if (pCell->type_name == s_cell_type){
-    		pCell->phenotype.motility.persistence_time = r_minutes;
-	}
-   // 	std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Persistence Time: "<< pCell->phenotype.motility.persistence_time << std::endl;
+        if (pCell->type_name == s_cell_type) {
+            pCell->phenotype.motility.persistence_time = minutes;
+        }
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Persistence Time: "<< pCell->phenotype.motility.persistence_time << std::endl;
     }
     return 0;
 }
 
 //double migration_speed
+//the unit is micrometers/min
 int set_migrationspeed(std::string s_cell_type, double um_minutes) {
     for (Cell* pCell: (*all_cells)) {
-        if (pCell->type_name == s_cell_type){
-                pCell->phenotype.motility.migration_speed = um_minutes;
+        if (pCell->type_name == s_cell_type) {
+            pCell->phenotype.motility.migration_speed = um_minutes;
         }
-   std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Speed: "<< pCell->phenotype.motility.migration_speed << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Speed: "<< pCell->phenotype.motility.migration_speed << std::endl;
     }
     return 0;
 }
-//the unit is micrometers/min
 
 
-//double migration_bias 
+//double migration_bias
 int set_migrationbias(std::string s_cell_type, double brownian_bias) {
     for (Cell* pCell: (*all_cells)) {
-        if (pCell->type_name == s_cell_type){
-                pCell->phenotype.motility.migration_bias = brownian_bias;
+        if (pCell->type_name == s_cell_type) {
+            pCell->phenotype.motility.migration_bias = brownian_bias;
         }
-   std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Bias: "<< pCell->phenotype.motility.migration_bias << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Bias: "<< pCell->phenotype.motility.migration_bias << std::endl;
     }
     return 0;
 }
+
+// double cell_cell_adhesion_strength
+int set_cell_cell_adhesion_strength(std::string s_cell_type, double um_minutes) {
+    for (Cell* pCell: (*all_cells)) {
+        if (pCell->type_name == s_cell_type) {
+            pCell->phenotype.mechanics.cell_cell_adhesion_strength = um_minutes;
+        }
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Cell Cell Adhesion Strength: "<< pCell->phenotype.mechanics.cell_cell_adhesion_strength << std::endl;
+    }
+    return 0;
+}
+
+// double cell_cell_repulsion_strength
+int set_cell_cell_repulsion_strength(std::string s_cell_type, double um_minutes) {
+    for (Cell* pCell: (*all_cells)) {
+        if (pCell->type_name == s_cell_type) {
+            pCell->phenotype.mechanics.cell_cell_repulsion_strength = um_minutes;
+        }
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Cell Cell Repulsion Strength: "<< pCell->phenotype.mechanics.cell_cell_repulsion_strength << std::endl;
+    }
+    return 0;
+}
+
+// double relative_maximum_adhesion_distance
+int set_relative_maximum_adhesion_distance(std::string s_cell_type, double um) {
+    for (Cell* pCell: (*all_cells)) {
+        if (pCell->type_name == s_cell_type) {
+            pCell->phenotype.mechanics.relative_maximum_adhesion_distance = um;
+        }
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Relative Maxiumm Adhesion Distance: "<< pCell->phenotype.mechanics.relative_maximum_adhesion_distance << std::endl;
+    }
+    return 0;
+}
+
+// double cell_adhesion_affinity
+

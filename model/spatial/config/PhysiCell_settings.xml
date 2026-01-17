@@ -386,11 +386,21 @@
         <my_int type="int" units="none" description="">0</my_int>
         <my_bool type="bool" units="none" description="">false</my_bool>
         <my_str type="string" units="none" description="">abc</my_str>
-        <migrationspeed_cell_1 type="double" units="" description="">1.0</migrationspeed_cell_1>
-        <migrationspeed_cell_2 type="double" units="" description="">1.0</migrationspeed_cell_2>
-        <persistime_cell_1 type="double" units="" description="">1.0</persistime_cell_1>
-        <persistime_cell_2 type="double" units="" description="">1.0</persistime_cell_2>
-        <migrationbias_cell_1 type="double" units="" description="">0</migrationbias_cell_1>
-        <migrationbias_cell_2 type="double" units="" description="">0</migrationbias_cell_2>
+        <migrationspeed_cell_1 type="double" units="um/min" description="">0.5</migrationspeed_cell_1>
+        <migrationspeed_cell_2 type="double" units="um/min" description="">0.5</migrationspeed_cell_2>
+        <persistime_cell_1 type="double" units="min" description="">0.0</persistime_cell_1>
+        <persistime_cell_2 type="double" units="min" description="">0.0</persistime_cell_2>
+        <migrationbias_cell_1 type="double" units="" description="">0.0</migrationbias_cell_1>
+        <migrationbias_cell_2 type="double" units="" description="">0.0</migrationbias_cell_2>
+        <cell_cell_adhesion_strength_cell_1 type="double" units="um/min" description="">0.4</cell_cell_adhesion_strength_cell_1>
+        <cell_cell_adhesion_strength_cell_2 type="double" units="um/min" description="">0.4</cell_cell_adhesion_strength_cell_2>
+        <cell_cell_repulsion_strength_cell_1 type="double" units="um/min" description="">10.0</cell_cell_repulsion_strength_cell_1>
+        <cell_cell_repulsion_strength_cell_2 type="double" units="um/min" description="">10.0</cell_cell_repulsion_strength_cell_2>
+        <relative_max_adhesion_distance_cell_1 type="double" units="cell_diameter" description="">2.5</relative_max_adhesion_distance_cell_1>
+        <relative_max_adhesion_distance_cell_2 type="double" units="cell_diameter" description="">2.5</relative_max_adhesion_distance_cell_2>
+        <cell_1_adhesion_affinity_cell_1 type="double" units="fraction" description="">1.0</cell_1_adhesion_affinity_cell_1>
+        <cell_1_adhesion_affinity_cell_2 type="double" units="fraction" description="">1.0</cell_1_adhesion_affinity_cell_2>
+        <cell_2_adhesion_affinity_cell_1 type="double" units="fraction" description="">1.0</cell_2_adhesion_affinity_cell_1>
+        <cell_2_adhesion_affinity_cell_2 type="double" units="fraction" description="">1.0</cell_2_adhesion_affinity_cell_2>
     </user_parameters>
 </PhysiCell_settings>
