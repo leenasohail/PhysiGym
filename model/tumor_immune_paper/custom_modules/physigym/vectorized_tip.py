@@ -9,7 +9,7 @@ description:
       - runs on its own CPU core range (affinity pinned)
       - is wrapped in PhysiCellModelWrapper for simplified Box actions
 
-author: Alexandre Bertin (with ChatGPT)
+author: Alexandre Bertin
 date: 2025
 """
 
@@ -283,7 +283,7 @@ if __name__ == "__main__":
     records = []
     seeds = [1, 16, 32, 64, 128]
     for seed in seeds:
-        for num_envs in range(2, 10):
+        for num_envs in range(1, 13):
             cfg["vectorization"]["num_envs"] = num_envs
             cfg["generation"]["seed"] = seed
 
@@ -297,8 +297,14 @@ if __name__ == "__main__":
                 }
             )
 
-    df = pd.DataFrame(records)
-    df.to_csv(
-        f"num_envs_seed_time_{cfg['rl']['total_timesteps']}_steps.csv",
-        index=False,
-    )
+    csv_path = f"num_envs_seed_time_{cfg['rl']['total_timesteps']}_steps.csv"
+
+    df_new = pd.DataFrame(records)
+
+    if os.path.exists(csv_path):
+        df_existing = pd.read_csv(csv_path)
+        df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+    else:
+        df_combined = df_new
+
+    df_combined.to_csv(csv_path, index=False)
