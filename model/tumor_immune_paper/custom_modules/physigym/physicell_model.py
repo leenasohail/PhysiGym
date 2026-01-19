@@ -86,15 +86,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "img_mc_cells",
             "img_mc_substrates",
             "img_mc_cells_substrates",
-            "img_rgb",
             "graph_delaunay",
             "graph_knn",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
 
-        # check render mode
-        if observation_mode == "img_rgb" and render_mode == None:
-            render_mode = "rgb_array"
         self.observation_mode = observation_mode
         self.max_nodes = 2000  #  choose based on your env
         self.max_edges = 7500  #  number of Delaunay edges worst case
@@ -168,8 +164,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             this struct has to specify type and range
             for each observed variable.
         """
+        observation_mode = self.observation_mode
+        gy = self.kwargs["img_mc_grid_size_y"]
+        gx = self.kwargs["img_mc_grid_size_x"]
         # model dependent observation_space processing logic goes here!
-        if self.kwargs["observation_mode"] == "scalars_cells":
+        if observation_mode == "scalars_cells":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
@@ -177,7 +176,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_mode"] == "scalars_substrates":
+        elif observation_mode == "scalars_substrates":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
@@ -185,7 +184,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_mode"] == "scalars_cells_substrates":
+        elif observation_mode == "scalars_cells_substrates":
             o_observation_space = spaces.Box(
                 low=-(2**8),
                 high=2**8,
@@ -193,46 +192,33 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_mode"] == "img_rgb":
-            # Define the Box space for the rgb alpha image
-            o_observation_space = spaces.Box(
-                low=0,
-                high=255,
-                shape=(
-                    1,
-                    self.kwargs["img_rgb_grid_size_y"],
-                    self.kwargs["img_rgb_grid_size_x"],
-                ),
-                dtype=np.uint8,
-            )
-
-        elif self.kwargs["observation_mode"] in [
+        elif observation_mode in [
             "img_mc_cells",
             "img_mc_substrates",
             "img_mc_cells_substrates",
         ]:
             # Define the Box space for the multichannel image
-            self.ratio_img_mc_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
-            self.ratio_img_mc_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
-            if self.kwargs["observation_mode"] == "img_mc_cells":
+            self.ratio_img_mc_size_y = self.height / gy
+            self.ratio_img_mc_size_x = self.width / gx
+            if observation_mode == "img_mc_cells":
                 o_observation_space = spaces.Box(
                     low=0,
                     high=255,
                     shape=(
                         self.cell_type_count,
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
+                        gx,
+                        gy,
                     ),
                     dtype=np.uint8,
                 )
-            elif self.kwargs["observation_mode"] == "img_mc_substrates":
+            elif observation_mode == "img_mc_substrates":
                 o_observation_space = spaces.Box(
                     low=0,
                     high=255,
                     shape=(
                         self.substrate_count,
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
+                        gx,
+                        gy,
                     ),
                     dtype=np.uint8,
                 )
@@ -242,12 +228,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     high=255,
                     shape=(
                         self.cell_type_count + self.substrate_count,
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
+                        gx,
+                        gy,
                     ),
                     dtype=np.uint8,
                 )
-        elif self.kwargs["observation_mode"] in ["graph_delaunay", "graph_knn"]:
+        elif observation_mode in ["graph_delaunay", "graph_knn"]:
             o_observation_space = spaces.Dict(
                 {
                     "node_features": spaces.Box(
