@@ -170,24 +170,24 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # model dependent observation_space processing logic goes here!
         if observation_mode == "scalars_cells":
             o_observation_space = spaces.Box(
-                low=-(2**8),
-                high=2**8,
+                low=0,
+                high=2**12,
                 shape=(self.cell_type_count,),
                 dtype=np.float32,
             )
 
         elif observation_mode == "scalars_substrates":
             o_observation_space = spaces.Box(
-                low=-(2**8),
-                high=2**8,
+                low=0,
+                high=2**12,
                 shape=(self.substrate_count,),
                 dtype=np.float32,
             )
 
         elif observation_mode == "scalars_cells_substrates":
             o_observation_space = spaces.Box(
-                low=-(2**8),
-                high=2**8,
+                low=0,
+                high=2**12,
                 shape=(self.cell_type_count + self.substrate_count,),
                 dtype=np.float32,
             )
@@ -314,7 +314,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # update cell_2 cell count
         self.nb_cell_2 = df_alive.loc[(df_alive.type == "cell_2"), :].shape[0]
 
-
         def get_normalized_cell_counts():
             counts = np.zeros(self.cell_type_count, dtype=np.float32)
             for cell_type, idx in self.cell_type_to_id.items():
@@ -327,19 +326,24 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 microenv = physicell.get_microenv(subs)
                 max_vals[i] = microenv[:, -1].max()  # last column = substrate value
             return max_vals
-        
+
         def discretize_xy(x, y):
-            x_bin = ((x - self.x_min) / (self.x_max - self.x_min) * (gx - 1)).astype(int)
-            y_bin = ((y - self.y_min) / (self.y_max - self.y_min) * (gy - 1)).astype(int)
+            x_bin = ((x - self.x_min) / (self.x_max - self.x_min) * (gx - 1)).astype(
+                int
+            )
+            y_bin = ((y - self.y_min) / (self.y_max - self.y_min) * (gy - 1)).astype(
+                int
+            )
             return (
                 np.clip(x_bin, 0, gx - 1),
                 np.clip(y_bin, 0, gy - 1),
             )
 
-
         def build_cell_image():
             cell_type_idx = df_alive["type"].map(self.cell_type_to_id).to_numpy()
-            x_bin, y_bin = discretize_xy(df_alive["x"].to_numpy(), df_alive["y"].to_numpy())
+            x_bin, y_bin = discretize_xy(
+                df_alive["x"].to_numpy(), df_alive["y"].to_numpy()
+            )
 
             img = np.zeros(
                 (self.cell_type_count, gx, gy),
@@ -349,7 +353,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
             norm = self.ratio_img_mc_size_x * self.ratio_img_mc_size_y
             return ski.util.img_as_ubyte(img / norm)
-
 
         def build_substrate_image():
             # merge all substrates once
@@ -386,6 +389,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             scale = np.where(max_v > min_v, max_v - min_v, 1)
 
             return ski.util.img_as_ubyte((img - min_v) / scale)
+
         # observe the environemnt
         if mode == "scalars_cells":
             o_observation = get_normalized_cell_counts()
@@ -400,11 +404,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     get_max_substrates(),
                 ]
             )
-        
+
         elif mode in {
-        "img_mc_cells",
-        "img_mc_substrates",
-        "img_mc_cells_substrates",
+            "img_mc_cells",
+            "img_mc_substrates",
+            "img_mc_cells_substrates",
         }:
             if "cells" in mode:
                 img_mc_cells = build_cell_image()
@@ -421,7 +425,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     [img_mc_cells, img_mc_substrates],
                     axis=0,
                 )
-
 
         elif mode in ["graph_delaunay", "graph_knn"]:
             df_alive.set_index("ID", inplace=True)
@@ -477,9 +480,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             }
 
         else:
-            raise ValueError(
-                f"unknown observation type: {mode}"
-            )
+            raise ValueError(f"unknown observation type: {mode}")
 
         # output
         return o_observation
