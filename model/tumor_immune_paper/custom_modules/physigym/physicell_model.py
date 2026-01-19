@@ -422,19 +422,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     axis=0,
                 )
 
-        elif mode == "img_rgb":
-            a_img = self.render()
-            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
-            a_img = ski.transform.resize(  # ski.transform.rescale
-                a_img,
-                output_shape=(
-                    gx,
-                    gy,
-                ),
-                anti_aliasing=True,
-            )
-            o_observation = np.expand_dims(ski.util.img_as_ubyte(a_img), axis=0)
-
 
         elif mode in ["graph_delaunay", "graph_knn"]:
             df_alive.set_index("ID", inplace=True)
