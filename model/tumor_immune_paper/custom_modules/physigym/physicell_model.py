@@ -263,6 +263,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 }
             )
             # shape = (E, 1)
+        elif observation_mode == "transformer_nodes":
+            o_observation_space = spaces.Box(
+                low=0,
+                high=1,
+                shape=(8, 145),
+                dtype=np.float32,
+            )
 
         else:
             raise ValueError(
@@ -478,6 +485,99 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 "node_mask": node_mask,
                 "edge_mask": edge_mask,
             }
+        elif self.kwargs["observation_mode"] == "transformer_nodes":
+            import math
+            import numpy as np
+            from sklearn.cluster import KMeans
+
+            df = df_alive.set_index("ID", drop=True)
+
+            # ---- compute number of clusters ----
+            def _compute_fibo(total_cells: int) -> int:
+                fibo = np.array([1, 2, 3, 5, 7, 13, 21, 34, 55, 89, 144])
+                idx = min(len(fibo) - 1, int(np.log(total_cells)))
+                return int(fibo[idx])
+
+            n_clusters = _compute_fibo(len(df))
+
+            # ---- clustering ----
+            coords = df[["x", "y"]].to_numpy(np.float32)
+
+            kmeans = KMeans(
+                n_clusters=n_clusters,
+                algorithm="elkan",
+                n_init=1,
+                random_state=42,
+            )
+            labels = kmeans.fit_predict(coords)
+
+            # ---- encode types as integers ----
+            type_to_idx = {t: i for i, t in enumerate(self.cell_type_unique)}
+            type_idx = df["type"].map(type_to_idx).to_numpy()
+
+            n_types = len(self.cell_type_unique)
+            total_len = len(df)
+
+            # ============================================================
+            # 1️⃣ TYPE PROPORTIONS  → shape (K, 3)
+            # ============================================================
+            counts = np.zeros((n_clusters, n_types), dtype=np.float32)
+
+            np.add.at(counts, (labels, type_idx), 1)
+
+            cluster_sizes = counts.sum(axis=1, keepdims=True)
+            type_props = np.divide(
+                counts,
+                cluster_sizes,
+                out=np.zeros_like(counts),
+                where=cluster_sizes > 0,
+            )
+
+            # ============================================================
+            # 2️⃣ SPATIAL STATS → shape (K, 5)
+            # ============================================================
+            x = coords[:, 0]
+            y = coords[:, 1]
+
+            x_sum = np.bincount(labels, weights=x, minlength=n_clusters)
+            y_sum = np.bincount(labels, weights=y, minlength=n_clusters)
+
+            x_mean = x_sum / cluster_sizes[:, 0]
+            y_mean = y_sum / cluster_sizes[:, 0]
+
+            x2_sum = np.bincount(labels, weights=x * x, minlength=n_clusters)
+            y2_sum = np.bincount(labels, weights=y * y, minlength=n_clusters)
+
+            x_std = np.sqrt(x2_sum / cluster_sizes[:, 0] - x_mean**2)
+            y_std = np.sqrt(y2_sum / cluster_sizes[:, 0] - y_mean**2)
+
+            cluster_frac = cluster_sizes[:, 0] / total_len
+
+            stats = np.stack(
+                [x_mean, y_mean, x_std, y_std, cluster_frac],
+                axis=1,
+            )
+
+            # ============================================================
+            # 3️⃣ FINAL OBSERVATION → (K, 8)
+            # ============================================================
+            o_observation = np.concatenate([type_props, stats], axis=1).astype(
+                np.float32
+            )
+
+            MAX_CLUSTERS = 145
+            FEATURES = 8
+
+            K = o_observation.shape[0]
+
+            # ---- transpose to (8, K) ----
+            o_obs = o_observation.T  # (8, K)
+
+            # ---- pad with zeros to (8, 145) ----
+            o_padded = np.zeros((FEATURES, MAX_CLUSTERS), dtype=np.float32)
+            o_padded[:, :K] = o_obs
+
+            o_observation = o_padded
 
         else:
             raise ValueError(f"unknown observation type: {mode}")
