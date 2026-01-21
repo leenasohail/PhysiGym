@@ -86,15 +86,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             "img_mc_cells",
             "img_mc_substrates",
             "img_mc_cells_substrates",
-            "img_rgb",
             "graph_delaunay",
             "graph_knn",
         ]:
             raise ValueError(f"Error: unknown observation type: {observation_mode}")
 
-        # check render mode
-        if observation_mode == "img_rgb" and render_mode == None:
-            render_mode = "rgb_array"
         self.observation_mode = observation_mode
         self.max_nodes = 2000  #  choose based on your env
         self.max_edges = 7500  #  number of Delaunay edges worst case
@@ -168,71 +164,61 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             this struct has to specify type and range
             for each observed variable.
         """
+        observation_mode = self.observation_mode
+        gy = self.kwargs["img_mc_grid_size_y"]
+        gx = self.kwargs["img_mc_grid_size_x"]
         # model dependent observation_space processing logic goes here!
-        if self.kwargs["observation_mode"] == "scalars_cells":
+        if observation_mode == "scalars_cells":
             o_observation_space = spaces.Box(
-                low=-(2**8),
-                high=2**8,
+                low=0,
+                high=2**12,
                 shape=(self.cell_type_count,),
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_mode"] == "scalars_substrates":
+        elif observation_mode == "scalars_substrates":
             o_observation_space = spaces.Box(
-                low=-(2**8),
-                high=2**8,
+                low=0,
+                high=2**12,
                 shape=(self.substrate_count,),
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_mode"] == "scalars_cells_substrates":
+        elif observation_mode == "scalars_cells_substrates":
             o_observation_space = spaces.Box(
-                low=-(2**8),
-                high=2**8,
+                low=0,
+                high=2**12,
                 shape=(self.cell_type_count + self.substrate_count,),
                 dtype=np.float32,
             )
 
-        elif self.kwargs["observation_mode"] == "img_rgb":
-            # Define the Box space for the rgb alpha image
-            o_observation_space = spaces.Box(
-                low=0,
-                high=255,
-                shape=(
-                    1,
-                    self.kwargs["img_rgb_grid_size_y"],
-                    self.kwargs["img_rgb_grid_size_x"],
-                ),
-                dtype=np.uint8,
-            )
-
-        elif self.kwargs["observation_mode"] in [
+        elif observation_mode in [
             "img_mc_cells",
             "img_mc_substrates",
             "img_mc_cells_substrates",
         ]:
             # Define the Box space for the multichannel image
-            self.ratio_img_mc_size_y = self.height / self.kwargs["img_mc_grid_size_y"]
-            self.ratio_img_mc_size_x = self.width / self.kwargs["img_mc_grid_size_x"]
-            if self.kwargs["observation_mode"] == "img_mc_cells":
+            self.ratio_img_mc_size_y = self.height / gy
+            self.ratio_img_mc_size_x = self.width / gx
+            if observation_mode == "img_mc_cells":
                 o_observation_space = spaces.Box(
                     low=0,
                     high=255,
                     shape=(
                         self.cell_type_count,
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
+                        gx,
+                        gy,
                     ),
                     dtype=np.uint8,
                 )
-            elif self.kwargs["observation_mode"] == "img_mc_substrates":
+            elif observation_mode == "img_mc_substrates":
                 o_observation_space = spaces.Box(
                     low=0,
                     high=255,
                     shape=(
                         self.substrate_count,
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
+                        gx,
+                        gy,
                     ),
                     dtype=np.uint8,
                 )
@@ -242,12 +228,12 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     high=255,
                     shape=(
                         self.cell_type_count + self.substrate_count,
-                        self.kwargs["img_mc_grid_size_x"],
-                        self.kwargs["img_mc_grid_size_y"],
+                        gx,
+                        gy,
                     ),
                     dtype=np.uint8,
                 )
-        elif self.kwargs["observation_mode"] in ["graph_delaunay", "graph_knn"]:
+        elif observation_mode in ["graph_delaunay", "graph_knn"]:
             o_observation_space = spaces.Dict(
                 {
                     "node_features": spaces.Box(
@@ -277,6 +263,13 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 }
             )
             # shape = (E, 1)
+        elif observation_mode == "transformer_nodes":
+            o_observation_space = spaces.Box(
+                low=0,
+                high=1,
+                shape=(8, 145),
+                dtype=np.float32,
+            )
 
         else:
             raise ValueError(
@@ -328,7 +321,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
         # update cell_2 cell count
         self.nb_cell_2 = df_alive.loc[(df_alive.type == "cell_2"), :].shape[0]
 
-
         def get_normalized_cell_counts():
             counts = np.zeros(self.cell_type_count, dtype=np.float32)
             for cell_type, idx in self.cell_type_to_id.items():
@@ -341,19 +333,24 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 microenv = physicell.get_microenv(subs)
                 max_vals[i] = microenv[:, -1].max()  # last column = substrate value
             return max_vals
-        
+
         def discretize_xy(x, y):
-            x_bin = ((x - self.x_min) / (self.x_max - self.x_min) * (gx - 1)).astype(int)
-            y_bin = ((y - self.y_min) / (self.y_max - self.y_min) * (gy - 1)).astype(int)
+            x_bin = ((x - self.x_min) / (self.x_max - self.x_min) * (gx - 1)).astype(
+                int
+            )
+            y_bin = ((y - self.y_min) / (self.y_max - self.y_min) * (gy - 1)).astype(
+                int
+            )
             return (
                 np.clip(x_bin, 0, gx - 1),
                 np.clip(y_bin, 0, gy - 1),
             )
 
-
         def build_cell_image():
             cell_type_idx = df_alive["type"].map(self.cell_type_to_id).to_numpy()
-            x_bin, y_bin = discretize_xy(df_alive["x"].to_numpy(), df_alive["y"].to_numpy())
+            x_bin, y_bin = discretize_xy(
+                df_alive["x"].to_numpy(), df_alive["y"].to_numpy()
+            )
 
             img = np.zeros(
                 (self.cell_type_count, gx, gy),
@@ -363,7 +360,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
 
             norm = self.ratio_img_mc_size_x * self.ratio_img_mc_size_y
             return ski.util.img_as_ubyte(img / norm)
-
 
         def build_substrate_image():
             # merge all substrates once
@@ -400,6 +396,7 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
             scale = np.where(max_v > min_v, max_v - min_v, 1)
 
             return ski.util.img_as_ubyte((img - min_v) / scale)
+
         # observe the environemnt
         if mode == "scalars_cells":
             o_observation = get_normalized_cell_counts()
@@ -414,11 +411,11 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     get_max_substrates(),
                 ]
             )
-        
+
         elif mode in {
-        "img_mc_cells",
-        "img_mc_substrates",
-        "img_mc_cells_substrates",
+            "img_mc_cells",
+            "img_mc_substrates",
+            "img_mc_cells_substrates",
         }:
             if "cells" in mode:
                 img_mc_cells = build_cell_image()
@@ -435,20 +432,6 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                     [img_mc_cells, img_mc_substrates],
                     axis=0,
                 )
-
-        elif mode == "img_rgb":
-            a_img = self.render()
-            a_img = ski.color.rgb2gray(ski.color.rgba2rgb(a_img))
-            a_img = ski.transform.resize(  # ski.transform.rescale
-                a_img,
-                output_shape=(
-                    gx,
-                    gy,
-                ),
-                anti_aliasing=True,
-            )
-            o_observation = np.expand_dims(ski.util.img_as_ubyte(a_img), axis=0)
-
 
         elif mode in ["graph_delaunay", "graph_knn"]:
             df_alive.set_index("ID", inplace=True)
@@ -502,11 +485,102 @@ class ModelPhysiCellEnv(CorePhysiCellEnv):
                 "node_mask": node_mask,
                 "edge_mask": edge_mask,
             }
+        elif self.kwargs["observation_mode"] == "transformer_nodes":
+            import math
+            import numpy as np
+            from sklearn.cluster import KMeans
+
+            df = df_alive.set_index("ID", drop=True)
+
+            # ---- compute number of clusters ----
+            def _compute_fibo(total_cells: int) -> int:
+                fibo = np.array([1, 2, 3, 5, 7, 13, 21, 34, 55, 89, 144])
+                idx = min(len(fibo) - 1, int(np.log(total_cells)))
+                return int(fibo[idx])
+
+            n_clusters = _compute_fibo(len(df))
+
+            # ---- clustering ----
+            coords = df[["x", "y"]].to_numpy(np.float32)
+
+            kmeans = KMeans(
+                n_clusters=n_clusters,
+                algorithm="elkan",
+                n_init=1,
+                random_state=42,
+            )
+            labels = kmeans.fit_predict(coords)
+
+            # ---- encode types as integers ----
+            type_to_idx = {t: i for i, t in enumerate(self.cell_type_unique)}
+            type_idx = df["type"].map(type_to_idx).to_numpy()
+
+            n_types = len(self.cell_type_unique)
+            total_len = len(df)
+
+            # ============================================================
+            # 1️⃣ TYPE PROPORTIONS  → shape (K, 3)
+            # ============================================================
+            counts = np.zeros((n_clusters, n_types), dtype=np.float32)
+
+            np.add.at(counts, (labels, type_idx), 1)
+
+            cluster_sizes = counts.sum(axis=1, keepdims=True)
+            type_props = np.divide(
+                counts,
+                cluster_sizes,
+                out=np.zeros_like(counts),
+                where=cluster_sizes > 0,
+            )
+
+            # ============================================================
+            # 2️⃣ SPATIAL STATS → shape (K, 5)
+            # ============================================================
+            x = coords[:, 0]
+            y = coords[:, 1]
+
+            x_sum = np.bincount(labels, weights=x, minlength=n_clusters)
+            y_sum = np.bincount(labels, weights=y, minlength=n_clusters)
+
+            x_mean = x_sum / cluster_sizes[:, 0]
+            y_mean = y_sum / cluster_sizes[:, 0]
+
+            x2_sum = np.bincount(labels, weights=x * x, minlength=n_clusters)
+            y2_sum = np.bincount(labels, weights=y * y, minlength=n_clusters)
+
+            x_std = np.sqrt(x2_sum / cluster_sizes[:, 0] - x_mean**2)
+            y_std = np.sqrt(y2_sum / cluster_sizes[:, 0] - y_mean**2)
+
+            cluster_frac = cluster_sizes[:, 0] / total_len
+
+            stats = np.stack(
+                [x_mean, y_mean, x_std, y_std, cluster_frac],
+                axis=1,
+            )
+
+            # ============================================================
+            # 3️⃣ FINAL OBSERVATION → (K, 8)
+            # ============================================================
+            o_observation = np.concatenate([type_props, stats], axis=1).astype(
+                np.float32
+            )
+
+            MAX_CLUSTERS = 145
+            FEATURES = 8
+
+            K = o_observation.shape[0]
+
+            # ---- transpose to (8, K) ----
+            o_obs = o_observation.T  # (8, K)
+
+            # ---- pad with zeros to (8, 145) ----
+            o_padded = np.zeros((FEATURES, MAX_CLUSTERS), dtype=np.float32)
+            o_padded[:, :K] = o_obs
+
+            o_observation = o_padded
 
         else:
-            raise ValueError(
-                f"unknown observation type: {mode}"
-            )
+            raise ValueError(f"unknown observation type: {mode}")
 
         # output
         return o_observation

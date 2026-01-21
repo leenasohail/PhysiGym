@@ -222,7 +222,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("settingcells", nargs="?", default="config/cells.csv")
     parser.add_argument("-m", "--max_time", type=float, default=12900.0)
-    parser.add_argument("-n", "--num_envs", type=int, default=7)
+    parser.add_argument("-n", "--num_envs", type=int, default=9)
     parser.add_argument("-t", "--rl_threads", type=int, default=5)
     parser.add_argument("-s", "--seed", type=int, default=3)
     parser.add_argument("-tt", "--total_timesteps", type=int, default=1e5)
@@ -280,25 +280,79 @@ if __name__ == "__main__":
         },
         "rl": {"total_timesteps": 25000},
     }
-    records = []
-    seeds = [1, 16, 32, 64, 128]
-    for seed in seeds:
-        for num_envs in range(2, 10):
-            cfg["vectorization"]["num_envs"] = num_envs
-            cfg["generation"]["seed"] = seed
 
-            time_needed = run_vectorized(cfg)
+    def _num_envs_seed_time(
+        seeds=[1, 16, 32, 64, 128], list_num_envs=[1, 2, 3, 6, 9], cfg=cfg
+    ):
+        """
+        Compute the time needed for 25k steps given different number of environmnets
 
-            records.append(
-                {
-                    "num_envs": num_envs,
-                    "seed": seed,
-                    "time": time_needed,
-                }
-            )
+        :param seeds: Description
+        :param list_num_envs: Description
+        """
+        records = []
 
-    df = pd.DataFrame(records)
-    df.to_csv(
-        f"num_envs_seed_time_{cfg['rl']['total_timesteps']}_steps.csv",
-        index=False,
-    )
+        for seed in seeds:
+            for num_envs in list_num_envs:
+                cfg["vectorization"]["num_envs"] = num_envs
+                cfg["generation"]["seed"] = seed
+
+                time_needed = run_vectorized(cfg)
+
+                records.append(
+                    {
+                        "num_envs": num_envs,
+                        "seed": seed,
+                        "time": time_needed,
+                    }
+                )
+
+        csv_path = f"num_envs_seed_time_{cfg['rl']['total_timesteps']}_steps.csv"
+
+        df_new = pd.DataFrame(records)
+
+        if os.path.exists(csv_path):
+            df_existing = pd.read_csv(csv_path)
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+        else:
+            df_combined = df_new
+
+        df_combined.to_csv(csv_path, index=False)
+
+    def _num_envs_seed_time_cells(
+        seeds=[1, 16, 32, 64, 128],
+        list_tumor_cells=[4096, 2048, 1024, 512, 256],
+        cfg=cfg,
+    ):
+        records = []
+        cfg["vectorization"]["num_envs"] = 9  # Optimal for 5 rl threads
+
+        for seed in seeds:
+            for tumor_cells in list_tumor_cells:
+                cfg["generation"]["params"]["tumor"]["cancer_cells"]["number_cells"] = (
+                    tumor_cells
+                )
+                cfg["generation"]["seed"] = seed
+
+                time_needed = run_vectorized(cfg)
+
+                records.append(
+                    {
+                        "tumor_cells": tumor_cells,
+                        "seed": seed,
+                        "time": time_needed,
+                    }
+                )
+
+        csv_path = f"num_envs_seed_time_cells_{cfg['rl']['total_timesteps']}_steps.csv"
+
+        df_new = pd.DataFrame(records)
+
+        if os.path.exists(csv_path):
+            df_existing = pd.read_csv(csv_path)
+            df_combined = pd.concat([df_existing, df_new], ignore_index=True)
+        else:
+            df_combined = df_new
+
+        df_combined.to_csv(csv_path, index=False)
+        _num_envs_seed_time_cells()

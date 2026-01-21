@@ -82,6 +82,114 @@ class GraphFeatureExtractor(nn.Module):
         return global_mean_pool(x, data.batch)
 
 
+class RelativeBias(nn.Module):
+    def __init__(self, heads, hidden=32):
+        super().__init__()
+        self.mlp = nn.Sequential(
+            nn.Linear(2, hidden), nn.ReLU(), nn.Linear(hidden, heads)
+        )
+
+    def forward(self, xy):  # (B, N, 2)
+        delta = xy[:, :, None, :] - xy[:, None, :, :]  # (B, N, N, 2)
+        return self.mlp(delta)  # (B, N, N, H)
+
+
+# -----------------------------
+# Fast attention block
+# -----------------------------
+class FastAttention(nn.Module):
+    def __init__(self, dim, heads=4):
+        super().__init__()
+        self.heads = heads
+        self.scale = (dim // heads) ** -0.5
+        self.qkv = nn.Linear(dim, dim * 3, bias=False)
+        self.proj = nn.Linear(dim, dim)
+
+    def forward(self, x, attn_mask=None, bias=None):
+        B, N, D = x.shape
+        H = self.heads
+
+        qkv = self.qkv(x).view(B, N, 3, H, D // H)
+        q, k, v = qkv.unbind(dim=2)
+
+        q = q.transpose(1, 2)
+        k = k.transpose(1, 2)
+        v = v.transpose(1, 2)
+
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+
+        if bias is not None:
+            attn = attn + bias.permute(0, 3, 1, 2)
+
+        if attn_mask is not None:
+            attn = attn.masked_fill(attn_mask[:, None, None, :] == 0, -1e9)
+
+        attn = attn.softmax(dim=-1)
+        out = (attn @ v).transpose(1, 2).reshape(B, N, D)
+
+        return self.proj(out)
+
+
+# -----------------------------
+# Encoder block
+# -----------------------------
+class FastBlock(nn.Module):
+    def __init__(self, dim, heads=4, mlp_ratio=2):
+        super().__init__()
+        self.attn = FastAttention(dim, heads)
+        self.ff = nn.Sequential(
+            nn.Linear(dim, dim * mlp_ratio), nn.ReLU(), nn.Linear(dim * mlp_ratio, dim)
+        )
+        self.norm1 = nn.LayerNorm(dim)
+        self.norm2 = nn.LayerNorm(dim)
+
+    def forward(self, x, attn_mask=None, bias=None):
+        x = x + self.attn(self.norm1(x), attn_mask, bias)
+        x = x + self.ff(self.norm2(x))
+        return x
+
+
+# -----------------------------
+# Full encoder
+# -----------------------------
+class FastSetEncoder(nn.Module):
+    def __init__(
+        self, input_dim, dim=64, depth=2, heads=4, use_relative_bias=True
+    ):
+        super().__init__()
+
+        self.embed = nn.Linear(input_dim, dim)
+        self.blocks = nn.ModuleList([FastBlock(dim, heads) for _ in range(depth)])
+
+        self.rel_bias = RelativeBias(heads) if use_relative_bias else None
+        self.norm = nn.LayerNorm(dim)
+
+    def forward(self, x):
+        """
+        x: (B, N, input_dim)
+           zero rows = padding
+        """
+
+        # padding mask: 1 = valid, 0 = padding
+        mask = (x.abs().sum(dim=-1) > 0).float()
+
+        xy = x[..., :2]  # raw x,y
+
+        x = self.embed(x)
+
+        bias = self.rel_bias(xy) if self.rel_bias else None
+
+        for block in self.blocks:
+            x = block(x, mask, bias)
+
+        x = self.norm(x)
+
+        # mean pooling over valid nodes
+        x = (x * mask[..., None]).sum(dim=1) / (mask.sum(dim=1, keepdim=True) + 1e-6)
+
+        return x
+
+
 class FeatureExtractor(nn.Module):
     """Handles both image-based and vector-based state inputs dynamically."""
 
