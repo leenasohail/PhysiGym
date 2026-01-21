@@ -154,7 +154,7 @@ int set_persistencetime(std::string s_cell_type, double minutes) {
         if (pCell->type_name == s_cell_type) {
             pCell->phenotype.motility.persistence_time = minutes;
         }
-        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Persistence Time: "<< pCell->phenotype.motility.persistence_time << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Persistence Time: " << pCell->phenotype.motility.persistence_time << std::endl;
     }
     return 0;
 }
@@ -166,7 +166,7 @@ int set_migrationspeed(std::string s_cell_type, double um_minutes) {
         if (pCell->type_name == s_cell_type) {
             pCell->phenotype.motility.migration_speed = um_minutes;
         }
-        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Speed: "<< pCell->phenotype.motility.migration_speed << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Speed: " << pCell->phenotype.motility.migration_speed << std::endl;
     }
     return 0;
 }
@@ -178,7 +178,7 @@ int set_migrationbias(std::string s_cell_type, double brownian_bias) {
         if (pCell->type_name == s_cell_type) {
             pCell->phenotype.motility.migration_bias = brownian_bias;
         }
-        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Bias: "<< pCell->phenotype.motility.migration_bias << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Migration Bias: " << pCell->phenotype.motility.migration_bias << std::endl;
     }
     return 0;
 }
@@ -189,7 +189,7 @@ int set_cell_cell_adhesion_strength(std::string s_cell_type, double um_minutes) 
         if (pCell->type_name == s_cell_type) {
             pCell->phenotype.mechanics.cell_cell_adhesion_strength = um_minutes;
         }
-        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Cell Cell Adhesion Strength: "<< pCell->phenotype.mechanics.cell_cell_adhesion_strength << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Cell Cell Adhesion Strength: " << pCell->phenotype.mechanics.cell_cell_adhesion_strength << std::endl;
     }
     return 0;
 }
@@ -200,7 +200,7 @@ int set_cell_cell_repulsion_strength(std::string s_cell_type, double um_minutes)
         if (pCell->type_name == s_cell_type) {
             pCell->phenotype.mechanics.cell_cell_repulsion_strength = um_minutes;
         }
-        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Cell Cell Repulsion Strength: "<< pCell->phenotype.mechanics.cell_cell_repulsion_strength << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Cell Cell Repulsion Strength: " << pCell->phenotype.mechanics.cell_cell_repulsion_strength << std::endl;
     }
     return 0;
 }
@@ -211,10 +211,18 @@ int set_relative_maximum_adhesion_distance(std::string s_cell_type, double um) {
         if (pCell->type_name == s_cell_type) {
             pCell->phenotype.mechanics.relative_maximum_adhesion_distance = um;
         }
-        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Relative Maxiumm Adhesion Distance: "<< pCell->phenotype.mechanics.relative_maximum_adhesion_distance << std::endl;
+        //std::cout << "ID: " << pCell->ID << " Type: " << pCell->type_name << " Relative Maxiumm Adhesion Distance: " << pCell->phenotype.mechanics.relative_maximum_adhesion_distance << std::endl;
     }
     return 0;
 }
 
 // double cell_adhesion_affinity
-
+int set_cell_adhesion_affinity(std::string s_cell_type_a, std::string s_cell_type_b, double proportion) {
+    for (Cell* pCell: (*all_cells)) {
+        if (pCell->type_name == s_cell_type_a) {
+            pCell->phenotype.mechanics.cell_adhesion_affinity(s_cell_type_b) = proportion;
+        }
+        //std::cout << "ID: " << pCell->ID << " Type A: " << pCell->type_name << " Type B:" << s_cell_type_b << " Adhesion Affinity: " << pCell->phenotype.mechanics.cell_adhesion_affinity(s_cell_type_b) << std::endl;
+    }
+    return 0;
+}
